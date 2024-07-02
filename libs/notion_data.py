@@ -3,6 +3,11 @@ from typing import Any, Dict, List, Callable
 
 @dataclass
 class NotionProperty:
+    """
+    Defines a generic Notion database property. It contains functions to let you check whether
+    a property's content differs from input content, and a function to return the correct structure
+    to update the property's contents in a Notion database page.
+    """
     name: str
     type: str
     additional: Dict[str, Any] = field(default_factory=dict)
@@ -29,6 +34,12 @@ class NotionProperty:
             raise ValueError(f"No diff function defined for {self.name} property.")
 
 class NotionDatabase:
+    """
+    Defines the structure of a Notion database and its properties, and additionally contains methods to
+    add, delete, and update pages inside the database.
+    The Status property is special and can't be modified by the Notion API.
+    Similarly, the Title property can't be deleted or modified, though the name can be changed.
+    """
     def __init__(self, database_id: str, notion_client: Any, properties: List[NotionProperty] = None):
         self.properties: Dict[str, NotionProperty] = {}
         if properties:
@@ -57,6 +68,7 @@ class NotionDatabase:
         return pages
 
     def create_page(self, page_data):
+        # page_data must contain data formatted with the update_content methods in each property.
         if page_data:
             self.notion.pages.create(parent={"database_id": self.database_id}, properties=page_data)
             return True
@@ -64,21 +76,26 @@ class NotionDatabase:
             return False
 
     def delete_page(self, page_id):
+        """Delete a page in the remote Notion database."""
         self.notion.pages.update(page_id, archived=True)
 
     def update_page(self, page_id, data):
+        # Similarly to create_page, page data must be formatted with update_content methods.
         if data:
             self.notion.pages.update(page_id, properties=data)
             return True
         return False
 
     def add_property(self, prop: NotionProperty):
+        """Adds a property to the local instance of the Notion database."""
         self.properties[prop.name] = prop
 
     def to_dict(self):
+        """Returns the property definition in the right format to modify a Notion database."""
         return {name: prop.to_dict() for name, prop in self.properties.items()}
 
     def update_props(self):
+        """Updates the properties of the remote Notion database tied to the local instance."""
         # TODO: This method could use some error checking and verifying that it worked properly.
         desired_props = self.to_dict()
 
@@ -109,6 +126,10 @@ class NotionDatabase:
                 )
 
 # Property creation functions
+# Each must have an _update function and _diff function.
+# _update is used to return content formatted to be a Notion page.
+# _diff returns whether or not a Notion page contains the same data as the input content.
+
 def link(name: str) -> NotionProperty:
     def _update(content: str) -> Dict[str, Any]:
         return {name: {"url": content}}
