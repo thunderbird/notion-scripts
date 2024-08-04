@@ -31,8 +31,9 @@ def map_bug_to_page(bug):
         'Product': bug["product"],
         'Version': bug["version"],
         'Whiteboard': bug["whiteboard"],
-        'Summary': bug["summary"]
+        'Summary': f'{bug["id"]} - {bug["summary"]}'
     }
+
     return notion_data
 
 
@@ -134,6 +135,10 @@ def sync_bugzilla_to_notion(bzquery, bugzilla_api_key, notion_db):
     bugs = get_all_bugs(bzquery, bugzilla_api_key)
     pages = notion_db.get_all_pages()
     bugcount = len(bugs)
+
+    # list of bug numbers to use for deduplication
+    pagelist = [page["properties"]["Bug Number"]["number"] for p in pages]
+
     # dict of bug numbers: pages for bugs in the notion db
     pages_bugs = {p["properties"]["Bug Number"]["number"]:p for p in pages}
 
@@ -144,9 +149,8 @@ def sync_bugzilla_to_notion(bzquery, bugzilla_api_key, notion_db):
 
     # delete pages that no longer match the criteria to be included
     for bnum in pages_bugs.keys():
-        if bnum not in bugs.keys() or skip_status(bugs[bnum]):
+        if bnum not in bugs.keys() or skip_status(bugs[bnum]) or list(bugs.keys()).count(bnum) > 1:
             notion_db.delete_page(pages_bugs[bnum]["id"])
-            print(bnum)
             deleted += 1
 
     # Add or update pages corresponding to bugs.
@@ -166,5 +170,8 @@ def sync_bugzilla_to_notion(bzquery, bugzilla_api_key, notion_db):
         else:
             if create_page(bug, notion_db):
                 added += 1
-    print(len(pages))
-    print(f"Sync Complete. {bugcount} bugs in query, {pagecount} in Notion: Added {added}, updated {updated}, deleted {deleted} and skipped {skipped}")
+
+    # Finish up and summarize results.
+    timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    pagecount = len(pages)
+    print(f"{timestamp} synced {bugcount} bugs in query, {pagecount} in Notion: Added {added}, updated {updated}, deleted {deleted} and skipped {skipped}")

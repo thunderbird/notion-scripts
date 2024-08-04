@@ -31,6 +31,7 @@ bugzilla_fields = [
 # To add a new property:
 # 1. Add it below and the corresponding bugzilla field above.
 # 2. Correct the map_bug_to_page function in bzhelper.
+# TODO: Add Summary here, it's a special title property and needs unique logic.
 properties = [
     rich_text('Assignee'),
     number('Bug Number'),
