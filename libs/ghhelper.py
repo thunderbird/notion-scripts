@@ -33,7 +33,6 @@ def map_issue_to_page(issue):
     for label in issue.get_labels():
         label_name = label.name
         if label_name.startswith(PROJECT_PHASE_PREFIX):
-            print("got phase: ", label_name);
             notion_data['Phase'] = label_name[len(PROJECT_PHASE_PREFIX):].strip()
     return notion_data
 
@@ -68,7 +67,7 @@ def issue_page_diff(issue: Dict[str, Any], page: Dict[str, Any], notion_db: Noti
     """Return true or false based on whether the Notion `page` matches the issue data or not."""
     props = notion_db.properties
 
-    for prop_name, isue_value in map_issue_to_page(issue).items():
+    for prop_name, issue_value in map_issue_to_page(issue).items():
         if prop_name in props and props[prop_name].is_prop_diff(page["properties"].get(prop_name, {}), issue_value):
             return True
 
@@ -106,6 +105,7 @@ def sync_gh_to_notion(repo, gh_api_key, notion_db):
     added = 0
     updated = 0
     deleted = 0
+    skipped = 0
 
     # delete pages that no longer match the criteria to be included
     for inum in pages_issues.keys():
@@ -116,18 +116,21 @@ def sync_gh_to_notion(repo, gh_api_key, notion_db):
 
     # Add or update pages corresponding to issue.
     for issue in issues:
+        print(issue.title);
         # Sleep for a bit if we're hammering the Notion API.
-        total_changes = added + updated
+        total_changes = added + updated + skipped
         if total_changes > 0 and total_changes % 20 == 0:
-            print(f"Added {added} issues, updated {updated}, and deleted {deleted}")
+            print(f"Added {added} issues, updated {updated}, deleted {deleted} and skipped {skipped}")
             print("Sleeping for 10 seconds...")
             time.sleep(10)
 
-        elif "id" in pages_issues.keys():
-            if update_page(issue, pages_issues[issue["id"]], notion_db):
+        if issue.number in pages_issues.keys():
+            if update_page(issue, pages_issues[issue.number], notion_db):
                 updated += 1
+            else:
+                skipped += 1
         else:
             if create_page(issue, notion_db):
                 added += 1
     print(len(pages))
-    print(f"Sync Complete. {issue_count} issues in query, {pagecount} in Notion: Added {added}, updated {updated}, and deleted {deleted}")
+    print(f"Sync Complete. {issue_count} issues in query, Added {added}, updated {updated}, and deleted {deleted}")
