@@ -98,13 +98,11 @@ class NotionDatabase:
     def update_props(self):
         """Updates the properties of the remote Notion database tied to the local instance."""
         # TODO: This method could use some error checking and verifying that it worked properly.
-        print('in update props');
         desired_props = self.to_dict()
 
         # Fetch the current properties of the database
         current_db = self.notion.databases.retrieve(database_id=self.database_id)
         current_props = current_db["properties"]
-        print(current_props);
 
         # Process current properties: rename title, delete others not in desired list, and add/update missing properties
         for prop_name, prop_info in current_props.items():

@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 from libs.notion_data import link, select, number, rich_text
 from typing import Dict, Any
-import copy
 
 bugzilla_base_url = "https://bugzilla.mozilla.org"
 
