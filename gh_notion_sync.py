@@ -16,7 +16,8 @@ import pdb
 print('connecting to notion');
 database_id = "3030fbc779254c6bbbb76d391e2f7923"
 notion = Client(auth=os.environ['NOTION_TOKEN'])
-notion_db = NotionDatabase(database_id, notion, settings.properties)
+pdb.set_trace()
+notion_db = NotionDatabase(database_id, notion, settings.gh_properties)
 
 # Ensure the database has the properties we expect.
 # This should probably happen on init, but we'll do it explicitly for now.

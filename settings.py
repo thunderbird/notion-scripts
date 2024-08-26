@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from libs.notion_data import link, select, number, rich_text
 from typing import Dict, Any
+import copy
 
 bugzilla_base_url = "https://bugzilla.mozilla.org"
 
@@ -40,4 +41,12 @@ properties = [
     select('Product', ['Thunderbird', 'MailNews Core', 'Calendar']),
     rich_text('Version'),
     rich_text('Whiteboard')
+]
+
+gh_properties = [
+    rich_text('Assignee'),
+    number('Bug Number'),
+    link('Link'),
+    rich_text('Phase'),
+    rich_text('Bug Status')
 ]

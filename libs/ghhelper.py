@@ -23,17 +23,18 @@ def map_issue_to_page(issue):
     """Mapping for issue fields to Notion properties. """
     notion_data = {
         'Bug Status': issue.state,
-        'Assignee': issue.assignee if issue.assignee else '',
+        'Assignee': issue.assignee.login if issue.assignee else 'None',
         'Bug Number': issue.number,
-        'Link': issue.url,
+        'Link': issue.html_url,
         'Summary': issue.title
         #'Labels': 
     }
+    notion_data['Phase'] = ''
     for label in issue.get_labels():
         label_name = label.name
         if label_name.startswith(PROJECT_PHASE_PREFIX):
             print("got phase: ", label_name);
-            notion_data['Phase']: label_name[len(PROJECT_PHASE_PREFIX):].strip()
+            notion_data['Phase'] = label_name[len(PROJECT_PHASE_PREFIX):].strip()
     return notion_data
 
 def page_data(issue, notion_db):
@@ -42,7 +43,7 @@ def page_data(issue, notion_db):
     props = notion_db.properties
 
     page = {
-        "Status": {"status": {"name": issue_data.pop('Bug Status')}},
+        #"Status": {"status": {"name": issue_data.pop('Bug Status')}},
         "Summary": {"type": "title", "title": [{"text": {"content": issue_data.pop('Summary')}}]}
     }
 
@@ -87,7 +88,6 @@ def update_page(issue, page, notion_db):
 def create_page(issue, notion_db):
     """Helper to create a new page in Notion based on issue data."""
     new_page = page_data(issue, notion_db)
-    pdb.set_trace();
     if notion_db.create_page(new_page):
         return True
     else:
