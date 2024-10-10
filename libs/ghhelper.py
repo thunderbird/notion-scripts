@@ -26,7 +26,8 @@ def map_issue_to_page(issue):
         'Assignee': issue.assignee.login if issue.assignee else 'None',
         'Bug Number': issue.number,
         'Link': issue.html_url,
-        'Summary': issue.title
+        'Summary': issue.title,
+        'Repo': issue.repository.name
         #'Labels': 
     }
     notion_data['Phase'] = ''
@@ -57,7 +58,7 @@ def get_all_issues(repo: str, gh_api_key: str, status: str = 'open') -> Dict[str
     token = os.environ['GITHUB_TOKEN']
     auth = Auth.Token(token)
     g = Github(auth=auth)
-    repo = g.get_repo('thunderbird/appointment')
+    repo = g.get_repo(repo)
     issues = repo.get_issues(state=status)
     g.close()
     return issues
@@ -92,45 +93,90 @@ def create_page(issue, notion_db):
     else:
         return False
 
+def create_child_database(parent_page_id, title):
+    # Payload to create a child database (table)
+    database_data = {
+        "parent": {"page_id": parent_page_id},
+        "title": [
+            {
+                "type": "text",
+                "text": {
+                    "content": title
+                }
+            }
+        ],
+        "properties": {
+            "Name": {
+                "title": {}
+            },
+            "Description": {
+                "rich_text": {}
+            },
+            "Status": {
+                "select": {
+                    "options": [
+                        {"name": "To Do", "color": "blue"},
+                        {"name": "In Progress", "color": "yellow"},
+                        {"name": "Done", "color": "green"}
+                    ]
+                }
+            },
+            "Due Date": {
+                "date": {}
+            }
+        }
+    }
+    
+    # Call to Notion API to create the database
+    response = notion.databases.create(**database_data)
+    return response
 
-def sync_gh_to_notion(repo, gh_api_key, notion_db):
-    issues = get_all_issues(repo, gh_api_key)
-    print('retrieved: ', issues);
-    pages = notion_db.get_all_pages()
-    issue_count = issues.totalCount
-    # dict of issues numbers: pages for issues in the notion db
-    pages_issues = {p["properties"]["Bug Number"]["number"]:p for p in pages}
-    issue_ids = [issue.number for issue in issues]
+def sync_gh_to_notion(repos, gh_api_key, notion_db, database_id):
+    # create tables for new repos
 
-    added = 0
-    updated = 0
-    deleted = 0
-    skipped = 0
-
-    # delete pages that no longer match the criteria to be included
-    for inum in pages_issues.keys():
-        if inum and inum not in issue_ids:
-            notion_db.delete_page(pages_issues[inum]["id"])
-            print('deleting: ', inum)
-            deleted += 1
-
-    # Add or update pages corresponding to issue.
-    for issue in issues:
-        print(issue.title);
-        # Sleep for a bit if we're hammering the Notion API.
-        total_changes = added + updated + skipped
-        if total_changes > 0 and total_changes % 20 == 0:
-            print(f"Added {added} issues, updated {updated}, deleted {deleted} and skipped {skipped}")
-            print("Sleeping for 10 seconds...")
-            time.sleep(10)
-
-        if issue.number in pages_issues.keys():
-            if update_page(issue, pages_issues[issue.number], notion_db):
-                updated += 1
+    # for each repo, update its related tables with tasks derived from GH Issues
+    # for each repo, update its related pages with child pages derived from GH Issues
+    for repo in repos:
+        issues = get_all_issues(repo, gh_api_key)
+        print('retrieved: ', issues);
+        pages = notion_db.get_all_pages()
+        issue_count = issues.totalCount
+        # dict of issues numbers: pages for issues in the notion db
+        pages_issues = {p["properties"]["Bug Number"]["number"]:p for p in pages}
+        issue_ids = [issue.number for issue in issues]
+    
+        added = 0
+        updated = 0
+        deleted = 0
+        skipped = 0
+    
+        """
+        # NOTE: removing this since we should keep all tasks in Notion
+        # delete pages that no longer match the criteria to be included
+        for inum in pages_issues.keys():
+            if inum and inum not in issue_ids:
+                notion_db.delete_page(pages_issues[inum]["id"])
+                print('deleting: ', inum)
+                deleted += 1
+        """
+    
+        # Add or update pages corresponding to issue.
+        for issue in issues:
+            print(issue.title);
+            # Sleep for a bit if we're hammering the Notion API.
+            total_changes = added + updated + skipped
+            if total_changes > 0 and total_changes % 20 == 0:
+                print(f"Added {added} issues, updated {updated}, deleted {deleted} and skipped {skipped}")
+                print("Sleeping for 10 seconds...")
+                time.sleep(10)
+    
+            if issue.number in pages_issues.keys():
+                if update_page(issue, pages_issues[issue.number], notion_db):
+                    updated += 1
+                else:
+                    skipped += 1
             else:
-                skipped += 1
-        else:
-            if create_page(issue, notion_db):
-                added += 1
-    print(len(pages))
-    print(f"Sync Complete. {issue_count} issues in query, Added {added}, updated {updated}, and deleted {deleted}")
+                if create_page(issue, notion_db):
+                    added += 1
+        print(len(pages))
+        print(f"Sync Complete. {issue_count} issues in query, Added {added}, updated {updated}, and deleted {deleted}")
