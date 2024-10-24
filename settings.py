@@ -42,3 +42,11 @@ properties = [
     rich_text('Version'),
     rich_text('Whiteboard')
 ]
+
+gh_properties = [
+    rich_text('Assignee'),
+    number('Bug Number'),
+    link('Link'),
+    rich_text('Phase'),
+    rich_text('Bug Status')
+]

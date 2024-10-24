@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Callable
 
+import pdb
+
 @dataclass
 class NotionProperty:
     """
@@ -55,7 +57,6 @@ class NotionDatabase:
         while True:
             response = self.notion.databases.query(
                 self.database_id,
-                filter=None,
                 start_cursor=cursor,
                 page_size=100
             )
