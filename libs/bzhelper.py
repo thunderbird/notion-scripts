@@ -3,6 +3,7 @@ import requests
 import settings
 import time
 
+from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, Any
 
@@ -131,13 +132,38 @@ def create_page(bug, notion_db):
         return False
 
 
-def sync_bugzilla_to_notion(bzquery, bugzilla_api_key, notion_db):
-    bugs = get_all_bugs(bzquery, bugzilla_api_key)
-    pages = notion_db.get_all_pages()
-    bugcount = len(bugs)
+def remove_duplicates(pages, notion_db):
+    """Removes duplicate pages based on bug numbers, keeping only
+       one page per bug number."""
+    bug_to_pages = defaultdict(list)
+    total_deleted = 0   # Total number of duplicates deleted
 
-    # list of bug numbers to use for deduplication
-    pagelist = [page["properties"]["Bug Number"]["number"] for p in pages]
+    # Map each bug number to its corresponding pages
+    for page in pages:
+        bug_number = page["properties"]["Bug Number"]["number"]
+        bug_to_pages[bug_number].append(page)
+
+    # Iterate over the bug numbers and delete duplicate pages
+    for bug_number, page_list in bug_to_pages.items():
+        if len(page_list) > 1:
+            # Keep the first page and delete the rest
+            pages_to_delete = page_list[1:]
+            for page in pages_to_delete:
+                notion_db.delete_page(page["id"])
+                pages.remove(page)
+                total_deleted += 1
+
+                if total_deleted % 20 == 0:
+                    print(f"Total duplicates deleted: {total_deleted}")
+                    print("Pausing for 10 seconds...")
+                    time.sleep(10)
+
+    # Print final total of duplicates deleted
+    print(f"Total duplicates deleted: {total_deleted}")
+
+
+def sync_bugzilla_to_notion(bugs, pages, notion_db):
+    bugcount = len(bugs)
 
     # dict of bug numbers: pages for bugs in the notion db
     pages_bugs = {p["properties"]["Bug Number"]["number"]:p for p in pages}
@@ -146,6 +172,7 @@ def sync_bugzilla_to_notion(bzquery, bugzilla_api_key, notion_db):
     updated = 0
     skipped = 0
     deleted = 0
+    last_skip = False
 
     # delete pages that no longer match the criteria to be included
     for bnum in pages_bugs.keys():
@@ -153,17 +180,23 @@ def sync_bugzilla_to_notion(bzquery, bugzilla_api_key, notion_db):
             notion_db.delete_page(pages_bugs[bnum]["id"])
             deleted += 1
 
+    # If we somehow have duplicates in Notion, remove them.
+    remove_duplicates(pages, notion_db)
+
     # Add or update pages corresponding to bugs.
     for bug in bugs.values():
         # Sleep for a bit if we're hammering the Notion API.
         total_changes = added + updated
-        if total_changes > 0 and total_changes % 20 == 0:
+        if not last_skip and total_changes > 0 and total_changes % 20 == 0:
             print(f"Added {added} bugs, updated {updated}, deleted {deleted} and skipped {skipped}")
             print("Sleeping for 10 seconds...")
             time.sleep(10)
+        # We only skip pausing for one iteration after a skip, so this resets.
+        last_skip = False
 
         if skip_status(bug):
                 skipped += 1
+                last_skip = True
         elif bug["id"] in pages_bugs.keys():
             if update_page(bug, pages_bugs[bug["id"]], notion_db):
                 updated += 1
