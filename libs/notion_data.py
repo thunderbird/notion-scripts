@@ -104,15 +104,10 @@ class NotionDatabase:
         current_db = self.notion.databases.retrieve(database_id=self.database_id)
         current_props = current_db["properties"]
 
-        # Process current properties: rename title, delete others not in desired list, and add/update missing properties
+        # Process current properties: delete properties not in desired list, and add/update missing ones
+        # The status and title properties cannot be deleted via the API.
         for prop_name, prop_info in current_props.items():
-            if prop_info["type"] == "title":
-                if prop_info["name"] != "Summary":
-                    self.notion.databases.update(
-                        database_id=self.database_id,
-                        properties={prop_name: {"name": "Summary", "type": "title"}}
-                    )
-            elif prop_name not in desired_props and prop_info["type"] != "status":
+            if prop_name not in desired_props and prop_info["type"] not in ["status", "title"]:
                 self.notion.databases.update(
                     database_id=self.database_id,
                     properties={prop_name: None}
@@ -121,9 +116,14 @@ class NotionDatabase:
         # Add or update missing properties
         for prop_name, prop_schema in desired_props.items():
             if prop_name not in current_props or current_props[prop_name]["type"] != prop_schema["type"]:
+                if prop_schema["type"] == 'title':
+                    # The title property always has the id "title" so can be renamed that way.
+                    properties = {"title": {"name": prop_name}}
+                else:
+                    properties = {prop_name: prop_schema}
                 self.notion.databases.update(
                     database_id=self.database_id,
-                    properties={prop_name: prop_schema}
+                    properties=properties
                 )
 
 # Property creation functions
@@ -144,6 +144,7 @@ def link(name: str) -> NotionProperty:
 
     return NotionProperty(name=name, type='url', additional={'url': {}}, _update=_update, _diff=_diff)
 
+
 def rich_text(name: str) -> NotionProperty:
     def _update(content: str) -> Dict[str, Any]:
         return {name: {"rich_text": [{"text": {"content": content}}]}}
@@ -159,6 +160,7 @@ def rich_text(name: str) -> NotionProperty:
 
     return NotionProperty(name=name, type='rich_text', additional={'rich_text': {}}, _update=_update, _diff=_diff)
 
+
 def number(name: str) -> NotionProperty:
     def _update(content: int) -> Dict[str, Any]:
         return {name: {"number": content}}
@@ -171,6 +173,7 @@ def number(name: str) -> NotionProperty:
         return False
 
     return NotionProperty(name=name, type='number', additional={'number': {}}, _update=_update, _diff=_diff)
+
 
 def select(name: str, options: List[str]) -> NotionProperty:
     def _update(content: str) -> Dict[str, Any]:
@@ -186,3 +189,20 @@ def select(name: str, options: List[str]) -> NotionProperty:
         return False
 
     return NotionProperty(name=name, type='select', additional={'select': {'options': [{'name': option} for option in options]}}, _update=_update, _diff=_diff)
+
+
+# This is a special text field that cannot have its type changed.
+def title(name: str) -> NotionProperty:
+    def _update(content: str) -> Dict[str, Any]:
+        return {name: {"type": "title", "title": [{"text": {"content": content}}]}}
+
+    def _diff(property_data: Dict[str, Any], content: str) -> bool:
+        if "title" not in property_data:
+            return True
+        if len(property_data["title"]) == 0:
+            return True
+        if property_data["title"][0]["plain_text"] != content:
+            return True
+        return False
+
+    return NotionProperty(name=name, type='title', additional={}, _update=_update, _diff=_diff)

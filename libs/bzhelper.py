@@ -45,7 +45,7 @@ def page_data(bug, notion_db):
 
     page = {
         "Status": {"status": {"name": bug_data.pop('Status')}},
-        "Summary": {"type": "title", "title": [{"text": {"content": bug_data.pop('Summary')}}]}
+        # "Summary": {"type": "title", "title": [{"text": {"content": bug_data.pop('Summary')}}]}
     }
 
     for key, value in bug_data.items():
