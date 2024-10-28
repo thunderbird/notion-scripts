@@ -15,15 +15,15 @@ Currently, a Bugzilla API key, GitHub API key, and the Notion integration secret
 
 This contains two main classes:
 
-`NotionDatabase`: Defines a Notion database, along wih its properties and a remotely tied Notion client used for CRUD operations.
-`NotionProperty`: Defines a generic Notion property, including functions to return the right data for updating content and the property itself.
+* `NotionDatabase`: Defines a Notion database, along wih its properties and a remotely tied Notion client used for CRUD operations.
+* `NotionProperty`: Defines a generic Notion property, including functions to return the right data for updating content and the property itself.
 
 ### Bugzilla Sync
-`libs/bzhelper.py` contains helper functions and utilities for connecting to Bugzilla and syncing Bugzilla -> Notion.
-`bzsettings.py` contains Notion database properties and bugzilla fields that are used by sync process.
-`bz_notion_sync.py` is used to run the sync code.
+* `libs/bzhelper.py` contains helper functions and utilities for connecting to Bugzilla and syncing Bugzilla -> Notion.
+* `bzsettings.py` contains Notion database properties and bugzilla fields that are used by sync process.
+* `bz_notion_sync.py` is used to run the sync code.
 
 ### GitHub Issues Sync
-`libs/ghhelper.py` contains helper functions and utilities for connecting to GitHub and syncing to Notion.
-`ghsettings.py` contains the repo list, db properties and other basic settings.
-`gh_notion_sync.py` is used to run the sync code.
+* `libs/ghhelper.py` contains helper functions and utilities for connecting to GitHub and syncing to Notion.
+* `ghsettings.py` contains the repo list, db properties and other basic settings.
+* `gh_notion_sync.py` is used to run the sync code.
