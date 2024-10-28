@@ -70,7 +70,7 @@ class NotionDatabase:
 
         return pages
 
-    def dict_to_page(self, datadict):
+    def dict_to_page(self, datadict: Dict[str, Any]):
         """
         Takes a `datadict` and returns a Notion database page formatted for the Notion API.
         A datadict is a dictionary containing {<property_name>: <data>}.
@@ -87,7 +87,7 @@ class NotionDatabase:
 
         return page
 
-    def create_page(self, datadict):
+    def create_page(self, datadict: Dict[str, Any]) -> bool:
         """
         Create a new page in the Notion database.
         `datadict` must be a dictionary containing {<property_name>: <data>}.
@@ -102,7 +102,7 @@ class NotionDatabase:
         """Delete a page in the remote Notion database by `page_id`."""
         self.notion.pages.update(page_id, archived=True)
 
-    def update_page(self, page, datadict):
+    def update_page(self, page: Dict[str, Any], datadict: Dict[str, Any]) -> bool:
         """Update `page` with the data in `datadict`. Updates only occur if `page` and `datadict` are different."""
         if self.page_diff(datadict, page):
             data = self.dict_to_page(datadict)
