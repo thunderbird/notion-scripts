@@ -1,20 +1,15 @@
+import bzsettings
 import libs.bzhelper as bzhelper
 import os
-import settings
+
 from libs.notion_data import NotionDatabase
 from notion_client import Client
 
 # Token for the Bugzilla Sync integration that's registered with Notion.
 notion = Client(auth=os.environ['NOTION_TOKEN'])
+
 # API key for Bugzilla account.
 bugzilla_api_key = os.environ['BZ_KEY']
-
-# This is the ID for the Global Bug database in Notion.
-global_bugs_db = "5f30c08339c04f1b97a50f23c2391a30"
-
-# This is the ID for the desktop Tasks database in Notion.
-# TODO: change to production, this is currently a test db.
-desktop_task_db = "b45b29583a554d048792af51ce061ee4"
 
 bzquery = (
     "?bug_status=NEW"
@@ -36,16 +31,18 @@ bzquery = (
 )
 
 # Initialize python representation of the Notion DB.
-notion_db = NotionDatabase(global_bugs_db, notion, settings.properties)
+notion_db = NotionDatabase(bzsettings.bugs_db, notion, bzsettings.properties)
 
 # Ensure the database has the properties we expect.
 # This should probably happen on init, but we'll do it explicitly for now.
 notion_db.update_props()
 
+# Get all the bugs we want to sync from the Bugzilla API.
 bugs = bzhelper.get_all_bugs(bzquery, bugzilla_api_key)
 num_bugs = len(bugs)
 print(f"Bugzilla API get completed, found {num_bugs} bugs.")
 
+# Get all the pages currently in the Notion db.
 pages = notion_db.get_all_pages()
 num_pages = len(pages)
 print(f"Notion API get completed, found {num_pages} pages.")

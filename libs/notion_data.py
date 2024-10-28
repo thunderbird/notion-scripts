@@ -1,12 +1,10 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Callable
 
-import pdb
-
 @dataclass
 class NotionProperty:
     """
-    Defines a generic Notion database property. It contains functions to let you check whether
+    Defines a generic Notion database property. It must contain functions to let you check whether
     a property's content differs from input content, and a function to return the correct structure
     to update the property's contents in a Notion database page.
     """
@@ -17,6 +15,7 @@ class NotionProperty:
     _diff: Callable[[Dict[str, Any], Any], bool] = None
 
     def to_dict(self):
+        """ Returns a dict that defines this property in the Notion API format. """
         return {
             'name': self.name,
             'type': self.type,
@@ -24,12 +23,14 @@ class NotionProperty:
         }
 
     def update_content(self, content: Any):
+        """ Returns `content` formatted in the right way for the Notion API to accept. """
         if self._update:
             return self._update(content)
         else:
             raise ValueError("No update function defined.")
 
     def is_prop_diff(self, property_data: Dict[str, Any], content: Any) -> bool:
+        """ Logic to return whether `property_data` is different from `content` for this property type. """
         if self._diff:
             return self._diff(property_data, content)
         else:
@@ -51,6 +52,7 @@ class NotionDatabase:
         self.database_id = database_id
 
     def get_all_pages(self):
+        """ Gets all pages currently in the Notion database. """
         pages = []
         cursor = None
 
@@ -68,23 +70,52 @@ class NotionDatabase:
 
         return pages
 
-    def create_page(self, page_data):
-        # page_data must contain data formatted with the update_content methods in each property.
+    def dict_to_page(self, datadict):
+        """
+        Takes a `datadict` and returns a Notion database page formatted for the Notion API.
+        A datadict is a dictionary containing {<property_name>: <data>}.
+        """
+        props = self.properties
+
+        page = {
+            "Status": {"status": {"name": datadict.pop('Status')}}
+        }
+
+        for key, value in datadict.items():
+            if key in props:
+                page.update(props[key].update_content(value))
+
+        return page
+
+    def create_page(self, datadict):
+        """
+        Create a new page in the Notion database.
+        `datadict` must be a dictionary containing {<property_name>: <data>}.
+        """
+        page_data = self.dict_to_page(datadict)
         if page_data:
             self.notion.pages.create(parent={"database_id": self.database_id}, properties=page_data)
             return True
-        else:
-            return False
+        return False
 
     def delete_page(self, page_id):
-        """Delete a page in the remote Notion database."""
+        """Delete a page in the remote Notion database by `page_id`."""
         self.notion.pages.update(page_id, archived=True)
 
-    def update_page(self, page_id, data):
-        # Similarly to create_page, page data must be formatted with update_content methods.
-        if data:
+    def update_page(self, page, datadict):
+        """Update `page` with the data in `datadict`. Updates only occur if `page` and `datadict` are different."""
+        if self.page_diff(datadict, page):
+            data = self.dict_to_page(datadict)
             self.notion.pages.update(page_id, properties=data)
             return True
+        return False
+
+    def page_diff(self, datadict: Dict[str, Any], page: Dict[str, Any]) -> bool:
+        """Return true or false based on whether the Notion `datadict` matches page2 or not."""
+        cur_props = self.properties
+        for prop_name, prop_value in datadict.items():
+            if prop_name in cur_props and cur_props[prop_name].is_prop_diff(page["properties"].get(prop_name, {}), prop_value):
+                return True
         return False
 
     def add_property(self, prop: NotionProperty):
@@ -100,7 +131,7 @@ class NotionDatabase:
         # TODO: This method could use some error checking and verifying that it worked properly.
         desired_props = self.to_dict()
 
-        # Fetch the current properties of the database
+        # Fetch the current properties of the database.
         current_db = self.notion.databases.retrieve(database_id=self.database_id)
         current_props = current_db["properties"]
 
@@ -191,7 +222,7 @@ def select(name: str, options: List[str]) -> NotionProperty:
     return NotionProperty(name=name, type='select', additional={'select': {'options': [{'name': option} for option in options]}}, _update=_update, _diff=_diff)
 
 
-# This is a special text field that cannot have its type changed.
+# This is a special text field that cannot have its type changed. All Notion databases automatically have a title property.
 def title(name: str) -> NotionProperty:
     def _update(content: str) -> Dict[str, Any]:
         return {name: {"type": "title", "title": [{"text": {"content": content}}]}}
