@@ -4,7 +4,7 @@ from libs.notion_data import NotionDatabase, link, select, number, rich_text, ti
 database_id = "3ca7ed3fe75b4a6d805953156a603540"
 
 # Name of the org to prefix repos for API calls, with trailing slash.
-orgname = 'thunderbird/'
+orgname = 'thunderbird'
 
 # Repositories to import issues from.
 repos = [
@@ -28,10 +28,9 @@ repos = [
 # Properties of the "All GitHub Issues" database in Notion.
 # There must also be a status property named 'Status'.
 properties = [
-    number('Issue Number'),
     select('Repository', repos),
     rich_text('Assignee'),
     title('Title'),
     link('Link'),
-    number('Node ID')
+    rich_text('Unique ID')
 ]

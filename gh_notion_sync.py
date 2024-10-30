@@ -13,8 +13,8 @@ notion_db = NotionDatabase(ghsettings.database_id, notion, ghsettings.properties
 notion_db.update_props()
 
 # Gather data.
-pages = notion_db.get_all_pages()
 issues = ghhelper.get_all_issues()
+pages = notion_db.get_all_pages()
 
 # Start sync.
 ghhelper.sync_github_to_notion(issues, pages, notion_db)

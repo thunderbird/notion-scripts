@@ -106,13 +106,18 @@ class NotionDatabase:
         """Update `page` with the data in `datadict`. Updates only occur if `page` and `datadict` are different."""
         if self.page_diff(datadict, page):
             data = self.dict_to_page(datadict)
-            self.notion.pages.update(page_id, properties=data)
+            self.notion.pages.update(page['id'], properties=data)
             return True
         return False
 
     def page_diff(self, datadict: Dict[str, Any], page: Dict[str, Any]) -> bool:
         """Return true or false based on whether the Notion `datadict` matches page2 or not."""
         cur_props = self.properties
+
+        # The status property needs special handling if it exists since it isn't a registered property.
+        if datadict.get('Status') and datadict['Status'] != page['properties']['Status']['status']['name']:
+            return True
+        # Loop over all properties and see if any are different.
         for prop_name, prop_value in datadict.items():
             if prop_name in cur_props and cur_props[prop_name].is_prop_diff(page["properties"].get(prop_name, {}), prop_value):
                 return True
