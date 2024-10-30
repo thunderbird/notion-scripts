@@ -1,0 +1,21 @@
+[project]
+name = "notion-scripts"
+version = "0.1"
+description = "Sync and utility scripts for Notion and other services."
+authors = [
+    { name = "Andrei Hajdukewycz", email = "sancus@off.net" },
+    { name = "Malini Das", email = "malini@thunderbird.net" }
+]
+dependencies = [
+    "notion-client>=2.2.1",
+    "requests>=2.32.3",
+    "sgqlc>=16.4",
+    "sgqlc-schemas>=0.1.0",
+]
+readme = "README.md"
+requires-python = ">= 3.11"
+
+[tool.rye]
+managed = true
+virtual = true
+dev-dependencies = []
