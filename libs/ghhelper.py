@@ -30,7 +30,9 @@ def map_issue_to_page(issue):
         'Link': issue.url,
         'Title': issue.title,
         'Repository': issue.repository.name,
-        'Unique ID': issue.id
+        'Unique ID': issue.id,
+        'Opened': issue.created_at,
+        'Closed': issue.closed_at
         #'Labels':
     }
 
@@ -42,10 +44,13 @@ def get_issues_from_repo(reponame):
     endpoint = HTTPEndpoint('https://api.github.com/graphql', {'Authorization': f'Bearer {os.getenv("GITHUB_TOKEN")}'})
     has_next_page = True
     cursor = None
+
     all_issues = []
     while has_next_page:
         op = Operation(schema.query_type)
         issues = op.repository(owner=ghsettings.orgname, name=reponame).issues(first=100, after=cursor)
+        issues.nodes.created_at()
+        issues.nodes.closed_at()
         issues.nodes.title()
         issues.nodes.state()
         issues.nodes.url()
@@ -87,7 +92,7 @@ def sync_github_to_notion(issues, pages, notion_db):
         for issue in repo:
             # Sleep for a bit if we're hammering the Notion API.
             total_changes = added + updated
-            if total_changes > 0 and total_changes % 28 == 0:
+            if total_changes > 0 and total_changes % 20 == 0:
                 print(f"Added {added} issues, updated {updated}")
                 print("Sleeping for 10 seconds...")
                 time.sleep(10)
@@ -100,4 +105,4 @@ def sync_github_to_notion(issues, pages, notion_db):
                     added += 1
     timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     page_count = len(pages)
-    print(f"{timestamp} synced {issue_count} issues in query, {page_count} in Notion: Added {added} and updated {updated}.")
+    print(f"{timestamp} synced {issue_count} issues in query, {page_count} were in Notion: Added {added} and updated {updated}.")

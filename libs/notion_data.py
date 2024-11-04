@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any, Dict, List, Callable
 
 @dataclass
@@ -111,7 +112,7 @@ class NotionDatabase:
         return False
 
     def page_diff(self, datadict: Dict[str, Any], page: Dict[str, Any]) -> bool:
-        """Return true or false based on whether the Notion `datadict` matches page2 or not."""
+        """Return true or false based on whether the Notion `datadict` matches `page` or not."""
         cur_props = self.properties
 
         # The status property needs special handling if it exists since it isn't a registered property.
@@ -130,6 +131,9 @@ class NotionDatabase:
     def to_dict(self):
         """Returns the property definition in the right format to modify a Notion database."""
         return {name: prop.to_dict() for name, prop in self.properties.items()}
+
+    def get_props(self):
+        return self.notion.databases.retrieve(database_id=self.database_id)
 
     def update_props(self):
         """Updates the properties of the remote Notion database tied to the local instance."""
@@ -166,6 +170,24 @@ class NotionDatabase:
 # Each must have an _update function and _diff function.
 # _update is used to return content formatted to be a Notion page.
 # _diff returns whether or not a Notion page contains the same data as the input content.
+
+def date(name: str) -> NotionProperty:
+    def _update(content: datetime) -> Dict[str, Any]:
+        if content:
+            return {name: {"date": {"start": content.date().isoformat()}}}
+        else:
+            return {name: {"date": None}}
+
+    def _diff(property_data: Dict[str, Any], content: datetime) -> bool:
+        property_data = property_data.get("date").get("start") if property_data.get("date") else None
+        if content:
+            content = content.date().isoformat()
+        if property_data != content:
+            return True
+        return False
+
+    return NotionProperty(name=name, type='date', additional={'date': {}}, _update=_update, _diff=_diff)
+
 
 def link(name: str) -> NotionProperty:
     def _update(content: str) -> Dict[str, Any]:
