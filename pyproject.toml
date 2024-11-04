@@ -11,6 +11,7 @@ dependencies = [
     "requests>=2.32.3",
     "sgqlc>=16.4",
     "sgqlc-schemas>=0.1.0",
+    "python-dateutil>=2.9.0.post0",
 ]
 readme = "README.md"
 requires-python = ">= 3.11"
@@ -19,3 +20,6 @@ requires-python = ">= 3.11"
 managed = true
 virtual = true
 dev-dependencies = []
+
+[tool.rye.scripts]
+github = "python gh_notion_sync.py"
