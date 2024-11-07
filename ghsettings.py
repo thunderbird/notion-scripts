@@ -3,6 +3,9 @@ import libs.notion_data as p
 # This is the ID of the All GitHub Issues database.
 database_id = "3ca7ed3fe75b4a6d805953156a603540"
 
+# This is the ID of the Milestones database.
+milestones_id = "1352df5d45ae8068a42dc799f13ea87a"
+
 # Name of the org to prefix repos for API calls, with trailing slash.
 orgname = 'thunderbird'
 

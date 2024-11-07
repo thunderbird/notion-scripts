@@ -105,4 +105,5 @@ def sync_github_to_notion(issues, pages, notion_db):
                     added += 1
     timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     page_count = len(pages)
+    notion_db.description = f"Last Sync: {timestamp} UTC"
     print(f"{timestamp} synced {issue_count} issues in query, {page_count} were in Notion: Added {added} and updated {updated}.")
