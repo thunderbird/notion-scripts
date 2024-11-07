@@ -52,6 +52,26 @@ class NotionDatabase:
         self.notion = notion_client
         self.database_id = database_id
 
+    @property
+    def description(self):
+        database_info = self.notion.databases.retrieve(self.database_id)
+        # Extract and return the description as plain text.
+        return "".join([item["text"]["content"] for item in database_info.get("description", [])])
+
+    @description.setter
+    def description(self, new_desc):
+        self.notion.databases.update(
+            database_id=self.database_id,
+            description=[
+                { "type": "text",
+                    "text": {
+                        "content": new_desc
+                    }
+                }
+            ]
+        )
+
+
     def get_all_pages(self):
         """ Gets all pages currently in the Notion database. """
         pages = []
