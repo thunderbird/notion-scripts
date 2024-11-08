@@ -29,7 +29,8 @@ repos = [
 ]
 
 # Properties of the "All GitHub Issues" database in Notion.
-# There must also be a status property named 'Status'.
+# There must also be a status property named 'Status', which is not listed here.
+# There is also a Labels property defined in gh_notion_sync.py
 properties = [
     p.select('Repository', repos),
     p.rich_text('Assignee'),

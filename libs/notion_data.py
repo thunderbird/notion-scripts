@@ -266,7 +266,37 @@ def select(name: str, options: List[str]) -> NotionProperty:
             return True
         return False
 
-    return NotionProperty(name=name, type='select', additional={'select': {'options': [{'name': option} for option in options]}}, _update=_update, _diff=_diff)
+    return NotionProperty(
+        name=name, type='select',
+        additional={'select': {'options': [{'name': opt} for opt in options]}},
+        _update=_update, _diff=_diff
+    )
+
+
+def multi_select(name: str, options: List[str]) -> NotionProperty:
+    def _update(content: List[str]) -> Dict[str, Any]:
+            vals = []
+            for val in content:
+                if val not in options:
+                    raise ValueError(f"Invalid option: {val}. Must be one of {options}.")
+                vals.append({"name": val})
+            return {name: {"multi_select": vals}}
+
+    def _diff(property_data: Dict[str, Any], content: List[str]) -> bool:
+        if "multi_select" not in property_data:
+            return True
+        vals = [v["name"] for v in property_data["multi_select"]]
+        if set(vals) == set(content):
+            return False
+        if {s.lower() for s in vals} == {s.lower() for s in content}:
+            print(f"Case Warning!\n{vals} | {content}\n")
+        return True
+
+    return NotionProperty(
+        name=name, type='multi_select',
+        additional={'multi_select': {'options': [{'name': opt} for opt in options]}},
+        _update=_update, _diff=_diff
+    )
 
 
 # This is a special text field that cannot have its type changed. All Notion databases automatically have a title property.

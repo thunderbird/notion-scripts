@@ -32,8 +32,8 @@ def map_issue_to_page(issue):
         'Repository': issue.repository.name,
         'Unique ID': issue.id,
         'Opened': issue.created_at,
-        'Closed': issue.closed_at
-        #'Labels':
+        'Closed': issue.closed_at,
+        'Labels': [l.name for l in issue.labels.nodes]
     }
 
     # for label in issue.get_labels():
@@ -78,6 +78,17 @@ def get_all_issues(status: str = 'all') -> Dict[str, Any]:
     for r in ghsettings.repos:
         all_issues[r] = get_issues_from_repo(r)
     return all_issues
+
+
+def extract_labels(issues):
+    """Extract labels into a list with no duplicates."""
+    labels = set()
+
+    for repo in issues.values():
+        for issue in repo:
+            for label in issue.labels.nodes:
+                labels.add(label.name)
+    return labels
 
 
 def sync_github_to_notion(issues, pages, notion_db):
