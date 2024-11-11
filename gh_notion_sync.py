@@ -13,6 +13,10 @@ notion = Client(auth=os.environ['NOTION_TOKEN'])
 issues = ghhelper.get_all_issues()
 labels = ghhelper.extract_labels(issues)
 
+# Extract the milestones for relational purposes.
+milestones_db = NotionDatabase(ghsettings.milestones_id, notion)
+milestones = ghhelper.extract_milestones(milestones_db.get_all_pages())
+
 # Add labels property limited to all known labels
 properties = ghsettings.properties + [p.multi_select('Labels', labels)]
 
@@ -26,4 +30,4 @@ notion_db.update_props()
 pages = notion_db.get_all_pages()
 
 # Start sync.
-ghhelper.sync_github_to_notion(issues, pages, notion_db)
+ghhelper.sync_github_to_notion(issues, pages, milestones, notion_db)

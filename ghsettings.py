@@ -38,5 +38,6 @@ properties = [
     p.link('Link'),
     p.rich_text('Unique ID'),
     p.date('Opened'),
-    p.date('Closed')
+    p.date('Closed'),
+    p.relation('Milestones', milestones_id, True)
 ]

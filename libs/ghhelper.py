@@ -22,7 +22,7 @@ def issue_status_to_notion(issue) -> str:
     return status
 
 
-def map_issue_to_page(issue):
+def map_issue_to_page(issue, milestones):
     """Map a single issue's data into the datadict format for the NotionDatabase class. """
     notion_data = {
         'Status': issue_status_to_notion(issue),
@@ -33,8 +33,11 @@ def map_issue_to_page(issue):
         'Unique ID': issue.id,
         'Opened': issue.created_at,
         'Closed': issue.closed_at,
-        'Labels': [l.name for l in issue.labels.nodes]
+        'Labels': [l.name for l in issue.labels.nodes],
     }
+
+    filtered_labels = [label[2:].strip() for label in notion_data['Labels'] if label.startswith("M:") and label[2:].strip() in milestones]
+    notion_data['Milestones'] = [milestones[label] for label in filtered_labels]
 
     # for label in issue.get_labels():
     return notion_data
@@ -91,7 +94,19 @@ def extract_labels(issues):
     return labels
 
 
-def sync_github_to_notion(issues, pages, notion_db):
+def extract_milestones(pages):
+    """ Convert pages from the Notion Milestones database into a dict of milestone_title:page_id. """
+    milestones = {}
+    for page in pages:
+        for prop in page["properties"].values():
+            if prop["id"] == "title":
+                title = prop["title"][0]["plain_text"]
+                if title:
+                    milestones[title] = page["id"]
+    return milestones
+
+
+def sync_github_to_notion(issues, pages, milestones, notion_db):
     # dict of issues numbers: pages for issues in the notion db
     pages_issues = {p["properties"]["Unique ID"]["rich_text"][0]["plain_text"]:p for p in pages}
 
@@ -109,10 +124,10 @@ def sync_github_to_notion(issues, pages, notion_db):
                 time.sleep(10)
 
             if issue.id in pages_issues.keys():
-                if notion_db.update_page(pages_issues[issue.id], map_issue_to_page(issue)):
+                if notion_db.update_page(pages_issues[issue.id], map_issue_to_page(issue, milestones)):
                     updated += 1
             else:
-                if notion_db.create_page(map_issue_to_page(issue)):
+                if notion_db.create_page(map_issue_to_page(issue, milestones)):
                     added += 1
     timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     page_count = len(pages)

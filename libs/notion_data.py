@@ -299,6 +299,22 @@ def multi_select(name: str, options: List[str]) -> NotionProperty:
     )
 
 
+def relation(name: str, related_db: str, dual: bool = False) -> NotionProperty:
+    relation_type = "dual_property" if dual else "single_property"
+
+    def _update(page_ids: List[str]) -> Dict[str, Any]:
+        return {name: {"relation": [{"id": page_id} for page_id in page_ids]}}
+
+    def _diff(property_data: Dict[str, Any], related_page_ids: List[str]) -> bool:
+        existing_ids = {relation["id"] for relation in property_data.get("relation", [])}
+        return existing_ids != set(related_page_ids)
+
+    return NotionProperty(
+        name=name, type='relation',
+        additional={'relation': {'database_id': related_db, 'type': relation_type, relation_type: {}}},
+        _update=_update, _diff=_diff
+    )
+
 # This is a special text field that cannot have its type changed. All Notion databases automatically have a title property.
 def title(name: str) -> NotionProperty:
     def _update(content: str) -> Dict[str, Any]:
