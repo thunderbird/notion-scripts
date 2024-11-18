@@ -9,7 +9,7 @@ from sgqlc.operation import Operation
 from sgqlc_schemas import github_schema as schema
 from typing import Dict, Any
 
-def map_issue_to_page(issue, milestones):
+def map_issue_to_page(issue, milestones, page_status):
     """Map a single issue's data into the datadict format for the NotionDatabase class. """
     notion_data = {
         'Assignee': ' '.join(a.login for a in issue.assignees.nodes) if issue.assignees.nodes else '',
@@ -22,8 +22,13 @@ def map_issue_to_page(issue, milestones):
         'Labels': [l.name for l in issue.labels.nodes],
     }
 
+    # Assign 'Done' to closed tickets
     if issue.state == "CLOSED":
         notion_data['Status'] = "Done"
+
+    # Assign 'Not started' to re-opened tickets
+    if page_status == "Done" and issue.state == "OPEN": 
+        notion_data['Status'] = "Not started"
 
     filtered_labels = [label[2:].strip() for label in notion_data['Labels'] if label.startswith("M:") and label[2:].strip() in milestones]
     notion_data['Milestones'] = [milestones[label] for label in filtered_labels]
@@ -113,7 +118,9 @@ def sync_github_to_notion(issues, pages, milestones, notion_db):
                 time.sleep(10)
 
             if issue.id in pages_issues.keys():
-                if notion_db.update_page(pages_issues[issue.id], map_issue_to_page(issue, milestones)):
+                page = pages_issues[issue.id]
+                page_status = page.get('properties').get('Status').get('status').get('name')
+                if notion_db.update_page(page, map_issue_to_page(issue, milestones, page_status)):
                     updated += 1
             else:
                 if notion_db.create_page(map_issue_to_page(issue, milestones)):
