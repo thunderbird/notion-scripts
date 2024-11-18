@@ -9,7 +9,7 @@ from sgqlc.operation import Operation
 from sgqlc_schemas import github_schema as schema
 from typing import Dict, Any
 
-def map_issue_to_page(issue, milestones, page_status):
+def map_issue_to_page(issue, milestones, page_status=None):
     """Map a single issue's data into the datadict format for the NotionDatabase class. """
     notion_data = {
         'Assignee': ' '.join(a.login for a in issue.assignees.nodes) if issue.assignees.nodes else '',
