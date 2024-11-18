@@ -9,23 +9,9 @@ from sgqlc.operation import Operation
 from sgqlc_schemas import github_schema as schema
 from typing import Dict, Any
 
-def issue_status_to_notion(issue) -> str:
-    """Convert a GH issue state to a Notion database status."""
-    if issue.state == "CLOSED":
-        status = "Done"
-    elif issue.state == "OPEN":
-        if issue.assignees.nodes:
-            status = "In progress"
-        else:
-            status = "Not started"
-
-    return status
-
-
 def map_issue_to_page(issue, milestones):
     """Map a single issue's data into the datadict format for the NotionDatabase class. """
     notion_data = {
-        'Status': issue_status_to_notion(issue),
         'Assignee': ' '.join(a.login for a in issue.assignees.nodes) if issue.assignees.nodes else '',
         'Link': issue.url,
         'Title': issue.title,
@@ -35,6 +21,9 @@ def map_issue_to_page(issue, milestones):
         'Closed': issue.closed_at,
         'Labels': [l.name for l in issue.labels.nodes],
     }
+
+    if issue.state == "CLOSED":
+        notion_data['Status'] = "Done"
 
     filtered_labels = [label[2:].strip() for label in notion_data['Labels'] if label.startswith("M:") and label[2:].strip() in milestones]
     notion_data['Milestones'] = [milestones[label] for label in filtered_labels]

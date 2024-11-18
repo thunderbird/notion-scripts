@@ -97,10 +97,12 @@ class NotionDatabase:
         A datadict is a dictionary containing {<property_name>: <data>}.
         """
         props = self.properties
+        page = {}
 
-        page = {
-            "Status": {"status": {"name": datadict.pop('Status')}}
-        }
+        if datadict.get('Status'):
+            page = {
+                "Status": {"status": {"name": datadict.pop('Status')}}
+            }
 
         for key, value in datadict.items():
             if key in props:
