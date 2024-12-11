@@ -27,7 +27,7 @@ def map_issue_to_page(issue, milestones, page_status=None):
         notion_data['Status'] = "Done"
 
     # Assign 'Not started' to re-opened tickets
-    if page_status == "Done" and issue.state == "OPEN": 
+    if page_status == "Done" and issue.state == "OPEN":
         notion_data['Status'] = "Not started"
 
     filtered_labels = [label[2:].strip() for label in notion_data['Labels'] if label.startswith("M:") and label[2:].strip() in milestones]
@@ -101,8 +101,17 @@ def extract_milestones(pages):
 
 
 def sync_github_to_notion(issues, pages, milestones, notion_db):
-    # dict of issues numbers: pages for issues in the notion db
-    pages_issues = {p["properties"]["Unique ID"]["rich_text"][0]["plain_text"]:p for p in pages}
+    # Create dict of {issue_id: notion_page} for issues in the notion db.
+    pages_issues = {}
+    for p in pages:
+        try:
+            # Unique ID is the node ID from GitHub. All issues must have one.
+            key = p["properties"]["Unique ID"]["rich_text"][0]["plain_text"]
+            pages_issues[key] = p
+        except IndexError:
+            print(f"Error: Page {p['id']} has no Unique ID! Deleting it...")
+            notion_db.delete_page(p['id'])
+            continue
 
     added = 0
     updated = 0
@@ -110,13 +119,6 @@ def sync_github_to_notion(issues, pages, milestones, notion_db):
     for repo in issues.values():
         issue_count += len(repo)
         for issue in repo:
-            # Sleep for a bit if we're hammering the Notion API.
-            total_changes = added + updated
-            if total_changes > 0 and total_changes % 20 == 0:
-                print(f"Added {added} issues, updated {updated}")
-                print("Sleeping for 10 seconds...")
-                time.sleep(10)
-
             if issue.id in pages_issues.keys():
                 page = pages_issues[issue.id]
                 page_status = page.get('properties').get('Status').get('status').get('name')
@@ -125,6 +127,12 @@ def sync_github_to_notion(issues, pages, milestones, notion_db):
             else:
                 if notion_db.create_page(map_issue_to_page(issue, milestones)):
                     added += 1
+                        # Sleep for a bit if we're hammering the Notion API.
+            total_changes = added + updated
+            if total_changes > 0 and total_changes % 20 == 0:
+                print(f"Added {added} issues, updated {updated}")
+                print("Sleeping for 10 seconds...")
+                time.sleep(10)
     timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     page_count = len(pages)
     notion_db.description = f"Last Sync: {timestamp} UTC"
