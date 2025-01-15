@@ -94,7 +94,7 @@ def extract_milestones(pages):
     for page in pages:
         for prop in page["properties"].values():
             if prop["id"] == "title":
-                title = prop["title"][0]["plain_text"]
+                title = prop["title"][0]["plain_text"].strip()
                 if title:
                     milestones[title] = page["id"]
     return milestones
