@@ -1,0 +1,79 @@
+# MZLA Notion Scripts Configuration
+# See README for more information on the setup
+
+[usermap]
+
+[usermap.github]
+kewisch = "65baf5a6-b353-4d90-a787-b194f0780da3"
+cketti = "360a2ce1-c46a-4b92-b54f-dbef1ea8667a"
+wmontwe = "8583f0f6-f8c7-4f79-93b6-7e0d68647632"
+
+[sync]
+
+[sync.services]
+method = "github_labels"
+enabled = false # TODO Services needs to check if the new code works
+
+# This is the ID of the All GitHub Issues database.
+notion_tasks_id = "3ca7ed3fe75b4a6d805953156a603540"
+
+# This is the ID of the Milestones database.
+notion_milestones_id = "1352df5d45ae8068a42dc799f13ea87a"
+strip_orgname = true
+
+repositories = [
+    "thunderbird/addons-server",
+    "thunderbird/appointment",
+    "thunderbird/assist",
+    "thunderbird/cloudops",
+    "thunderbird/code-coverage",
+    "thunderbird/mailstrom",
+    "thunderbird/notion-scripts",
+    "thunderbird/pulumi",
+    "thunderbird/send-suite",
+    "thunderbird/services-ui",
+    "thunderbird/services-utils",
+    "thunderbird/stats",
+    "thunderbird/thunderbird-accounts",
+    "thunderbird/thunderbird-notifications",
+    "thunderbird/thunderbird-website",
+    "thunderbird/thunderblog",
+    "thunderbird/thundernest-ansible",
+    "thunderbird/knowledgebase-issues",
+    "thunderbird/android-knowledgebase-issues",
+    "thunderbird/tbpro-knowledgebase-issues",
+    "thunderbird/zendesk-config"
+]
+
+[sync.mobile]
+method = "github_project"
+notion_tasks_id = "94ca27a3d7374a4fae6ad6d5c7a70a76"
+notion_milestones_id = "637245a2c53b4d86a99c6e97006153df"
+notion_sprints_id = "19e2df5d45ae803fa74ff4d6aa52f25f"
+
+github_tasks_project_id = "PVT_kwDOAOe9Jc4AygBu"
+github_milestones_project_id = "PVT_kwDOAOe9Jc4Ayf_S"
+
+milestones_github_prefix = "[EPIC] "
+milestones_body_sync = false
+milestones_body_sync_if_empty = true
+tasks_body_sync = false
+
+repositories = [
+  "thunderbird/thunderbird-android"
+]
+
+
+[sync.bugzilla]
+enabled = false # TODO Untested, needs a test run with the new code
+method = "bugzilla"
+
+# ID of the All Thunderbird Bugs Database in Notion.
+notion_bugs_id = "5f30c08339c04f1b97a50f23c2391a30"
+
+products = ["Thunderbird", "MailNews Core", "Calendar"]
+list_id = 17103050
+
+# Max bugs in each API query.
+# https://www.bugzilla.org/docs/4.4/en/html/api/Bugzilla/WebService/Bug.html#limit
+bugzilla_limit = 100
