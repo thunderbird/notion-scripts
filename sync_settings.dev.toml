@@ -1,0 +1,60 @@
+# Development environment, for a personal Notion instance
+
+[usermap]
+
+[usermap.github]
+kewisch = "94cc602d-e1e2-42ba-93b2-6252637129b7"
+
+
+[sync]
+
+[sync.services]
+method = "github_labels"
+notion_tasks_id = "19ddea4adcdf8052906aeeb2f3d5acc9"
+notion_milestones_id = "19ddea4adcdf8018b060cda446ff2835"
+strip_orgname = true
+
+repositories = [
+  "kewisch/test"
+]
+
+
+[sync.mobile]
+method = "github_project"
+notion_tasks_id = "18adea4adcdf807c8fabcc9c11b61777"
+notion_milestones_id = "18adea4adcdf80b9a9e0f3c1a18ede53"
+notion_sprints_id = "18adea4adcdf8073af16f1d07eb1661e"
+
+github_tasks_project_id = "PVT_kwHOAAlD3s4AxVFW"
+github_milestones_project_id = "PVT_kwHOAAlD3s4AxVDI"
+#milestones_body_sync = true
+
+tasks_notion_prefix = "[GitHub] "
+
+repositories = [
+  "kewisch/test"
+]
+
+[sync.mobile.properties]
+notion_tasks_title = "Title"
+notion_tasks_assignee = "Assignee"
+notion_tasks_dates = "Date"
+notion_tasks_milestone_relation = "Project"
+notion_milestones_title = "Name"
+notion_milestones_assignee = "Assignee"
+notion_tasks_open_state = "Not started"
+
+
+[sync.bugzilla]
+enabled = false
+method = "bugzilla"
+
+# ID of the All Thunderbird Bugs Database in Notion.
+notion_bugs_id = "5f30c08339c04f1b97a50f23c2391a30"
+
+products = ["Thunderbird", "MailNews Core", "Calendar"]
+list_id = 17103050
+
+# Max bugs in each API query.
+# https://www.bugzilla.org/docs/4.4/en/html/api/Bugzilla/WebService/Bug.html#limit
+bugzilla_limit = 100

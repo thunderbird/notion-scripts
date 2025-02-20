@@ -1,0 +1,53 @@
+---
+name: Notion Sync
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
+      projects:
+        type: string
+        required: false
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: environment
+      projects:
+        type: string
+        description: Enter one or more projects to sync. Leave empty for all.
+      dry:
+        type: boolean
+        description: Do a dry run
+
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rye
+        uses: eifinger/setup-rye@6dc1fff0a98becbcc0cf542a05ae144c9f32b100  # v4.2.8
+        with:
+          enable-cache: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Rye Sync
+        run: rye sync
+
+      - name: Synchronize
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          PROJECTS: ${{ inputs.projects }}
+          VERBOSE: ${{ runner.debug && '-vv' || '' }}
+          DRY: ${{ inputs.dry && '-n' || '' }}
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          rye run sync ${DRY} ${VERBOSE} -c sync_settings.${ENVIRONMENT}.toml ${PROJECTS}
