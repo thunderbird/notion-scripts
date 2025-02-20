@@ -27,7 +27,11 @@ repos = [
     "thunderbird-notifications",
     "thunderbird-website",
     "thunderblog",
-    "thundernest-ansible"
+    "thundernest-ansible",
+    "knowledgebase-issues",
+    "android-knowledgebase-issues",
+    "tbpro-knowledgebase-issues",
+    "zendesk-config"
 ]
 
 # Properties of the "All GitHub Issues" database in Notion.
