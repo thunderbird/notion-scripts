@@ -1,0 +1,19 @@
+---
+name: Scheduler
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+
+concurrency:
+  group: cron
+  cancel-in-progress: false
+
+
+jobs:
+  synchronize:
+    if: ${{ github.repository_owner == 'thunderbird' }}
+    uses: ./.github/workflows/run.yml
+    secrets: inherit
+    with:
+      environment: production
