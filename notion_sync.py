@@ -15,6 +15,15 @@ from libs.gh_project_sync import synchronize as synchronize_gh_project
 logger = logging.getLogger("notion_sync")
 
 
+def list_synchronizers(config):
+    """Just list synchronizers."""
+    with open(config, "rb") as fp:
+        settings = tomllib.load(fp)
+
+    enabled = [key for key, project in settings["sync"].items() if project.get("enabled", True)]
+    print("\n".join(enabled))
+
+
 def main(projects, config, verbose=0, dry_run=False):
     """This is the main cli. Please use --help on how to use it."""
     logging.basicConfig(
@@ -141,6 +150,7 @@ if __name__ == "__main__":
         action="store_true",
         help="Run the script without making changes",
     )
+    parser.add_argument("-l", "--list", action="store_true", help="List synchronizers and exit")
     parser.add_argument(
         "projects",
         nargs="*",
@@ -150,4 +160,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    sys.exit(main(args.projects, config=args.config, verbose=args.verbose, dry_run=args.dry_run))
+    if args.list:
+        list_synchronizers(args.config)
+    else:
+        sys.exit(main(args.projects, config=args.config, verbose=args.verbose, dry_run=args.dry_run))

@@ -24,30 +24,68 @@ on:
 
 
 jobs:
-  run:
+  setup-matrix:
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}
-
+    outputs:
+      synchronizers: ${{ steps.generate.outputs.synchronizers }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Rye
+        id: setup-rye
         uses: eifinger/setup-rye@6dc1fff0a98becbcc0cf542a05ae144c9f32b100  # v4.2.8
         with:
           enable-cache: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Rye Sync
+        if: steps.setup-rye.outputs.cache-hit != 'true'
+        run: rye sync
+
+      - name: Generate
+        id: generate
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          PROJECTS: ${{ inputs.projects }}
+        run: |
+          if [ -z "${PROJECTS}" ]
+          then
+            echo "synchronizers=$(rye run sync -l -c sync_settings.${ENVIRONMENT}.toml | jq -R . | jq -sc .)" | tee -a $GITHUB_OUTPUT
+          else
+            echo "synchronizers=$(echo ${PROJECTS} | jq -R . | jq -sc .)" | tee -a $GITHUB_OUTPUT
+          fi
+
+  run:
+    needs: setup-matrix
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    strategy:
+      fail-fast: false
+      matrix:
+        synchronizer: ${{ fromJson(needs.setup-matrix.outputs.synchronizers) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rye
+        id: setup-rye
+        uses: eifinger/setup-rye@6dc1fff0a98becbcc0cf542a05ae144c9f32b100  # v4.2.8
+        with:
+          enable-cache: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Rye Sync
+        if: steps.setup-rye.outputs.cache-hit != 'true'
         run: rye sync
 
       - name: Synchronize
         env:
           ENVIRONMENT: ${{ inputs.environment }}
-          PROJECTS: ${{ inputs.projects }}
+          PROJECT: ${{ matrix.synchronizer }}
           VERBOSE: ${{ runner.debug && '-vv' || '' }}
           DRY: ${{ inputs.dry && '-n' || '' }}
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         run: |
-          rye run sync ${DRY} ${VERBOSE} -c sync_settings.${ENVIRONMENT}.toml ${PROJECTS}
+          rye run sync ${DRY} ${VERBOSE} -c sync_settings.${ENVIRONMENT}.toml ${PROJECT}
