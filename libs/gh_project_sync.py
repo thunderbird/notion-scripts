@@ -424,10 +424,10 @@ class ProjectSync:
         self._github_milestones_project.update_project_for_issue(
             github_issue,
             {
-                "start_date": self._get_prop(page, "notion_milestones_dates", {}).get("start"),
-                "target_date": self._get_prop(page, "notion_milestones_dates", {}).get("end"),
-                "priority": self._get_prop(page, "notion_milestones_priority", {}).get("name"),
-                "status": self._get_prop(page, "notion_milestones_status", {}).get("name"),
+                "start_date": (self._get_prop(page, "notion_milestones_dates") or {}).get("start"),
+                "target_date": (self._get_prop(page, "notion_milestones_dates") or {}).get("end"),
+                "priority": (self._get_prop(page, "notion_milestones_priority") or {}).get("name"),
+                "status": (self._get_prop(page, "notion_milestones_status") or {}).get("name"),
             },
             add=True,
         )
