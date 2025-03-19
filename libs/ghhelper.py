@@ -136,7 +136,8 @@ class GitHubProjectV2:
 
             project_items = (op + data).node.items
             for item in project_items.nodes:
-                all_issue_numbers.append(item.content)
+                if isinstance(item.content, schema.Issue):
+                    all_issue_numbers.append(item.content)
 
             has_next_page = project_items.page_info.has_next_page
             cursor = project_items.page_info.end_cursor
