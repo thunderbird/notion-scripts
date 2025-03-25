@@ -18,7 +18,7 @@ from libs.notion_data import NotionDatabase
 
 from . import ghhelper
 from . import notion_data as p
-from .util import getnestedattr
+from .util import getnestedattr, RetryingClient
 from .notion_data import CustomNotionToMarkdown
 
 logger = logging.getLogger("gh_project_sync")
@@ -117,7 +117,7 @@ class ProjectSync:
             dry (bool): If true, only query operations are done. Mutations are disabled for both
                 GitHub and Notion.
         """
-        self.notion = Client(auth=notion_token)
+        self.notion = Client(auth=notion_token, client=RetryingClient())
         self.propnames = {**self.DEFAULT_PROPERTY_NAMES, **property_names}
 
         # Milestones Database

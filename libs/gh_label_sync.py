@@ -10,7 +10,7 @@ from notion_client import Client
 from . import ghhelper as ghhelper
 from . import notion_data as p
 from .notion_data import NotionDatabase
-from .util import getnestedattr
+from .util import getnestedattr, RetryingClient
 
 logger = logging.getLogger("gh_label_sync")
 
@@ -38,7 +38,7 @@ def synchronize(
         dry (bool): If true, no mutating operations will occur.
     """
     # Initialize Notion client.
-    notion = Client(auth=notion_token)
+    notion = Client(auth=notion_token, client=RetryingClient())
 
     # Gather issues first so that we can populate select properties accordingly.
     logger.info("Getting GitHub issues...")

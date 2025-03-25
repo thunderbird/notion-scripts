@@ -13,6 +13,7 @@ from notion_client import Client
 
 from . import notion_data as p
 from .notion_data import NotionDatabase
+from .util import RetryingClient
 
 logger = logging.getLogger("bugzilla_sync")
 
@@ -57,7 +58,7 @@ def synchronize(
         list_id (int): The saved search list id, to speed up queries.
         dry (bool): If true, no mutating operations will occur.
     """
-    notion = Client(auth=notion_token)
+    notion = Client(auth=notion_token, client=RetryingClient())
 
     properties = [
         p.rich_text("Assignee"),

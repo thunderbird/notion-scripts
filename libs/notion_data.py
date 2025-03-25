@@ -11,8 +11,6 @@ from md2notionpage.core import parse_md
 from notion_client.helpers import collect_paginated_api
 from notion_to_md import NotionToMarkdown
 
-from .util import retry_call
-
 logger = logging.getLogger("notion_database")
 
 
@@ -93,9 +91,7 @@ class NotionDatabase:
         cursor = None
 
         while True:
-            response = retry_call(
-                lambda: self.notion.databases.query(self.database_id, start_cursor=cursor, page_size=100)
-            )
+            response = self.notion.databases.query(self.database_id, start_cursor=cursor, page_size=100)
             pages.extend(response["results"])
             cursor = response.get("next_cursor")
 
@@ -131,22 +127,20 @@ class NotionDatabase:
             if self.dry:
                 return {"id": "dry"}  # Fake page
             else:
-                return retry_call(
-                    lambda: self.notion.pages.create(parent={"database_id": self.database_id}, properties=page_data)
-                )
+                return self.notion.pages.create(parent={"database_id": self.database_id}, properties=page_data)
         return None
 
     def delete_page(self, page_id):
         """Delete a page in the remote Notion database by `page_id`."""
         if not self.dry:
-            retry_call(lambda: self.notion.pages.update(page_id, archived=True))
+            self.notion.pages.update(page_id, archived=True)
 
     def update_page(self, page: Dict[str, Any], datadict: Dict[str, Any]) -> bool:
         """Update `page` with the data in `datadict`. Updates only occur if `page` and `datadict` are different."""
         if self.page_diff(datadict, page):
             data = self.dict_to_page(datadict)
             if not self.dry:
-                retry_call(lambda: self.notion.pages.update(page["id"], properties=data))
+                self.notion.pages.update(page["id"], properties=data)
             return True
         return False
 
@@ -180,9 +174,9 @@ class NotionDatabase:
         server_blocks = collect_paginated_api(self.notion.blocks.children.list, block_id=page_id)
 
         for block in server_blocks:
-            retry_call(lambda: self.notion.blocks.delete(block_id=block["id"]))
+            self.notion.blocks.delete(block_id=block["id"])
 
-        retry_call(lambda: self.notion.blocks.children.append(block_id=page_id, children=blocks))
+        self.notion.blocks.children.append(block_id=page_id, children=blocks)
 
     def add_property(self, prop: NotionProperty):
         """Adds a property to the local instance of the Notion database."""
@@ -194,7 +188,7 @@ class NotionDatabase:
 
     def get_props(self):
         """Returns the database information (e.g. properties)."""
-        return retry_call(lambda: self.notion.databases.retrieve(database_id=self.database_id))
+        return self.notion.databases.retrieve(database_id=self.database_id)
 
     def update_props(self, delete=False):
         """Updates the properties of the remote Notion database tied to the local instance."""
@@ -202,7 +196,7 @@ class NotionDatabase:
         desired_props = self.to_dict()
 
         # Fetch the current properties of the database.
-        current_db = retry_call(lambda: self.notion.databases.retrieve(database_id=self.database_id))
+        current_db = self.notion.databases.retrieve(database_id=self.database_id)
         current_props = current_db["properties"]
 
         # Process current properties: delete properties not in desired list, and add/update missing ones
@@ -216,11 +210,9 @@ class NotionDatabase:
                     if self.dry:
                         logger.info(f"Extra property {prop_name} on database {self.database_id} will be deleted")
                     else:
-                        retry_call(
-                            lambda: self.notion.databases.update(
-                                database_id=self.database_id,
-                                properties={prop_name: None},
-                            )
+                        self.notion.databases.update(
+                            database_id=self.database_id,
+                            properties={prop_name: None},
                         )
 
         # Add or update missing properties
@@ -237,9 +229,7 @@ class NotionDatabase:
                 if self.dry:
                     logger.info(f"Updating property {prop_name} to schema {prop_schema} on {self.database_id}")
                 else:
-                    retry_call(
-                        lambda: self.notion.databases.update(database_id=self.database_id, properties=properties)
-                    )
+                    self.notion.databases.update(database_id=self.database_id, properties=properties)
 
         if not changes and self.dry:
             logger.info(f"All properties on {self.database_id} are up to date")

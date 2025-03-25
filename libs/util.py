@@ -4,27 +4,35 @@
 
 import logging
 import time
-
-from notion_client.errors import APIErrorCode, APIResponseError
+import httpx
 
 logger = logging.getLogger("notion_sync")
 
 
-def retry_call(func, recur=3):
-    """Retry the Notion API call in case it was rate limited after the indicated back-off time."""
-    try:
-        return func()
-    except APIResponseError as error:
-        if error.code == APIErrorCode.RateLimited:
-            if recur < 0:
-                raise error
-            else:
-                seconds = int(error.response.headers["Retry-After"])
-                logger.info(f"Sleeping {seconds} due to rate limiting")
-                time.sleep(seconds)
-                return retry_call(func, recur - 1)
-        else:
-            raise error
+class RetryingClient(httpx.Client):
+    """A replacement httpx.Client for Notion.
+
+    Handles Notion's rate limiting and request timeouts.
+    """
+
+    def send(self, request, *args, recur=10, **kwargs):
+        """httpx.Client send that retries."""
+        try:
+            response = super().send(request, *args, **kwargs)
+        except httpx.TimeoutException:
+            if recur <= 0:
+                raise
+            logger.info("Sleeping 10 seconds due to request timeout")
+            time.sleep(10)
+            return self.send(request, *args, recur=recur - 1, **kwargs)
+
+        if response.status_code == 429 and recur > 0:
+            seconds = int(response.headers.get("Retry-After", 10))
+            logger.info(f"Sleeping {seconds} seconds due to rate limiting")
+            time.sleep(seconds)
+            return self.send(request, *args, recur=recur - 1, **kwargs)
+
+        return response
 
 
 def getnestedattr(func, default):
