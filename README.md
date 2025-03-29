@@ -4,6 +4,22 @@ This tool synchronizes Notion with GitHub and Bugzilla, for use with MZLA's Noti
 
 ## Configuration
 
+#### Repository sets
+A single project synchronization is meant to be used for a Notion Milestone/Tasks database
+combination. If you use more than one Notion Milestones/Tasks database, you'll want one Project
+Synchronization for each of them.
+
+Within each Notion Milestones/Tasks database, you might be catering to more than one GitHub
+repository. For this we use the repository sets, to be configured in the
+`sync_settings.<name>.repositories` section.
+
+* If you have one GitHub Project set (Roadmap/Sprints) that spans all of your GitHub repositories,
+  configure one repository set that has multiple repositories listed in the `repositories` array of
+  the `sync_settings.<name>.repositories.<id>` section.
+* If you have one GitHub Project set (Roadmap/Sprints) per repository, configure multiple repository
+  sets that each have that one repository listed. Repository sets can certainly have more than one
+  repository as well if you want to group them.
+
 ### Notion Setup
 
 To configure, you need to create/edit the sync_settings.toml file, set a few environment variables,
@@ -72,25 +88,17 @@ method = "github_project"
 notion_tasks_id = "18adea4adcdf807c8fabcc9c11b61777"
 notion_milestones_id = "18adea4adcdf80b9a9e0f3c1a18ede53"
 
-# The sprints database is optional, if not specified then sprints will not synchronize
+# The sprints database is optional, if not specified then sprints will not synchronize.
+# Please note that sprints will be synchronized by name, if you use multiple repository sets then
+# you have to make sure the sprint names and dates stay in sync.
 notion_sprints_id = "18adea4adcdf8073af16f1d07eb1661e"
 
-# There needs to be a GitHub project for the roadmap that is connected to the milestones, and one
-# for the sprint tasks which is connected to the tasks. Find them via the commented out code in the
-# main script.
-github_tasks_project_id = "PVT_kwHOAAlD3s4AxVFW"
-github_milestones_project_id = "PVT_kwHOAAlD3s4AxVDI"
 
 # If true, the github issue body will be synced for each task
 # This is time consuming because Notion requires multiple requests per page
 body_sync = false
 
-# The list of repositories that are allowed to be synced. This doesn't mean all issues from these
-# will be copied over however, as sync is much more selective.
-repositories = [
-  "thunderbird/thunderbird-android",
-  "thunderbird/thunderbird-ios",
-]
+
 
 # You can synchronize the body of the Milestone items from Notion as Markdown to GitHub so they are
 # constantly updated. This is time consuming though because a lot of requests are required due to
@@ -110,10 +118,36 @@ milestones_github_prefix = "[EPIC] "
 # other high level tasks.
 tasks_notion_prefix = "[GitHub] "
 
-[sync.mobile.properties]
+# Now we begin repositories. We need a mapping between the repositories and the connected GitHub
+# Projects. You might just have one if everything is in a single GitHub Project, or you might have
+# multiple if you want to separate them.
+[sync.mobile.repositories]
+
+[sync.mobile.repositories.android]
+# The list of repositories that are allowed to be synced. This doesn't mean all issues from these
+# will be copied over however, as sync is much more selective.
+repositories = [
+  "thunderbird/thunderbird-android",
+]
+
+# There needs to be a GitHub project for the roadmap that is connected to the milestones, and one
+# for the sprint tasks which is connected to the tasks. Find them via the commented out code in the
+# main script.
+github_tasks_project_id = "PVT_kwHOAAlD3s4AxVFW"
+github_milestones_project_id = "PVT_kwHOAAlD3s4AxVDI"
+
+# Here is an example of a second set of repositories, connected to different GitHub Projects.
+[sync.mobile.repositories.ios]
+repositories = [
+  "thunderbird/thunderbird-ios",
+]
+github_tasks_project_id = "PVT_kwDOAOe9Jc4A1aav"
+github_milestones_project_id = "PVT_kwDOAOe9Jc4A1aX6"
+
 # Here you can change the property names for certain Notion properties. They tend to be different
 # depending on how the database was created and how you maybe renamed them. See
 # libs/gh_project_sync.py for the default settings, they will also help you in the initial setup.
+[sync.mobile.properties]
 notion_tasks_title = "Title"
 notion_tasks_assignee = "Assignee"
 notion_tasks_dates = "Date"
@@ -177,8 +211,8 @@ Here is your workflow as a manager/project manager:
   * For each Milestone in Notion, create an issue on GitHub and link it via the `GitHub Issue`
     property on your Notion milestone. When the sync happens, all info will be copied over to the
     new GitHub issue.
-  * Any changes you make in Notion will be synchronized, one-way, to the GitHub issue. Depending on
-    settings this will also include the body text of the Notion milestone.
+  * Any Milestone changes you make in Notion will be synchronized, one-way, to the GitHub issue.
+    Depending on settings this will also include the body text of the Notion milestone.
   * Make the GitHub Project for the roadmap public, but consider this a readonly view where you do
     not make changes.
   * If you have the "Sprints" feature enabled in Notion or would like to, consider sprints in Notion
@@ -219,7 +253,7 @@ On Notion, make sure the Databases have the expected properties:
 You can change the property names in the sync_settings config if needed. 
 
 #### GitHub Setup
-On GitHub, you'll need to create two projects:
+On GitHub, you'll need to create two projects for each set of repositories you want to synchronize:
 
 **Sprint Project**: This is the project that will retain the individual tasks, as noted above, with
   the following fields:
@@ -264,7 +298,8 @@ On GitHub, you'll need to create two projects:
    * Disable "Auto-add sub-issues to project" and "When a pull request is merged"
 
 Once you have the two projects, use this code to determine the GitHub database ID from the
-repository and then set `tasks_project_id` and `milestones_project_id`:
+repository and then set `github_tasks_project_id` and `github_milestones_project_id` in the
+repository settings:
 
 ```python
 ghhelper.GitHubProjectV2.list("thunderbird", "thunderbird-android")

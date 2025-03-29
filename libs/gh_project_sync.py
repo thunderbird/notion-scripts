@@ -73,13 +73,11 @@ class ProjectSync:
         notion_token,
         milestones_id,
         tasks_id,
-        milestones_project_id,
-        tasks_project_id,
         sprint_id=None,
         milestones_body_sync=False,
         milestones_body_sync_if_empty=True,
         tasks_body_sync=True,
-        allowed_repositories=None,
+        repository_settings=None,
         milestones_github_prefix="",
         tasks_notion_prefix="",
         user_map={},
@@ -92,9 +90,6 @@ class ProjectSync:
             notion_token (str): The Notion client token
             milestones_id (str): The Notion database id for the "Milestones" database
             tasks_id (str): The Notion database id for the "Tasks" database
-            milestones_project_id (str): The id of the GitHub Project to sync with milestones
-                database
-            tasks_project_id (str): The id of the GitHub project to sync with the tasks database
             sprint_id (str): The Notion database id for the "Sprints" database. Leave out to disable
                 sprint syncing.
             milestones_body_sync (bool): If true, the Notion page body will always be synchronized
@@ -103,8 +98,7 @@ class ProjectSync:
                 to GitHub, but only if the GitHub issue is empty. This works great for a one time import.
             tasks_body_sync (bool): If true, the github issue body will be synced to Notion tasks.
                 Note this takes a lot of requests, so recommend avoiding.
-            allowed_repositories (list[str]): List of orgname/repo with those repostories for which
-                GitHub links should be followed. Avoids mistakes when linking external issues.
+            repository_settings (dict[str,dict]): Repository mappings with list of repos and project.
             milestones_github_prefix (str): Optional prefix for GitHub issues synchronized from
                 milestones.
             tasks_notion_prefix (str): Optional prefix for Notion tasks synchronized from GitHub
@@ -121,7 +115,6 @@ class ProjectSync:
 
         # Milestones Database
         self.milestones_db = NotionDatabase(milestones_id, self.notion, dry=dry)
-        self.milestones_project_id = milestones_project_id
         self.milestones_body_sync = milestones_body_sync
         self.milestones_body_sync_if_empty = milestones_body_sync_if_empty
         self.milestones_github_prefix = milestones_github_prefix
@@ -153,14 +146,37 @@ class ProjectSync:
 
         # Tasks Database
         self.tasks_db = NotionDatabase(tasks_id, self.notion, tasks_properties, dry=dry)
-        self.tasks_project_id = tasks_project_id
         self.tasks_body_sync = tasks_body_sync
         self.tasks_notion_prefix = tasks_notion_prefix
 
         # Other settings
-        self.allowed_repositories = allowed_repositories
+        self.allowed_repositories = []
         self.user_map = ghhelper.UserMap(user_map)
         self.dry = dry
+
+        # Repository settings
+        self._github_tasks_projects = {}
+        self._github_milestones_projects = {}
+        self._all_tasks_projects = []
+        self._all_milestones_projects = []
+
+        if repository_settings:
+            for settings in repository_settings.values():
+                self.allowed_repositories.extend(settings["repositories"])
+
+                tasks_project = ghhelper.GitHubProjectV2(
+                    settings["github_tasks_project_id"], self.GITHUB_PROJECT_TASKS_FIELDS
+                )
+                milestones_project = ghhelper.GitHubProjectV2(
+                    settings["github_milestones_project_id"], self.GITHUB_PROJECT_MILESTONE_FIELDS
+                )
+
+                self._all_tasks_projects.append(tasks_project)
+                self._all_milestones_projects.append(milestones_project)
+
+                for repo in settings["repositories"]:
+                    self._github_tasks_projects[repo] = tasks_project
+                    self._github_milestones_projects[repo] = milestones_project
 
     def _is_repo_allowed(self, org=None, repo=None, orgrepo=None):
         """Checks if the repository is permitted for synchronization."""
@@ -224,14 +240,6 @@ class ProjectSync:
     def _notion_tasks_issues(self):
         return self._discover_notion_issues(self.tasks_db.database_id)
 
-    @cached_property
-    def _github_tasks_project(self):
-        return ghhelper.GitHubProjectV2(self.tasks_project_id, self.GITHUB_PROJECT_TASKS_FIELDS)
-
-    @cached_property
-    def _github_milestones_project(self):
-        return ghhelper.GitHubProjectV2(self.milestones_project_id, self.GITHUB_PROJECT_MILESTONE_FIELDS)
-
     def _get_task_notion_data(self, github_issue, milestone_id):
         # Base data
         gh_assignee = " ".join(a.login for a in github_issue.assignees.nodes) if github_issue.assignees.nodes else ""
@@ -251,8 +259,8 @@ class ProjectSync:
             notion_data[self.propnames["notion_tasks_assignee"]] = assignees
 
         # Project item
-        gh_project_item = self._github_tasks_project.find_project_item(
-            github_issue, self._github_tasks_project.database_id
+        gh_project_item = self._github_tasks_projects[orgrepo].find_project_item(
+            github_issue, self._github_tasks_projects[orgrepo].database_id
         )
         if gh_project_item:
             # Dates
@@ -419,7 +427,8 @@ class ProjectSync:
         ghhelper.update_assignees(github_issue, assignees)
 
         # Finally the GitHub ProjectV2 with the planning properties
-        self._github_milestones_project.update_project_for_issue(
+        orgrepo = github_issue.repository.name_with_owner
+        self._github_milestones_projects[orgrepo].update_project_for_issue(
             github_issue,
             {
                 "start_date": (self._get_prop(page, "notion_milestones_dates") or {}).get("start"),
@@ -436,7 +445,10 @@ class ProjectSync:
         collected_tasks = deepcopy(self._notion_tasks_issues)
 
         # Synchronize sprints (if enabled)
-        self.synchronize_sprints(self._github_tasks_project.field("sprint"))
+        if self.sprint_db:
+            for project in self._all_tasks_projects:
+                logger.info(f"Synchronizing sprints for {project.database_id}")
+                self.synchronize_sprints(project.field("sprint"))
 
         # Synchronize issues found in milestones
         for orgrepo, issues in self._notion_milestone_issues.items():
@@ -463,11 +475,12 @@ class ProjectSync:
         # Collect issues from sprint board, there may be a few not associated with a milestone
         # We'll sync them in the next loop
         project_item_count = 0
-        for issue_info in self._github_tasks_project.get_issue_numbers():
-            orgrepo = issue_info.repository.name_with_owner
-            if self._is_repo_allowed(orgrepo=orgrepo) and issue_info.number not in collected_tasks[orgrepo]:
-                collected_tasks[orgrepo][issue_info.number] = None
-                project_item_count += 1
+        for project in self._all_tasks_projects:
+            for issue_info in project.get_issue_numbers():
+                orgrepo = issue_info.repository.name_with_owner
+                if self._is_repo_allowed(orgrepo=orgrepo) and issue_info.number not in collected_tasks[orgrepo]:
+                    collected_tasks[orgrepo][issue_info.number] = None
+                    project_item_count += 1
 
         logger.info(f"Will sync {project_item_count} new sprint board tasks not associated with a milestone")
 

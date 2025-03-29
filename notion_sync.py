@@ -84,11 +84,9 @@ def main(projects, config, verbose=0, dry_run=False):
         if project["method"] == "github_project":
             synchronize_gh_project(
                 notion_token=os.environ["NOTION_TOKEN"],
-                allowed_repositories=project["repositories"],
+                repository_settings=project["repositories"],
                 milestones_id=project["notion_milestones_id"],
-                milestones_project_id=project["github_milestones_project_id"],
                 tasks_id=project["notion_tasks_id"],
-                tasks_project_id=project["github_tasks_project_id"],
                 sprint_id=project.get("notion_sprints_id", None),
                 milestones_body_sync=project.get("milestones_body_sync", False),
                 milestones_body_sync_if_empty=project.get("milestones_body_sync_if_empty", False),
