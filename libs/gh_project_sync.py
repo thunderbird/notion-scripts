@@ -51,7 +51,6 @@ class ProjectSync:
         "notion_milestones_status": "Status",
         "notion_milestones_dates": "Dates",
         "notion_github_issue": "GitHub Issue",
-        "notion_sprint_github_id": "GitHub ID",
         "notion_sprint_title": "Sprint name",
         "notion_sprint_status": "Sprint status",
         "notion_sprint_dates": "Dates",
@@ -143,7 +142,6 @@ class ProjectSync:
             tasks_properties.append(p.relation(self.propnames["notion_tasks_sprint_relation"], sprint_id, True))
 
             sprint_properties = [
-                p.rich_text(self.propnames["notion_sprint_github_id"]),
                 p.title(self.propnames["notion_sprint_title"]),
                 p.status(self.propnames["notion_sprint_status"]),
                 p.dates(self.propnames["notion_sprint_dates"]),
@@ -215,7 +213,7 @@ class ProjectSync:
         return {
             content: page
             for page in self.sprint_db.get_all_pages()
-            if (content := self._get_richtext_prop(page, "notion_sprint_github_id"))
+            if (content := self._get_richtext_prop(page, "notion_sprint_title"))
         }
 
     @cached_property
@@ -277,8 +275,8 @@ class ProjectSync:
 
             # Sprint Relation
             if self.sprint_db:
-                iteration_id = getnestedattr(lambda: gh_project_item.sprint.iteration_id, None)
-                notion_sprint = self._sprint_pages.get(iteration_id, None)
+                title = getnestedattr(lambda: gh_project_item.sprint.title, None)
+                notion_sprint = self._sprint_pages.get(title, None)
                 if notion_sprint:
                     notion_data[self.propnames["notion_tasks_sprint_relation"]] = [notion_sprint["id"]]
                 else:
@@ -327,14 +325,13 @@ class ProjectSync:
             end_date = sprint.start_date + timedelta(days=sprint.duration - 1)
 
             notion_data = {
-                self.propnames["notion_sprint_github_id"]: sprint.id,
                 self.propnames["notion_sprint_title"]: sprint.title,
                 self.propnames["notion_sprint_dates"]: {"start": sprint.start_date, "end": end_date},
                 self.propnames["notion_sprint_status"]: status,
             }
 
-            if sprint.id in self._sprint_pages:
-                page = self._sprint_pages[sprint.id]
+            if sprint.title in self._sprint_pages:
+                page = self._sprint_pages[sprint.title]
                 logger.info(f"Updating Sprint {sprint.title} - {sprint.start_date} to {end_date}")
                 self.sprint_db.update_page(page, notion_data)
             else:
