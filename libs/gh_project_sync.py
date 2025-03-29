@@ -235,6 +235,7 @@ class ProjectSync:
     def _get_task_notion_data(self, github_issue, milestone_id):
         # Base data
         gh_assignee = " ".join(a.login for a in github_issue.assignees.nodes) if github_issue.assignees.nodes else ""
+        orgrepo = github_issue.repository.name_with_owner
 
         notion_data = {
             "GitHub Assignee": gh_assignee,
@@ -441,7 +442,7 @@ class ProjectSync:
         for orgrepo, issues in self._notion_milestone_issues.items():
             org, repo = orgrepo.split("/")
 
-            if not self._is_repo_allowed(org, repo):
+            if not self._is_repo_allowed(orgrepo=orgrepo):
                 continue
 
             github_issues = ghhelper.get_issues_by_number(org, repo, issues.keys(), True)
