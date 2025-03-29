@@ -51,18 +51,27 @@ notion_tasks_id = "94ca27a3d7374a4fae6ad6d5c7a70a76"
 notion_milestones_id = "637245a2c53b4d86a99c6e97006153df"
 notion_sprints_id = "19e2df5d45ae803fa74ff4d6aa52f25f"
 
-github_tasks_project_id = "PVT_kwDOAOe9Jc4AygBu"
-github_milestones_project_id = "PVT_kwDOAOe9Jc4Ayf_S"
 
 milestones_github_prefix = "[EPIC] "
 milestones_body_sync = false
 milestones_body_sync_if_empty = true
 tasks_body_sync = false
 
+[sync.mobile.repositories]
+
+[sync.mobile.repositories.android]
 repositories = [
   "thunderbird/thunderbird-android"
 ]
+github_tasks_project_id = "PVT_kwDOAOe9Jc4AygBu"
+github_milestones_project_id = "PVT_kwDOAOe9Jc4Ayf_S"
 
+[sync.mobile.repositories.ios]
+repositories = [
+  "thunderbird/thunderbird-ios"
+]
+github_tasks_project_id = "PVT_kwDOAOe9Jc4A1aav"
+github_milestones_project_id = "PVT_kwDOAOe9Jc4A1aX6"
 
 [sync.bugzilla]
 enabled = false # TODO Untested, needs a test run with the new code

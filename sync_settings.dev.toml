@@ -25,15 +25,26 @@ notion_tasks_id = "18adea4adcdf807c8fabcc9c11b61777"
 notion_milestones_id = "18adea4adcdf80b9a9e0f3c1a18ede53"
 notion_sprints_id = "18adea4adcdf8073af16f1d07eb1661e"
 
-github_tasks_project_id = "PVT_kwHOAAlD3s4AxVFW"
-github_milestones_project_id = "PVT_kwHOAAlD3s4AxVDI"
 #milestones_body_sync = true
+milestones_body_sync_if_empty = true
 
 tasks_notion_prefix = "[GitHub] "
 
+[sync.mobile.repositories]
+
+[sync.mobile.repositories.test]
 repositories = [
   "kewisch/test"
 ]
+github_tasks_project_id = "PVT_kwHOAAlD3s4AxVFW"
+github_milestones_project_id = "PVT_kwHOAAlD3s4AxVDI"
+
+[sync.mobile.repositories.test2]
+repositories = [
+  "kewisch/test2"
+]
+github_tasks_project_id = "PVT_kwHOAAlD3s4A1bUZ"
+github_milestones_project_id = "PVT_kwHOAAlD3s4A1bUn"
 
 [sync.mobile.properties]
 notion_tasks_title = "Title"
