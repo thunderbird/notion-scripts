@@ -51,6 +51,7 @@ class ProjectSync:
         "notion_milestones_status": "Status",
         "notion_milestones_dates": "Dates",
         "notion_github_issue": "GitHub Issue",
+        "notion_sprint_github_id": "GitHub ID",
         "notion_sprint_title": "Sprint name",
         "notion_sprint_status": "Sprint status",
         "notion_sprint_dates": "Dates",
@@ -82,6 +83,7 @@ class ProjectSync:
         tasks_notion_prefix="",
         user_map={},
         property_names={},
+        sprints_merge_by_name=False,
         dry=False,
     ):
         """Set up the project sync.
@@ -107,6 +109,8 @@ class ProjectSync:
                 translating mentions between the two platforms.
             property_names (dict[str,str]): Allows adjusting the Notion property names. See
                 DEFAULT_PROPERTY_NAMES for the defaults.
+            sprints_merge_by_name (bool): If a sprint does not exist, find an existing one by name
+                and merge it
             dry (bool): If true, only query operations are done. Mutations are disabled for both
                 GitHub and Notion.
         """
@@ -135,6 +139,7 @@ class ProjectSync:
             tasks_properties.append(p.relation(self.propnames["notion_tasks_sprint_relation"], sprint_id, True))
 
             sprint_properties = [
+                p.rich_text(self.propnames["notion_sprint_github_id"]),
                 p.title(self.propnames["notion_sprint_title"]),
                 p.status(self.propnames["notion_sprint_status"]),
                 p.dates(self.propnames["notion_sprint_dates"]),
@@ -153,6 +158,7 @@ class ProjectSync:
         self.allowed_repositories = []
         self.user_map = ghhelper.UserMap(user_map)
         self.dry = dry
+        self.sprints_merge_by_name = sprints_merge_by_name
 
         # Repository settings
         self._github_tasks_projects = {}
@@ -225,10 +231,25 @@ class ProjectSync:
         return repos
 
     @cached_property
-    def _sprint_pages(self):
+    def _all_sprint_pages(self):
+        return self.sprint_db.get_all_pages()
+
+    @cached_property
+    def _sprint_pages_by_id(self):
+        sprintmap = {}
+
+        for page in self._all_sprint_pages:
+            sprint_ids = self._get_richtext_prop(page, "notion_sprint_github_id").split("\n")
+            for sprint_id in sprint_ids:
+                sprintmap[sprint_id] = page
+
+        return sprintmap
+
+    @cached_property
+    def _sprint_pages_by_title(self):
         return {
             content: page
-            for page in self.sprint_db.get_all_pages()
+            for page in self._all_sprint_pages
             if (content := self._get_richtext_prop(page, "notion_sprint_title"))
         }
 
@@ -284,8 +305,8 @@ class ProjectSync:
 
             # Sprint Relation
             if self.sprint_db:
-                title = getnestedattr(lambda: gh_project_item.sprint.title, None)
-                notion_sprint = self._sprint_pages.get(title, None)
+                iteration_id = getnestedattr(lambda: gh_project_item.sprint.iteration_id, None)
+                notion_sprint = self._sprint_pages_by_id.get(iteration_id, None)
                 if notion_sprint:
                     notion_data[self.propnames["notion_tasks_sprint_relation"]] = [notion_sprint["id"]]
                 else:
@@ -332,19 +353,41 @@ class ProjectSync:
 
         def process_iteration(sprint, status):
             end_date = sprint.start_date + timedelta(days=sprint.duration - 1)
+            idprop = self.propnames["notion_sprint_github_id"]
+            dateprop = self.propnames["notion_sprint_dates"]
 
             notion_data = {
                 self.propnames["notion_sprint_title"]: sprint.title,
-                self.propnames["notion_sprint_dates"]: {"start": sprint.start_date, "end": end_date},
+                dateprop: {"start": sprint.start_date, "end": end_date},
                 self.propnames["notion_sprint_status"]: status,
             }
 
-            if sprint.title in self._sprint_pages:
-                page = self._sprint_pages[sprint.title]
-                logger.info(f"Updating Sprint {sprint.title} - {sprint.start_date} to {end_date}")
+            if sprint.id in self._sprint_pages_by_id:
+                page = self._sprint_pages_by_id[sprint.id]
+                logger.info(f"Updating Sprint {sprint.id} ({sprint.title}) - {sprint.start_date} to {end_date}")
                 self.sprint_db.update_page(page, notion_data)
+            elif self.sprints_merge_by_name and sprint.title in self._sprint_pages_by_title:
+                page = self._sprint_pages_by_title[sprint.title]
+                page_gh_ids = self._get_richtext_prop(page, "notion_sprint_github_id", "").split("\n")
+                page_dates = self._get_prop(page, "notion_sprint_dates", safe=False)
+                logger.info(
+                    f"Merging Sprint {sprint.id} with {','.join(page_gh_ids)} {sprint.title} - {sprint.start_date} to {end_date}"
+                )
+                if page_dates["start"] != sprint.start_date.isoformat():
+                    raise Exception(
+                        f"Could not merge sprint {sprint.title}, start dates mismatch! {page_dates['start']} != {sprint.start_date.isoformat()}"
+                    )
+                if page_dates["end"] != end_date.isoformat():
+                    raise Exception(
+                        f"Could not merge sprint {sprint.title}, end dates mismatch! {page_dates['end']} != {end_date.isoformat()}"
+                    )
+
+                page_gh_ids.append(sprint.id)
+                self.sprint_db.update_page(page, {idprop: "\n".join(page_gh_ids)})
+                self._sprint_pages_by_id[sprint.id] = page
             else:
                 logger.info(f"Creating Sprint {sprint.title} - {sprint.start_date} to {end_date}")
+                notion_data[idprop] = sprint.id
                 self.sprint_db.create_page(notion_data)
 
         if not self.sprint_db:

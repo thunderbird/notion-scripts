@@ -57,6 +57,7 @@ milestones_github_prefix = "[EPIC] "
 milestones_body_sync = false
 milestones_body_sync_if_empty = true
 tasks_body_sync = false
+sprints_merge_by_name = true
 
 [sync.mobile.repositories]
 

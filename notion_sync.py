@@ -95,6 +95,7 @@ def main(projects, config, verbose=0, dry_run=False):
                 tasks_notion_prefix=project.get("tasks_notion_prefix", ""),
                 user_map=settings.get("usermap", {}).get("github", {}),
                 property_names=project.get("properties", {}),
+                sprints_merge_by_name=project.get("sprints_merge_by_name", False),
                 dry=dry_run,
             )
         elif project["method"] == "github_labels":

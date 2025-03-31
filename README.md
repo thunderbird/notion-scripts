@@ -118,6 +118,10 @@ milestones_github_prefix = "[EPIC] "
 # other high level tasks.
 tasks_notion_prefix = "[GitHub] "
 
+# If you have multiple GitHub projects synchronizing into one Sprints database, you can choose to
+# merge sprints by name. The requirement is that the dates align.
+sprints_merge_by_name = false
+
 # Now we begin repositories. We need a mapping between the repositories and the connected GitHub
 # Projects. You might just have one if everything is in a single GitHub Project, or you might have
 # multiple if you want to separate them.
