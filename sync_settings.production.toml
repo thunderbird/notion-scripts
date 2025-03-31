@@ -54,6 +54,7 @@ notion_sprints_id = "19e2df5d45ae803fa74ff4d6aa52f25f"
 
 
 milestones_github_prefix = "[EPIC] "
+milestones_github_label = "type: epic"
 milestones_body_sync = false
 milestones_body_sync_if_empty = true
 tasks_body_sync = false

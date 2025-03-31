@@ -81,6 +81,7 @@ class ProjectSync:
         tasks_body_sync=True,
         repository_settings=None,
         milestones_github_prefix="",
+        milestones_github_label="",
         tasks_notion_prefix="",
         user_map={},
         property_names={},
@@ -105,6 +106,8 @@ class ProjectSync:
             repository_settings (dict[str,dict]): Repository mappings with list of repos and project.
             milestones_github_prefix (str): Optional prefix for GitHub issues synchronized from
                 milestones.
+            milestones_github_label (str): Optional label for GitHub issues synchronized from
+                milestones.
             tasks_notion_prefix (str): Optional prefix for Notion tasks synchronized from GitHub
                 issues.
             user_map (dict[str,str]): Mapping from a GitHub username to a Notion user id, to allow
@@ -124,6 +127,8 @@ class ProjectSync:
         self.milestones_body_sync = milestones_body_sync
         self.milestones_body_sync_if_empty = milestones_body_sync_if_empty
         self.milestones_github_prefix = milestones_github_prefix
+        self.milestones_github_label = milestones_github_label
+        self.label_cache = ghhelper.LabelCache()
 
         # Tasks Properties
         tasks_properties = [
@@ -474,8 +479,16 @@ class ProjectSync:
         )
         ghhelper.update_assignees(github_issue, assignees)
 
-        # Finally the GitHub ProjectV2 with the planning properties
+        # Labels
         orgrepo = github_issue.repository.name_with_owner
+        existing_labels = {node.name for node in github_issue.labels.nodes}
+        if self.milestones_github_label and self.milestones_github_label not in existing_labels:
+            label_id = self.label_cache.get_id(orgrepo, self.milestones_github_label)
+            if not label_id:
+                raise Exception(f"Could not find label `{self.milestones_github_label}` in {orgrepo}")
+            ghhelper.add_label(github_issue, label_id)
+
+        # Finally the GitHub ProjectV2 with the planning properties
         self._github_milestones_projects[orgrepo].update_project_for_issue(
             github_issue,
             {

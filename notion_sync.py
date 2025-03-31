@@ -93,6 +93,7 @@ def main(projects, config, verbose=0, dry_run=False):
                 milestones_body_sync_if_empty=project.get("milestones_body_sync_if_empty", False),
                 tasks_body_sync=project.get("tasks_body_sync", False),
                 milestones_github_prefix=project.get("milestones_github_prefix", ""),
+                milestones_github_label=project.get("milestones_github_label", ""),
                 tasks_notion_prefix=project.get("tasks_notion_prefix", ""),
                 user_map=settings.get("usermap", {}).get("github", {}),
                 property_names=project.get("properties", {}),

@@ -93,11 +93,9 @@ notion_milestones_id = "18adea4adcdf80b9a9e0f3c1a18ede53"
 # you have to make sure the sprint names and dates stay in sync.
 notion_sprints_id = "18adea4adcdf8073af16f1d07eb1661e"
 
-
 # If true, the github issue body will be synced for each task
 # This is time consuming because Notion requires multiple requests per page
 body_sync = false
-
 
 
 # You can synchronize the body of the Milestone items from Notion as Markdown to GitHub so they are
@@ -113,6 +111,9 @@ milestones_body_sync_if_empty = true
 # If you want all GitHub issues connected to milestones to have a prefix in their title, set this
 # property. Don't forget the trailing space.
 milestones_github_prefix = "[EPIC] "
+
+# If you want all GitHub issues connected to milestones to have a label applied, set this property.
+milestones_github_label = "type: epic"
 
 # Likewise, you might want to prefix all synced Notion tasks so you can easier identify them between
 # other high level tasks.
