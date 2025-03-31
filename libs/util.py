@@ -19,10 +19,10 @@ class RetryingClient(httpx.Client):
         """httpx.Client send that retries."""
         try:
             response = super().send(request, *args, **kwargs)
-        except httpx.TimeoutException:
+        except (httpx.TimeoutException, httpx.ConnectError) as e:
             if recur <= 0:
                 raise
-            logger.info("Sleeping 10 seconds due to request timeout")
+            logger.info("Sleeping 10 seconds due to " + type(e).__name__)
             time.sleep(10)
             return self.send(request, *args, recur=recur - 1, **kwargs)
 
