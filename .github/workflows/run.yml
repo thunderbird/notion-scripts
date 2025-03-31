@@ -87,5 +87,6 @@ jobs:
           DRY: ${{ inputs.dry && '-n' || '' }}
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          NOTION_SYNC_GITHUB_USERMAP: ${{ vars.NOTION_SYNC_GITHUB_USERMAP }}
         run: |
           rye run sync ${DRY} ${VERBOSE} -c sync_settings.${ENVIRONMENT}.toml ${PROJECT}

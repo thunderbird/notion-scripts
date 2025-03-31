@@ -4,3 +4,4 @@ __pycache__/
 *$py.class
 *.egg-info/
 sync_settings.toml
+users*.toml

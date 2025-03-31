@@ -95,7 +95,9 @@ def main(projects, config, verbose=0, dry_run=False):
                 milestones_github_prefix=project.get("milestones_github_prefix", ""),
                 milestones_github_label=project.get("milestones_github_label", ""),
                 tasks_notion_prefix=project.get("tasks_notion_prefix", ""),
-                user_map=settings.get("usermap", {}).get("github", {}),
+                user_map=settings.get("usermap", {}).get(
+                    "github", tomllib.loads(os.environ.get("NOTION_SYNC_GITHUB_USERMAP", "")) or {}
+                ),
                 property_names=project.get("properties", {}),
                 sprints_merge_by_name=project.get("sprints_merge_by_name", False),
                 dry=dry_run,

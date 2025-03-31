@@ -38,6 +38,19 @@ GITHUB_TOKEN=<your github integration token>
 BZ_KEY=<your bugzilla API key>
 ```
 
+The following variable can optionally be set instead of the `usermap.github` configuration option.
+
+```shell
+NOTION_SYNC_GITHUB_USERMAP=`cat users.toml`
+```
+
+Your `users.toml` from the above example cab look like this. The UUID is the id from the notion API.
+There are instructions on how to get this id in notion_sync.py
+
+```toml
+kewisch = "8e664893-abc5-4700-b805-8e0facecce99"
+wmontwe = "0259eb9f-353f-4b1b-af8f-e25f5bf06a59"
+```
 
 ### sync_settings.toml
 

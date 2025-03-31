@@ -1,14 +1,6 @@
 # MZLA Notion Scripts Configuration
 # See README for more information on the setup
 
-[usermap]
-
-[usermap.github]
-kewisch = "65baf5a6-b353-4d90-a787-b194f0780da3"
-cketti = "360a2ce1-c46a-4b92-b54f-dbef1ea8667a"
-wmontwe = "8583f0f6-f8c7-4f79-93b6-7e0d68647632"
-toddheasley = "1c2d872b-594c-811b-9b6f-000282f75e76"
-
 [sync]
 
 [sync.services]
