@@ -83,6 +83,7 @@ def main(projects, config, verbose=0, dry_run=False):
 
         if project["method"] == "github_project":
             synchronize_gh_project(
+                project_key=key,
                 notion_token=os.environ["NOTION_TOKEN"],
                 repository_settings=project["repositories"],
                 milestones_id=project["notion_milestones_id"],

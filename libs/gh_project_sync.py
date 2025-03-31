@@ -33,7 +33,7 @@ class ProjectSync:
     """
 
     TASK_BODY_WARNING = "ℹ️ _This issue synchronizes from GitHub. Any changes you make here will be overwritten._"
-    LAST_SYNC_MESSAGE = "Last GitHub Sync: {0}"
+    LAST_SYNC_MESSAGE = "Last GitHub Sync ({0}): {1}"
 
     # In order to make Notion field names configurable we have a mapping from a static key to the
     # Notion field name. These defaults will be overwritten by the field config
@@ -71,6 +71,7 @@ class ProjectSync:
 
     def __init__(
         self,
+        project_key,
         notion_token,
         milestones_id,
         tasks_id,
@@ -89,6 +90,7 @@ class ProjectSync:
         """Set up the project sync.
 
         Args:
+            project_key (str): The identifying project key
             notion_token (str): The Notion client token
             milestones_id (str): The Notion database id for the "Milestones" database
             tasks_id (str): The Notion database id for the "Tasks" database
@@ -159,6 +161,7 @@ class ProjectSync:
         self.user_map = ghhelper.UserMap(user_map)
         self.dry = dry
         self.sprints_merge_by_name = sprints_merge_by_name
+        self.project_key = project_key
 
         # Repository settings
         self._github_tasks_projects = {}
@@ -334,13 +337,15 @@ class ProjectSync:
             timestamp = datetime.utcnow()
 
         timestamp = timestamp.strftime("%Y-%m-%dT%H:%M:%SZ")
-        pattern = re.escape(self.LAST_SYNC_MESSAGE.format("REGEX_PLACEHOLDER"))
+        pattern = re.escape(self.LAST_SYNC_MESSAGE.format(self.project_key, "REGEX_PLACEHOLDER"))
         pattern = pattern.replace("REGEX_PLACEHOLDER", r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
 
-        description, count = re.subn(pattern, self.LAST_SYNC_MESSAGE.format(timestamp), database.description)
+        description, count = re.subn(
+            pattern, self.LAST_SYNC_MESSAGE.format(self.project_key, timestamp), database.description
+        )
 
         if count < 1:
-            description = self.LAST_SYNC_MESSAGE.format(timestamp) + "\n\n" + description
+            description = self.LAST_SYNC_MESSAGE.format(self.project_key, timestamp) + "\n\n" + description
 
         database.description = description
 
@@ -543,6 +548,8 @@ class ProjectSync:
         # Update the description with the last updated timestamp
         self._update_timestamp(self.milestones_db, timestamp)
         self._update_timestamp(self.tasks_db, timestamp)
+        if self.sprint_db:
+            self._update_timestamp(self.sprint_db, timestamp)
 
     def setup(self):
         """Verify the Notion/GitHub setup. Note this is not yet implemented."""
