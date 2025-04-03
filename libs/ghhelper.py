@@ -5,6 +5,7 @@
 """GitHub related helper functions."""
 
 import os
+import random
 from typing import Any, Dict
 from collections import defaultdict
 
@@ -341,16 +342,30 @@ def update_assignees(gh_issue, assignees):
     if old_assignees == new_assignees:
         return
 
-    remove = old_assignees.difference(new_assignees)
-    add = new_assignees.difference(old_assignees)
+    # Check who to add or remove
+    remove = old_assignees - new_assignees
+    keep = old_assignees & new_assignees
+    add = set()
+
+    # GitHub only allows one assignee for private repos in non-enterprise accounts
+    if not gh_issue.repository.is_private:
+        # Not a private repo, we can add all assignees
+        add = new_assignees - old_assignees
+    elif not keep and new_assignees:
+        # Make sure someone is assigned, if they aren't already
+        add = {random.choice(assignees)}
+
+    # Bail early if no operations needed
+    if not remove and not add:
+        return
 
     op = Operation(schema.mutation_type)
 
-    if len(add):
-        op.add_assignees_to_assignable(input={"assignable_id": gh_issue["id"], "assignee_ids": list(add)})
-
     if len(remove):
-        op.remove_assignees_from_assignable(input={"assignable_id": gh_issue["id"], "assignee_ids": list(remove)})
+        op.remove_assignees_from_assignable(input={"assignable_id": gh_issue.id, "assignee_ids": list(remove)})
+
+    if len(add):
+        op.add_assignees_to_assignable(input={"assignable_id": gh_issue.id, "assignee_ids": list(add)})
 
     endpoint(op)
 
@@ -432,6 +447,7 @@ def issue_field_ops(issue):
     issue.parent.repository.name_with_owner()
     issue.repository.name_with_owner()
     issue.repository.name()
+    issue.repository.is_private()
     issue.labels(first=100).nodes.name()
 
     assignees = issue.assignees(first=10)
