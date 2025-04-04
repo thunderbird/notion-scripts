@@ -228,7 +228,8 @@ you. The setup is opinionated, though attempts to work generally for Thunderbird
 Here is your workflow as a manager/project manager:
   * For each Milestone in Notion, create an issue on GitHub and link it via the `GitHub Issue`
     property on your Notion milestone. When the sync happens, all info will be copied over to the
-    new GitHub issue.
+    new GitHub issue. You can set `GitHub Issue` to https://github.com/thunderbird/example/issues/new
+    to have the sync create the issue for the milestone instead.
   * Any Milestone changes you make in Notion will be synchronized, one-way, to the GitHub issue.
     Depending on settings this will also include the body text of the Notion milestone.
   * Make the GitHub Project for the roadmap public, but consider this a readonly view where you do

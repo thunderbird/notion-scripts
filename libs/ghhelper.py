@@ -349,6 +349,46 @@ def update_assignees(gh_issue, assignees):
     endpoint(op)
 
 
+@cache
+def get_repo_id(org, repo):
+    """Get the (cached) node id of the repository."""
+    endpoint = HTTPEndpoint(
+        "https://api.github.com/graphql",
+        {"Authorization": f'Bearer {os.getenv("GITHUB_TOKEN")}'},
+    )
+
+    op = Operation(schema.query_type)
+    repo = op.repository(owner=org, name=repo)
+    repo.id()
+
+    data = endpoint(op)
+    repo = (op + data).repository
+
+    return getattr(repo, "id", None)
+
+
+def create_empty_issue(orgrepo, title):
+    """Create a GitHub issue with title."""
+    endpoint = HTTPEndpoint(
+        "https://api.github.com/graphql",
+        {"Authorization": f'Bearer {os.getenv("GITHUB_TOKEN")}'},
+    )
+    op = Operation(schema.mutation_type)
+
+    org, repo = orgrepo.split("/")
+    repo_id = get_repo_id(org, repo)
+
+    issue_data = {"repository_id": repo_id, "title": title}
+
+    create = op.create_issue(input=issue_data)
+    issue_field_ops(create.issue)
+
+    data = endpoint(op)
+    issue = (op + data).create_issue.issue
+
+    return issue
+
+
 def update_issue(gh_issue, properties):
     """Update a GitHub issue with title, status and body."""
     endpoint = HTTPEndpoint(
@@ -426,6 +466,7 @@ def issue_field_ops(issue):
     issue.body()
     issue.parent.number()
     issue.parent.repository.name_with_owner()
+    issue.repository.id()
     issue.repository.name_with_owner()
     issue.repository.name()
     issue.repository.is_private()

@@ -221,8 +221,9 @@ class ProjectSync:
         else:
             return default
 
-    def _discover_notion_issues(self, notion_db_id, org=None, repos=None):
+    def _discover_notion_issues(self, notion_db_id):
         repos = defaultdict(dict)
+        new_issues = defaultdict(list)
 
         for block in iterate_paginated_api(
             self.notion.databases.query,
@@ -237,10 +238,14 @@ class ProjectSync:
             parts = url.split("/")
             if parts[2] == "github.com" and parts[5] == "issues" and self._is_repo_allowed(parts[3], parts[4]):
                 repo = parts[3] + "/" + parts[4]
-                issue = int(parts[6])
-                repos[repo][issue] = block
 
-        return repos
+                if parts[6] == "new":
+                    new_issues[repo].append(block)
+                else:
+                    issue = int(parts[6])
+                    repos[repo][issue] = block
+
+        return repos, new_issues
 
     @cached_property
     def _all_sprint_pages(self):
@@ -425,7 +430,7 @@ class ProjectSync:
         """
         orgrepo = getnestedattr(lambda: github_issue.parent.repository.name_with_owner, None)
         parent = getnestedattr(
-            lambda: self._notion_milestone_issues[orgrepo][github_issue.parent.number]["id"],
+            lambda: self._notion_milestone_issues[0][orgrepo][github_issue.parent.number]["id"],
             None,
         )
 
@@ -508,7 +513,10 @@ class ProjectSync:
     def synchronize(self):
         """Synchronize all the things!"""
         timestamp = datetime.utcnow()
-        collected_tasks = deepcopy(self._notion_tasks_issues)
+
+        milestone_issues, new_milestones = self._notion_milestone_issues
+        tasks_issues, new_tasks = self._notion_tasks_issues
+        collected_tasks = deepcopy(tasks_issues)
 
         # Synchronize sprints (if enabled)
         if self.sprint_db:
@@ -516,8 +524,18 @@ class ProjectSync:
                 logger.info(f"Synchronizing sprints for {project.database_id}")
                 self.synchronize_sprints(project.field("sprint"))
 
+        # Create new milestones
+        for orgrepo, pages in new_milestones.items():
+            for page in pages:
+                title = self._get_richtext_prop(page, "notion_milestones_title", "")
+                logger.info(f"Creating new issue for milestone {title}")
+                issue = ghhelper.create_empty_issue(orgrepo, self.milestones_github_prefix + title)
+                milestone_issues[orgrepo][issue.number] = page
+
+                self.milestones_db.update_page(page, {self.propnames["notion_github_issue"]: issue.url})
+
         # Synchronize issues found in milestones
-        for orgrepo, issues in self._notion_milestone_issues.items():
+        for orgrepo, issues in milestone_issues.items():
             org, repo = orgrepo.split("/")
 
             if not self._is_repo_allowed(orgrepo=orgrepo):
@@ -568,15 +586,6 @@ class ProjectSync:
         self._update_timestamp(self.tasks_db, timestamp)
         if self.sprint_db:
             self._update_timestamp(self.sprint_db, timestamp)
-
-    def setup(self):
-        """Verify the Notion/GitHub setup. Note this is not yet implemented."""
-        # TODO This is incomplete, but a setup validation is a lot of work
-        self.milestones_db.update_props()
-        self.tasks_db.update_props()
-
-        if self.sprint_db:
-            self.sprint_db.update_props()
 
 
 def synchronize(**kwargs):
