@@ -2,3 +2,6 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.egg-info/
+sync_settings.toml
+users*.toml
