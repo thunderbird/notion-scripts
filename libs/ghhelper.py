@@ -213,16 +213,21 @@ class GitHubProjectV2:
 
             old_value = getattr(item, key, None)
 
-            if field.data_type == "DATE":
+            if field.data_type == "TEXT":
+                old_value = old_value.text if old_value else None
+                input_item["value"] = {"text": value}
+            elif field.data_type == "DATE":
                 old_value = old_value.date.isoformat() if old_value else None
                 input_item["value"] = {"date": value}
             elif field.data_type == "SINGLE_SELECT":
                 old_value = old_value.name if old_value else None
                 input_item["value"] = {"single_select_option_id": self.find_option_id(field, value)}
-            elif field.data_tupe == "ITERATION":
+            elif field.data_type == "ITERATION":
                 old_value = old_value.iteration_id if old_value else None
                 input_item["value"] = {"iteration_id": "TODO"}
                 raise Exception("TODO")
+            else:
+                raise Exception("Unknown type " + field.data_type)
 
             if old_value != value:
                 matches = False

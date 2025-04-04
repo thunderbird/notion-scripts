@@ -67,6 +67,7 @@ class ProjectSync:
         "Priority",
         "Start Date",
         "Target Date",
+        "Link",
     ]
 
     def __init__(
@@ -123,7 +124,11 @@ class ProjectSync:
         self.propnames = {**self.DEFAULT_PROPERTY_NAMES, **property_names}
 
         # Milestones Database
-        self.milestones_db = NotionDatabase(milestones_id, self.notion, dry=dry)
+        milestones_properties = [
+            # There are more, but this is the only one we change
+            p.link(self.propnames["notion_github_issue"]),
+        ]
+        self.milestones_db = NotionDatabase(milestones_id, self.notion, milestones_properties, dry=dry)
         self.milestones_body_sync = milestones_body_sync
         self.milestones_body_sync_if_empty = milestones_body_sync_if_empty
         self.milestones_github_prefix = milestones_github_prefix
@@ -496,6 +501,7 @@ class ProjectSync:
                 "target_date": (self._get_prop(page, "notion_milestones_dates") or {}).get("end"),
                 "priority": (self._get_prop(page, "notion_milestones_priority") or {}).get("name"),
                 "status": (self._get_prop(page, "notion_milestones_status") or {}).get("name"),
+                "link": page.get("url"),
             },
             add=True,
         )

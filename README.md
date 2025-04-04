@@ -303,6 +303,7 @@ On GitHub, you'll need to create two projects for each set of repositories you w
    a start and end date
  * `Target Date`: Date field, with the end date. On Notion you'll have a single field `Dates` with
    a start and end date
+ * `Link`: Text field, which will be filled with a backlink to Notion.
  * Usually there is also a "Sub-issues progress" field, though it isn't relevant for the sync
  * When you describe the roadmap project, make sure to indicate that this view is read-only and any
    changes made on GitHub will be overwritten
