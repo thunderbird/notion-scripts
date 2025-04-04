@@ -7,38 +7,12 @@
 import os
 import random
 from typing import Any, Dict
-from collections import defaultdict
+from functools import cache
 
 from sgqlc.endpoint.http import HTTPEndpoint
 from sgqlc.operation import Operation
 
 from .github_schema import schema
-
-
-class LabelCache:
-    """A cache to get the label id for a repo label."""
-
-    def __init__(self):
-        """Initialize the project container.
-
-        Args:
-            database_id (str): The node id of the GiHub project
-            field_names (list[str]): The names of the project fields to retrieve
-        """
-        self.endpoint = HTTPEndpoint(
-            "https://api.github.com/graphql",
-            {"Authorization": f'Bearer {os.getenv("GITHUB_TOKEN")}'},
-        )
-        self.cache = defaultdict(dict)
-
-    def get_id(self, orgrepo, label):
-        """Get the id for the label in orgrepo."""
-        orgcache = self.cache[orgrepo]
-        if label not in orgcache:
-            org, repo = orgrepo.split("/")
-            orgcache[label] = get_label_id(org, repo, label)
-
-        return orgcache[label]
 
 
 class GitHubProjectV2:
@@ -403,7 +377,8 @@ def update_issue(gh_issue, properties):
         endpoint(op)
 
 
-def get_label_id(org, repo, label):
+@cache
+def get_label_id(orgrepo, label):
     """Get the label id for the given label in org/repo."""
     endpoint = HTTPEndpoint(
         "https://api.github.com/graphql",
@@ -412,6 +387,7 @@ def get_label_id(org, repo, label):
 
     op = Operation(schema.query_type)
 
+    org, repo = orgrepo.split("/")
     repo = op.repository(owner=org, name=repo)
     repo.label(name=label).id()
 

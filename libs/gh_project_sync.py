@@ -133,7 +133,6 @@ class ProjectSync:
         self.milestones_body_sync_if_empty = milestones_body_sync_if_empty
         self.milestones_github_prefix = milestones_github_prefix
         self.milestones_github_label = milestones_github_label
-        self.label_cache = ghhelper.LabelCache()
 
         # Tasks Properties
         tasks_properties = [
@@ -488,7 +487,7 @@ class ProjectSync:
         orgrepo = github_issue.repository.name_with_owner
         existing_labels = {node.name for node in github_issue.labels.nodes}
         if self.milestones_github_label and self.milestones_github_label not in existing_labels:
-            label_id = self.label_cache.get_id(orgrepo, self.milestones_github_label)
+            label_id = ghhelper.get_label_id(orgrepo, self.milestones_github_label)
             if not label_id:
                 raise Exception(f"Could not find label `{self.milestones_github_label}` in {orgrepo}")
             ghhelper.add_label(github_issue, label_id)
