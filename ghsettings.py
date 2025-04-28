@@ -31,7 +31,9 @@ repos = [
     "knowledgebase-issues",
     "android-knowledgebase-issues",
     "tbpro-knowledgebase-issues",
-    "zendesk-config"
+    "zendesk-config",
+    "private-issue-tracking",
+    "tbpro-add-on"
 ]
 
 # Properties of the "All GitHub Issues" database in Notion.
