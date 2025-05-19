@@ -270,7 +270,7 @@ class UserMap:
 
     def dbid_to_notion(self, dbid):
         """Convert a GitHub database id directly to a notion id."""
-        return self._gh_to_notion.get(self._dbid.to_gh.get(dbid))
+        return self._gh_to_notion.get(self._dbid_to_gh.get(dbid))
 
     def gh_to_notion(self, login):
         """Convert a GitHub username to a notion id."""

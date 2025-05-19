@@ -486,7 +486,14 @@ class ProjectSync:
         assignees = self.user_map.map(
             lambda person: self.user_map.notion_to_dbid(person["id"]), self._get_prop(page, "notion_tasks_assignee", [])
         )
-        ghhelper.update_assignees(github_issue, assignees)
+
+        # If we've assigned a community member to this milestone, keep them on the issue
+        community_assignees = {
+            assignee.id
+            for assignee in github_issue.assignees.nodes
+            if self.user_map.dbid_to_notion(assignee.id) is None
+        }
+        ghhelper.update_assignees(github_issue, community_assignees.union(assignees))
 
         # Labels
         orgrepo = github_issue.repository.name_with_owner
