@@ -400,7 +400,7 @@ def update_issue(gh_issue, properties):
     issue_data = {
         "id": gh_issue.id,
         "title": properties["title"],
-        "state": "CLOSED" if properties["status"] == "Done" else "OPEN",
+        "state": "CLOSED" if properties["status"] in ("Done", "Canceled") else "OPEN",
     }
 
     if properties.get("body", None) is not None:
