@@ -19,9 +19,15 @@ class RetryingClient(httpx.Client):
         """httpx.Client send that retries."""
         try:
             response = super().send(request, *args, **kwargs)
-        except (httpx.TimeoutException, httpx.NetworkError, ConnectionError) as e:
+        except (httpx.TimeoutException, httpx.NetworkError, httpx.HTTPStatusError, ConnectionError) as e:
+            # Bail if our retry limit has been reached
             if recur <= 0:
                 raise
+
+            # 5xx errors we can retry on, 4xx errors we should throw
+            if isinstance(e, httpx.HTTPStatusError) and e.response.status_code // 100 != 5:
+                raise
+
             logger.info("Sleeping 10 seconds due to " + type(e).__name__)
             time.sleep(10)
             return self.send(request, *args, recur=recur - 1, **kwargs)
