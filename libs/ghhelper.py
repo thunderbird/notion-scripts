@@ -6,6 +6,7 @@
 
 import os
 import random
+import itertools
 from typing import Any, Dict
 from functools import cache
 
@@ -517,7 +518,7 @@ def issue_field_ops(issue):
     fieldvalue.duration()
 
 
-def get_issues_by_number(org, repo, issues, sub_issues=False):
+def get_issues_by_number(org, repo, issues, sub_issues=False, chunk_size=50):
     """Get the indicated numbered issues."""
     endpoint = HTTPEndpoint(
         "https://api.github.com/graphql",
@@ -525,24 +526,25 @@ def get_issues_by_number(org, repo, issues, sub_issues=False):
     )
     res = {}
 
-    op = Operation(schema.query_type)
-    repo = op.repository(owner=org, name=repo)
+    for i in range(0, len(issues), chunk_size):
+        op = Operation(schema.query_type)
+        oprepo = op.repository(owner=org, name=repo)
 
-    for number in issues:
-        issue = repo.issue(__alias__=f"issue{number}", number=number)
-        issue_field_ops(issue)
+        for number in itertools.islice(issues, i, i + chunk_size):
+            issue = oprepo.issue(__alias__=f"issue{number}", number=number)
+            issue_field_ops(issue)
 
-        if sub_issues:
-            # TODO run through this with a cursor
-            subissues = issue.sub_issues(first=100)
-            subissues.nodes.number()
+            if sub_issues:
+                # TODO run through this with a cursor
+                subissues = issue.sub_issues(first=100)
+                subissues.nodes.number()
 
-    data = endpoint(op)
-    repo = (op + data).repository
+        data = endpoint(op)
+        datarepo = (op + data).repository
 
-    for number in issues:
-        ghissue = getattr(repo, f"issue{number}", None)
-        res[number] = ghissue
+        for number in itertools.islice(issues, i, i + chunk_size):
+            ghissue = getattr(datarepo, f"issue{number}", None)
+            res[number] = ghissue
 
     return res
 
