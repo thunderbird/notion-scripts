@@ -15,6 +15,7 @@ dependencies = [
     "python-dateutil>=2.9.0.post0",
     "md2notionpage==0.1.5",
     "notion-to-md-py==0.1.0",
+    "h2>=4.2.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.12"
@@ -22,21 +23,36 @@ requires-python = ">= 3.12"
 [tool.rye]
 managed = true
 virtual = true
-dev-dependencies = []
+dev-dependencies = [
+    "respx>=0.22.0",
+    "freezegun>=1.5.2",
+    "coverage>=7.9.2",
+]
 
 [tool.rye.scripts]
 sync = "python notion_sync.py"
+test = "python -m unittest"
+"test:coverage" = "python -m coverage run -m unittest"
+"test:coverage-report" = "python -m coverage html"
+cover = { chain = ["test:coverage", "test:coverage-report"] }
 
 [tool.ruff]
 line-length = 120
 target-version = "py312"
 extend-exclude = ["libs/github_schema.py"]
 
+[tool.coverage.run]
+source = ["libs"]
+omit = ["libs/github_schema.py"]
+
 [tool.ruff.lint]
 fixable = ["ALL"]
 unfixable = []
 extend-select = ["D"]
 ignore = ["D100", "D203", "D213"]
+
+[tool.ruff.lint.per-file-ignores]
+"test/**.py" = ["D"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

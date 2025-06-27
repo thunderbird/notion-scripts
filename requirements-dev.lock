@@ -19,18 +19,26 @@ chardet==5.2.0
     # via mbstrdecoder
 charset-normalizer==3.4.0
     # via requests
+coverage==7.9.2
 dataproperty==1.1.0
     # via pytablewriter
     # via tabledata
+freezegun==1.5.2
 graphql-core==3.2.5
     # via sgqlc
 h11==0.14.0
     # via httpcore
+h2==4.2.0
+hpack==4.1.0
+    # via h2
 httpcore==1.0.6
     # via httpx
 httpx==0.27.2
     # via notion-client
     # via notion-to-md-py
+    # via respx
+hyperframe==6.1.0
+    # via h2
 idna==3.10
     # via anyio
     # via httpx
@@ -51,10 +59,12 @@ pathvalidate==3.2.3
 pytablewriter==1.2.1
     # via notion-to-md-py
 python-dateutil==2.9.0.post0
+    # via freezegun
     # via typepy
 pytz==2025.1
     # via typepy
 requests==2.32.3
+respx==0.22.0
 setuptools==75.8.0
     # via pytablewriter
 sgqlc==16.4

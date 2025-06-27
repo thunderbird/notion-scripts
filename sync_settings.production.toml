@@ -45,12 +45,17 @@ notion_milestones_id = "637245a2c53b4d86a99c6e97006153df"
 notion_sprints_id = "19e2df5d45ae803fa74ff4d6aa52f25f"
 
 
-milestones_github_prefix = "[EPIC] "
+milestones_tracker_prefix = "[EPIC] "
 milestones_github_label = "type: epic"
 milestones_body_sync = false
 milestones_body_sync_if_empty = true
 tasks_body_sync = false
 sprints_merge_by_name = true
+
+[sync.mobile.properties]
+notion_tasks_text_assignee = "GitHub Assignee"
+notion_issue_field = "GitHub Issue"
+notion_sprint_tracker_id = "GitHub ID"
 
 [sync.mobile.repositories]
 
@@ -69,15 +74,15 @@ github_tasks_project_id = "PVT_kwDOAOe9Jc4A1aav"
 github_milestones_project_id = "PVT_kwDOAOe9Jc4A1aX6"
 
 [sync.bugzilla]
-enabled = false # TODO Untested, needs a test run with the new code
-method = "bugzilla"
+method = "bugzilla_project"
+notion_tasks_id = "20f2df5d45ae8004baeadc784d8f7ea4"
+notion_milestones_id = "20f2df5d45ae80be9a0dc390d0ac50f4"
+bugzilla_base = "https://bugzilla.mozilla.org"
+milestones_tracker_prefix = "[meta] "
 
-# ID of the All Thunderbird Bugs Database in Notion.
-notion_bugs_id = "5f30c08339c04f1b97a50f23c2391a30"
-
-products = ["Thunderbird", "MailNews Core", "Calendar"]
-list_id = 17103050
-
-# Max bugs in each API query.
-# https://www.bugzilla.org/docs/4.4/en/html/api/Bugzilla/WebService/Bug.html#limit
-bugzilla_limit = 100
+[sync.bugzilla.properties]
+notion_tasks_title = "Name"
+notion_issue_field = "Bugzilla Issue"
+notion_tasks_milestone_relation = "Milestone"
+notion_tasks_priority_values = ["P1", "P2", "P3", "P4", "P5"]
+notion_tasks_assignee = "Assignee"

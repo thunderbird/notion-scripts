@@ -45,6 +45,7 @@ def synchronize(
     bugzilla_limit=100,
     list_id=None,
     dry=False,
+    httpx_client=RetryingClient(),
 ):
     """Synchronize Bugzilla with Notion.
 
@@ -57,8 +58,9 @@ def synchronize(
         bugzilla_limit (int): The number of items to sync at once.
         list_id (int): The saved search list id, to speed up queries.
         dry (bool): If true, no mutating operations will occur.
+        httpx_client (Client): The httpx client to use for the connection.
     """
-    notion = Client(auth=notion_token, client=RetryingClient())
+    notion = Client(auth=notion_token, client=httpx_client)
 
     properties = [
         p.rich_text("Assignee"),

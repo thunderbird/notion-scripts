@@ -10,7 +10,7 @@ import tomllib
 
 from libs.bugzilla_sync import synchronize as synchronize_bugzilla
 from libs.gh_label_sync import synchronize as synchronize_gh_label
-from libs.gh_project_sync import synchronize as synchronize_gh_project
+from libs.project_sync import synchronize as synchronize_project, GitHub, Bugzilla
 
 logger = logging.getLogger("notion_sync")
 
@@ -24,7 +24,7 @@ def list_synchronizers(config):
     print("\n".join(enabled))
 
 
-def main(projects, config, verbose=0, dry_run=False):
+def main(projects, config, verbose=0, user_map_file=None, dry_run=False):
     """This is the main cli. Please use --help on how to use it."""
     logging.basicConfig(
         format="%(levelname)s [%(asctime)s] %(name)s - %(message)s",
@@ -34,6 +34,15 @@ def main(projects, config, verbose=0, dry_run=False):
     with open(config, "rb") as fp:
         settings = tomllib.load(fp)
 
+    if user_map_file and os.path.isfile(user_map_file):
+        with open(user_map_file, "rb") as fp:
+            user_map = tomllib.load(fp)
+    else:
+        user_map = {
+            "bugzilla": tomllib.loads(os.environ.get("NOTION_SYNC_BUGZILLA_USERMAP", "")),
+            "github": tomllib.loads(os.environ.get("NOTION_SYNC_GITHUB_USERMAP", "")),
+        }
+
     httpx_log_level = [logging.WARNING, logging.INFO, logging.DEBUG][verbose] if verbose <= 3 else logging.DEBUG
     sync_log_level = [logging.INFO, logging.INFO, logging.DEBUG][verbose] if verbose <= 3 else logging.DEBUG
 
@@ -41,10 +50,11 @@ def main(projects, config, verbose=0, dry_run=False):
     logging.getLogger("httpcore").setLevel(httpx_log_level)
     logging.getLogger("sgqlc.endpoint.http").setLevel(httpx_log_level)
 
-    logging.getLogger("gh_project_sync").setLevel(sync_log_level)
+    logging.getLogger("project_sync").setLevel(sync_log_level)
     logging.getLogger("gh_label_sync").setLevel(sync_log_level)
     logging.getLogger("bugzilla_sync").setLevel(sync_log_level)
     logging.getLogger("notion_sync").setLevel(sync_log_level)
+    logging.getLogger("notion_database").setLevel(sync_log_level)
 
     # This will list the GitHub project ids for you
     # import libs.ghhelper
@@ -58,6 +68,7 @@ def main(projects, config, verbose=0, dry_run=False):
 
     # This will give you the properties
     # from pprint import pprint
+    # from notion_client import Client
     # notion = Client(auth=os.environ["NOTION_TOKEN"])
     # pprint(notion.databases.retrieve(database_id="DB_ID_HERE"))
 
@@ -81,23 +92,38 @@ def main(projects, config, verbose=0, dry_run=False):
 
         logger.info(f"Synchronizing project {key}...")
 
-        if project["method"] == "github_project":
-            synchronize_gh_project(
+        if project["method"].endswith("_project"):
+            if project["method"] == "bugzilla_project":
+                tracker = Bugzilla(
+                    base_url=project["bugzilla_base"],
+                    token=os.environ["BUGZILLA_TOKEN"],
+                    dry=dry_run,
+                    user_map=user_map.get("bugzilla") or {},
+                )
+            elif project["method"] == "github_project":
+                tracker = GitHub(
+                    token=os.environ["GITHUB_TOKEN"],
+                    repositories=project["repositories"],
+                    dry=dry_run,
+                    user_map=user_map.get("github") or {},
+                )
+
+            else:
+                raise Exception(f"Unknown synchronization {project['method']}")
+
+            synchronize_project(
                 project_key=key,
+                tracker=tracker,
                 notion_token=os.environ["NOTION_TOKEN"],
-                repository_settings=project["repositories"],
                 milestones_id=project["notion_milestones_id"],
                 tasks_id=project["notion_tasks_id"],
                 sprint_id=project.get("notion_sprints_id", None),
                 milestones_body_sync=project.get("milestones_body_sync", False),
                 milestones_body_sync_if_empty=project.get("milestones_body_sync_if_empty", False),
                 tasks_body_sync=project.get("tasks_body_sync", False),
-                milestones_github_prefix=project.get("milestones_github_prefix", ""),
-                milestones_github_label=project.get("milestones_github_label", ""),
+                milestones_tracker_prefix=project.get("milestones_tracker_prefix", ""),
+                milestones_extra_label=project.get("milestones_extra_label", ""),
                 tasks_notion_prefix=project.get("tasks_notion_prefix", ""),
-                user_map=settings.get("usermap", {}).get(
-                    "github", tomllib.loads(os.environ.get("NOTION_SYNC_GITHUB_USERMAP", "")) or {}
-                ),
                 property_names=project.get("properties", {}),
                 sprints_merge_by_name=project.get("sprints_merge_by_name", False),
                 dry=dry_run,
@@ -125,7 +151,7 @@ def main(projects, config, verbose=0, dry_run=False):
                 dry=dry_run,
             )
         else:
-            raise Exception(f"Unknown synchronization {project['type']}")
+            raise Exception(f"Unknown synchronization {project['method']}")
 
         logger.info(f"Synchronizing project {key} completed")
 
@@ -139,6 +165,12 @@ if __name__ == "__main__":
         "--config",
         default="sync_settings.toml",
         help="Use a different config file, defaults to sync_settings.toml.",
+    )
+    parser.add_argument(
+        "-u",
+        "--usermap",
+        default="sync_usermap.toml",
+        help="The usermap file to use if not specified via environment.",
     )
     parser.add_argument(
         "-v",
@@ -166,4 +198,12 @@ if __name__ == "__main__":
     if args.list:
         list_synchronizers(args.config)
     else:
-        sys.exit(main(args.projects, config=args.config, verbose=args.verbose, dry_run=args.dry_run))
+        sys.exit(
+            main(
+                args.projects,
+                config=args.config,
+                verbose=args.verbose,
+                user_map_file=args.usermap,
+                dry_run=args.dry_run,
+            )
+        )

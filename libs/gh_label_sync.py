@@ -2,15 +2,20 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import os
 import logging
+
 from datetime import datetime
+from typing import Any, Dict
 
 from notion_client import Client
+from sgqlc.endpoint.http import HTTPEndpoint
+from sgqlc.operation import Operation
 
-from . import ghhelper as ghhelper
 from . import notion_data as p
 from .notion_data import NotionDatabase
 from .util import getnestedattr, RetryingClient
+from .github_schema import schema
 
 logger = logging.getLogger("gh_label_sync")
 
@@ -42,7 +47,7 @@ def synchronize(
 
     # Gather issues first so that we can populate select properties accordingly.
     logger.info("Getting GitHub issues...")
-    issues = ghhelper.get_all_issues(repositories, sync_status)
+    issues = get_all_issues(repositories, sync_status)
     logger.info("Issues retrieved successfully")
 
     if strip_orgname:
@@ -178,3 +183,62 @@ def extract_milestones(pages):
                 if title:
                     milestones[title] = page["id"]
     return milestones
+
+
+def get_issues_from_repo(orgname, reponame):
+    """Get all issues from the orgname/reponame repository."""
+    endpoint = HTTPEndpoint(
+        "https://api.github.com/graphql",
+        {"Authorization": f'Bearer {os.getenv("GITHUB_TOKEN")}'},
+    )
+    has_next_page = True
+    cursor = None
+
+    all_issues = []
+    while has_next_page:
+        op = Operation(schema.query_type)
+        issues = op.repository(owner=orgname, name=reponame).issues(
+            first=100,
+            after=cursor,
+            order_by={"field": "UPDATED_AT", "direction": "DESC"},
+        )
+        issues.nodes.updated_at()
+        issues.nodes.created_at()
+        issues.nodes.closed_at()
+        issues.nodes.title()
+        issues.nodes.state()
+        issues.nodes.url()
+        issues.nodes.id()
+        issues.nodes.repository().name()
+        issues.nodes.labels(first=100).nodes.name()
+        issues.nodes.assignees(first=10).nodes.login()
+
+        sprint_field = (
+            issues.nodes.project_items(first=100, include_archived=False)
+            .nodes.field_value_by_name(name="Sprint")
+            .__as__(schema.ProjectV2ItemFieldIterationValue)
+        )
+        sprint_field.title()
+        sprint_field.iteration_id()
+
+        issues.page_info.__fields__(has_next_page=True)
+        issues.page_info.__fields__(end_cursor=True)
+        data = endpoint(op)
+
+        # sgqlc magic to turn the response into an object rather than a dict
+        repo = (op + data).repository
+        all_issues.extend(repo.issues.nodes)
+
+        has_next_page = repo.issues.page_info.has_next_page
+        cursor = repo.issues.page_info.end_cursor
+
+    return all_issues
+
+
+def get_all_issues(repos: list[str], status: str = "all") -> Dict[str, Any]:
+    """Get all issues from repo."""
+    all_issues = {}
+    for orgrepo in repos:
+        orgname, repo = orgrepo.split("/")
+        all_issues[orgrepo] = get_issues_from_repo(orgname, repo)
+    return all_issues

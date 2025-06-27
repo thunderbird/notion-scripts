@@ -236,13 +236,17 @@ class NotionDatabase:
 
 
 class CustomNotionToMarkdown(NotionToMarkdown):
-    """NotionToMarkdown converter that strips images and converts mentions from notion to GitHub."""
+    """NotionToMarkdown converter that strips images and converts mentions from notion to the external issue tracker."""
 
-    def __init__(self, notion_client, strip_images=False, user_map=None, config={}):
+    def __init__(self, notion_client, strip_images=False, tracker=None, config={}):
         """Initialize. Pass in a user map to convert mentions."""
         super().__init__(notion_client, config)
         self.strip_images = strip_images
-        self.user_map = user_map
+        self.tracker = tracker
+
+    def notion_to_mention(self, notion_id):
+        """Convert a notion id to an issue tracker mention."""
+        return self.tracker.new_user(notion_user=notion_id).tracker_mention
 
     def convert(self, blocks) -> str:
         """Convenience function to convert blocks directly to string."""
@@ -258,9 +262,8 @@ class CustomNotionToMarkdown(NotionToMarkdown):
             for rich_text in block["paragraph"]["rich_text"]:
                 if rich_text["type"] == "mention":
                     new_user = None
-                    if rich_text["mention"]["type"] == "user" and self.user_map:
-                        gh_user = self.user_map.notion_to_gh(rich_text["mention"]["user"]["id"])
-                        new_user = "@" + gh_user if gh_user else None
+                    if rich_text["mention"]["type"] == "user" and self.tracker:
+                        new_user = self.notion_to_mention(rich_text["mention"]["user"]["id"])
 
                     if new_user:
                         rich_text["plain_text"] = new_user
@@ -529,7 +532,7 @@ def people(name: str) -> NotionProperty:
 
     def _update(content: str) -> Dict[str, Any]:
         vals = []
-        for val in content:
+        for val in content or []:
             vals.append({"object": "user", "id": val})
 
         return {name: {"type": "people", "people": vals}}
