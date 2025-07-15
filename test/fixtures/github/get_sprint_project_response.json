@@ -1,0 +1,96 @@
+{
+  "data": {
+    "node": {
+      "__typename": "ProjectV2",
+      "number": 2,
+      "title": "Test Sprints",
+      "id": "PVT_kwHOAAlD3s4AxVFW",
+      "status": {
+        "__typename": "ProjectV2SingleSelectField",
+        "id": "PVTSSF_lAHOAAlD3s4AxVFWzgndRt0",
+        "name": "Status",
+        "dataType": "SINGLE_SELECT",
+        "options": [
+          {
+            "id": "f75ad846",
+            "name": "Not started"
+          },
+          {
+            "id": "47fc9ee4",
+            "name": "In progress"
+          },
+          {
+            "id": "0febcacd",
+            "name": "In review"
+          },
+          {
+            "id": "98236657",
+            "name": "Done"
+          }
+        ]
+      },
+      "priority": {
+        "__typename": "ProjectV2SingleSelectField",
+        "id": "PVTSSF_lAHOAAlD3s4AxVFWzgndSP0",
+        "name": "Priority",
+        "dataType": "SINGLE_SELECT",
+        "options": [
+          {
+            "id": "09a377fd",
+            "name": "P1"
+          },
+          {
+            "id": "0c858f8d",
+            "name": "P2"
+          },
+          {
+            "id": "e93753cb",
+            "name": "P3"
+          }
+        ]
+      },
+      "sprint": {
+        "__typename": "ProjectV2IterationField",
+        "id": "PVTIF_lAHOAAlD3s4AxVFWzgndSWI",
+        "name": "Sprint",
+        "dataType": "ITERATION",
+        "configuration": {
+          "completedIterations": [
+            {
+              "id": "ff6e72b7",
+              "startDate": "2025-02-16",
+              "title": "Sprint 3",
+              "duration": 7
+            },
+            {
+              "id": "adaae9c2",
+              "startDate": "2025-02-09",
+              "title": "Sprint 2",
+              "duration": 7
+            },
+            {
+              "id": "08dfe996",
+              "startDate": "2025-02-02",
+              "title": "Sprint 1",
+              "duration": 7
+            }
+          ],
+          "iterations": [
+            {
+              "id": "08c4a1b9",
+              "startDate": "2025-03-02",
+              "title": "Sprint 5",
+              "duration": 7
+            },
+            {
+              "id": "8260fc57",
+              "startDate": "2025-02-23",
+              "title": "Sprint 4",
+              "duration": 7
+            }
+          ]
+        }
+      }
+    }
+  }
+}

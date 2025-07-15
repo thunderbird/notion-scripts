@@ -1,0 +1,54 @@
+mutation {
+updateIssue(input: {id: "I_kwDOMwGgpM6WLTqc", title: "title2", body: "description2", state: CLOSED}) {
+actor {
+avatarUrl
+login
+resourcePath
+url
+}
+clientMutationId
+issue {
+closed
+closedAt
+viewerCanClose
+viewerCanReopen
+authorAssociation
+body
+bodyHTML
+bodyText
+createdAt
+createdViaEmail
+id
+includesCreatedEdit
+lastEditedAt
+publishedAt
+updatedAt
+viewerDidAuthor
+viewerCanDelete
+viewerCanLabel
+activeLockReason
+locked
+databaseId
+viewerCanReact
+viewerCanSubscribe
+viewerSubscription
+viewerThreadSubscriptionFormAction
+viewerThreadSubscriptionStatus
+resourcePath
+url
+viewerCanUpdate
+viewerCannotUpdateReasons
+bodyResourcePath
+bodyUrl
+fullDatabaseId
+isPinned
+isReadByViewer
+number
+state
+stateReason
+title
+titleHTML
+trackedIssuesCount
+}
+}
+}

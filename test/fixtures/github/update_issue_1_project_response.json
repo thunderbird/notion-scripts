@@ -1,0 +1,59 @@
+{
+  "data": {
+    "updatestart_date": {
+      "clientMutationId": null,
+      "projectV2Item": {
+        "id": "PVTI_lAHOAAlD3s4AxVDIzgXcyAk",
+        "createdAt": "2025-02-18T11:15:45Z",
+        "fullDatabaseId": "98355209",
+        "isArchived": false,
+        "type": "ISSUE",
+        "updatedAt": "2025-07-04T21:09:27Z"
+      }
+    },
+    "updatetarget_date": {
+      "clientMutationId": null,
+      "projectV2Item": {
+        "id": "PVTI_lAHOAAlD3s4AxVDIzgXcyAk",
+        "createdAt": "2025-02-18T11:15:45Z",
+        "fullDatabaseId": "98355209",
+        "isArchived": false,
+        "type": "ISSUE",
+        "updatedAt": "2025-07-04T21:09:27Z"
+      }
+    },
+    "updatepriority": {
+      "clientMutationId": null,
+      "projectV2Item": {
+        "id": "PVTI_lAHOAAlD3s4AxVDIzgXcyAk",
+        "createdAt": "2025-02-18T11:15:45Z",
+        "fullDatabaseId": "98355209",
+        "isArchived": false,
+        "type": "ISSUE",
+        "updatedAt": "2025-07-04T21:09:27Z"
+      }
+    },
+    "updatestatus": {
+      "clientMutationId": null,
+      "projectV2Item": {
+        "id": "PVTI_lAHOAAlD3s4AxVDIzgXcyAk",
+        "createdAt": "2025-02-18T11:15:45Z",
+        "fullDatabaseId": "98355209",
+        "isArchived": false,
+        "type": "ISSUE",
+        "updatedAt": "2025-07-04T21:09:27Z"
+      }
+    },
+    "updatelink": {
+      "clientMutationId": null,
+      "projectV2Item": {
+        "id": "PVTI_lAHOAAlD3s4AxVDIzgXcyAk",
+        "createdAt": "2025-02-18T11:15:45Z",
+        "fullDatabaseId": "98355209",
+        "isArchived": false,
+        "type": "ISSUE",
+        "updatedAt": "2025-07-04T21:09:27Z"
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+query {
+user_kewisch: user(login: "kewisch") {
+id
+databaseId
+}
+user_notkewisch: user(login: "notkewisch") {
+id
+databaseId
+}
+}

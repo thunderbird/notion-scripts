@@ -1,0 +1,10 @@
+{
+  "data": {
+    "addLabelsToLabelable": {
+      "clientMutationId": null,
+      "labelable": {
+        "viewerCanLabel": true
+      }
+    }
+  }
+}

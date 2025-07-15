@@ -1,0 +1,8 @@
+mutation {
+addLabelsToLabelable(input: {labelableId: "I_kwDOMwGgpM6WLTqc", labelIds: ["LA_kwDOMwGgpM8AAAABvAun4g"]}) {
+clientMutationId
+labelable {
+viewerCanLabel
+}
+}
+}

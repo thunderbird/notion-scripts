@@ -1,0 +1,176 @@
+{
+  "data": {
+    "repository": {
+      "issue1": {
+        "title": "Account Drawer Improvements",
+        "number": 1,
+        "updatedAt": "2025-06-15T19:31:03Z",
+        "createdAt": "2024-09-11T11:57:39Z",
+        "closedAt": null,
+        "state": "OPEN",
+        "url": "https://github.com/kewisch/test/issues/1",
+        "id": "I_kwDOMwGgpM6WLTqc",
+        "body": "I am the body",
+        "parent": null,
+        "repository": {
+          "id": "R_kgDOMwGgpA",
+          "nameWithOwner": "kewisch/test",
+          "name": "test",
+          "isPrivate": false
+        },
+        "labels": {
+          "nodes": [
+            {
+              "name": "type: epic"
+            }
+          ]
+        },
+        "assignees": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjYwNzE5OA==",
+              "login": "kewisch"
+            }
+          ]
+        },
+        "projectItems": {
+          "nodes": [
+            {
+              "id": "PVTI_lAHOAAlD3s4AxVDIzgXcyAk",
+              "project": {
+                "__typename": "ProjectV2",
+                "id": "PVT_kwHOAAlD3s4AxVDI",
+                "number": 1,
+                "title": "Test Roadmap - Readonly"
+              },
+              "priority": {
+                "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                "name": "P2",
+                "optionId": "f993bd2e",
+                "field": {
+                  "__typename": "ProjectV2SingleSelectField",
+                  "id": "PVTSSF_lAHOAAlD3s4AxVDIzgndQGw"
+                }
+              },
+              "start_date": {
+                "__typename": "ProjectV2ItemFieldDateValue",
+                "date": "2025-01-24",
+                "field": {
+                  "__typename": "ProjectV2Field",
+                  "id": "PVTF_lAHOAAlD3s4AxVDIzgndQIs"
+                }
+              },
+              "target_date": {
+                "__typename": "ProjectV2ItemFieldDateValue",
+                "date": "2025-01-28",
+                "field": {
+                  "__typename": "ProjectV2Field",
+                  "id": "PVTF_lAHOAAlD3s4AxVDIzgndQUU"
+                }
+              },
+              "status": {
+                "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                "field": {
+                  "__typename": "ProjectV2SingleSelectField",
+                  "id": "PVTSSF_lAHOAAlD3s4AxVDIzgndP5s"
+                },
+                "name": "Not started",
+                "optionId": "f75ad846"
+              },
+              "sprint": null
+            }
+          ]
+        },
+        "subIssues": {
+          "nodes": []
+        }
+      },
+      "issue2": {
+        "title": "test2",
+        "number": 2,
+        "updatedAt": "2025-02-18T23:01:58Z",
+        "createdAt": "2025-01-31T14:54:53Z",
+        "closedAt": null,
+        "state": "OPEN",
+        "url": "https://github.com/kewisch/test/issues/2",
+        "id": "I_kwDOMwGgpM6oTotN",
+        "body": "\nThis is a page with content\n\n\n@kewisch \n\n\n# hi\n\n\ndings\n\n\n---\n\n",
+        "parent": null,
+        "repository": {
+          "id": "R_kgDOMwGgpA",
+          "nameWithOwner": "kewisch/test",
+          "name": "test",
+          "isPrivate": false
+        },
+        "labels": {
+          "nodes": [
+            {
+              "name": "type: epic"
+            }
+          ]
+        },
+        "assignees": {
+          "nodes": []
+        },
+        "projectItems": {
+          "nodes": [
+            {
+              "id": "PVTI_lAHOAAlD3s4AxVDIzgW66DI",
+              "project": {
+                "__typename": "ProjectV2",
+                "id": "PVT_kwHOAAlD3s4AxVDI",
+                "number": 1,
+                "title": "Test Roadmap - Readonly"
+              },
+              "priority": {
+                "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                "name": "P3",
+                "optionId": "c82ffbcf",
+                "field": {
+                  "__typename": "ProjectV2SingleSelectField",
+                  "id": "PVTSSF_lAHOAAlD3s4AxVDIzgndQGw"
+                }
+              },
+              "start_date": {
+                "__typename": "ProjectV2ItemFieldDateValue",
+                "date": "2025-02-19",
+                "field": {
+                  "__typename": "ProjectV2Field",
+                  "id": "PVTF_lAHOAAlD3s4AxVDIzgndQIs"
+                }
+              },
+              "target_date": {
+                "__typename": "ProjectV2ItemFieldDateValue",
+                "date": "2025-02-23",
+                "field": {
+                  "__typename": "ProjectV2Field",
+                  "id": "PVTF_lAHOAAlD3s4AxVDIzgndQUU"
+                }
+              },
+              "status": {
+                "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                "field": {
+                  "__typename": "ProjectV2SingleSelectField",
+                  "id": "PVTSSF_lAHOAAlD3s4AxVDIzgndP5s"
+                },
+                "name": "In progress",
+                "optionId": "47fc9ee4"
+              },
+              "sprint": null
+            }
+          ]
+        },
+        "subIssues": {
+          "nodes": [
+            {
+              "number": 4
+            },
+            {
+              "number": 3
+            }
+          ]
+        }
+      }
+    }
+  }
+}

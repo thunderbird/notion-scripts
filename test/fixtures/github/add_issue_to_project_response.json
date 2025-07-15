@@ -1,0 +1,15 @@
+{
+   "data" : {
+      "addProjectV2ItemById" : {
+         "clientMutationId" : null,
+         "item" : {
+            "createdAt" : "2025-02-18T11:15:45Z",
+            "fullDatabaseId" : "98355209",
+            "id" : "PVTI_lAHOAAlD3s4AxVDIzgXcyAk",
+            "isArchived" : false,
+            "type" : "ISSUE",
+            "updatedAt" : "2025-07-07T10:02:01Z"
+         }
+      }
+   }
+}

@@ -1,0 +1,84 @@
+{
+  "data": {
+    "repository": {
+      "issue3": {
+        "title": "test2-sub1",
+        "number": 3,
+        "updatedAt": "2025-02-18T16:21:19Z",
+        "createdAt": "2025-01-31T20:38:43Z",
+        "closedAt": null,
+        "state": "OPEN",
+        "url": "https://github.com/kewisch/test/issues/3",
+        "id": "I_kwDOMwGgpM6oWELp",
+        "body": "sup",
+        "parent": {
+          "number": 2,
+          "repository": {
+            "nameWithOwner": "kewisch/test"
+          }
+        },
+        "repository": {
+          "id": "R_kgDOMwGgpA",
+          "nameWithOwner": "kewisch/test",
+          "name": "test",
+          "isPrivate": false
+        },
+        "labels": {
+          "nodes": []
+        },
+        "assignees": {
+          "nodes": [
+            {
+              "id": "MDQ6VXNlcjYwNzE5OA==",
+              "login": "kewisch"
+            }
+          ]
+        },
+        "projectItems": {
+          "nodes": [
+            {
+              "id": "PVTI_lAHOAAlD3s4AxVFWzgW66Rg",
+              "project": {
+                "__typename": "ProjectV2",
+                "id": "PVT_kwHOAAlD3s4AxVFW",
+                "number": 2,
+                "title": "Test Sprints"
+              },
+              "priority": {
+                "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                "name": "P2",
+                "optionId": "0c858f8d",
+                "field": {
+                  "__typename": "ProjectV2SingleSelectField",
+                  "id": "PVTSSF_lAHOAAlD3s4AxVFWzgndSP0"
+                }
+              },
+              "start_date": null,
+              "target_date": null,
+              "status": {
+                "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                "field": {
+                  "__typename": "ProjectV2SingleSelectField",
+                  "id": "PVTSSF_lAHOAAlD3s4AxVFWzgndRt0"
+                },
+                "name": "In review",
+                "optionId": "0febcacd"
+              },
+              "sprint": {
+                "__typename": "ProjectV2ItemFieldIterationValue",
+                "field": {
+                  "__typename": "ProjectV2IterationField",
+                  "id": "PVTIF_lAHOAAlD3s4AxVFWzgndSWI"
+                },
+                "iterationId": "08dfe996",
+                "startDate": "2025-02-02",
+                "title": "Sprint 1",
+                "duration": 7
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,195 @@
+query {
+node(id: "PVT_kwHOAAlD3s4AxVDI") {
+__typename
+... on ProjectV2 {
+number
+title
+id
+status: field(name: "Status") {
+__typename
+__typename
+... on ProjectV2Field {
+id
+dataType
+name
+}
+... on ProjectV2IterationField {
+id
+name
+dataType
+configuration {
+completedIterations {
+id
+startDate
+title
+duration
+}
+iterations {
+id
+startDate
+title
+duration
+}
+}
+}
+... on ProjectV2SingleSelectField {
+id
+name
+dataType
+options {
+id
+name
+}
+}
+}
+priority: field(name: "Priority") {
+__typename
+__typename
+... on ProjectV2Field {
+id
+dataType
+name
+}
+... on ProjectV2IterationField {
+id
+name
+dataType
+configuration {
+completedIterations {
+id
+startDate
+title
+duration
+}
+iterations {
+id
+startDate
+title
+duration
+}
+}
+}
+... on ProjectV2SingleSelectField {
+id
+name
+dataType
+options {
+id
+name
+}
+}
+}
+start_date: field(name: "Start Date") {
+__typename
+__typename
+... on ProjectV2Field {
+id
+dataType
+name
+}
+... on ProjectV2IterationField {
+id
+name
+dataType
+configuration {
+completedIterations {
+id
+startDate
+title
+duration
+}
+iterations {
+id
+startDate
+title
+duration
+}
+}
+}
+... on ProjectV2SingleSelectField {
+id
+name
+dataType
+options {
+id
+name
+}
+}
+}
+target_date: field(name: "Target Date") {
+__typename
+__typename
+... on ProjectV2Field {
+id
+dataType
+name
+}
+... on ProjectV2IterationField {
+id
+name
+dataType
+configuration {
+completedIterations {
+id
+startDate
+title
+duration
+}
+iterations {
+id
+startDate
+title
+duration
+}
+}
+}
+... on ProjectV2SingleSelectField {
+id
+name
+dataType
+options {
+id
+name
+}
+}
+}
+link: field(name: "Link") {
+__typename
+__typename
+... on ProjectV2Field {
+id
+dataType
+name
+}
+... on ProjectV2IterationField {
+id
+name
+dataType
+configuration {
+completedIterations {
+id
+startDate
+title
+duration
+}
+iterations {
+id
+startDate
+title
+duration
+}
+}
+}
+... on ProjectV2SingleSelectField {
+id
+name
+dataType
+options {
+id
+name
+}
+}
+}
+}
+}
+}

@@ -1,0 +1,8 @@
+mutation {
+removeAssigneesFromAssignable(input: {assignableId: "I_kwDOMwGgpM6WLTqc", assigneeIds: ["MDQ6VXNlcjYwNzE5OA=="]}) {
+clientMutationId
+}
+addAssigneesToAssignable(input: {assignableId: "I_kwDOMwGgpM6WLTqc", assigneeIds: ["U_kgDOBduxkQ"]}) {
+clientMutationId
+}
+}

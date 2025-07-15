@@ -1,0 +1,57 @@
+mutation {
+updatestart_date: updateProjectV2ItemFieldValue(input: {projectId: "PVT_kwHOAAlD3s4AxVDI", itemId: "PVTI_lAHOAAlD3s4AxVDIzgXcyAk", fieldId: "PVTF_lAHOAAlD3s4AxVDIzgndQIs", value: {date: "2025-07-04"}}) {
+clientMutationId
+projectV2Item {
+id
+createdAt
+fullDatabaseId
+isArchived
+type
+updatedAt
+}
+}
+updatetarget_date: updateProjectV2ItemFieldValue(input: {projectId: "PVT_kwHOAAlD3s4AxVDI", itemId: "PVTI_lAHOAAlD3s4AxVDIzgXcyAk", fieldId: "PVTF_lAHOAAlD3s4AxVDIzgndQUU", value: {date: "2025-07-04"}}) {
+clientMutationId
+projectV2Item {
+id
+createdAt
+fullDatabaseId
+isArchived
+type
+updatedAt
+}
+}
+updatepriority: updateProjectV2ItemFieldValue(input: {projectId: "PVT_kwHOAAlD3s4AxVDI", itemId: "PVTI_lAHOAAlD3s4AxVDIzgXcyAk", fieldId: "PVTSSF_lAHOAAlD3s4AxVDIzgndQGw", value: {singleSelectOptionId: "c82ffbcf"}}) {
+clientMutationId
+projectV2Item {
+id
+createdAt
+fullDatabaseId
+isArchived
+type
+updatedAt
+}
+}
+updatestatus: updateProjectV2ItemFieldValue(input: {projectId: "PVT_kwHOAAlD3s4AxVDI", itemId: "PVTI_lAHOAAlD3s4AxVDIzgXcyAk", fieldId: "PVTSSF_lAHOAAlD3s4AxVDIzgndP5s", value: {singleSelectOptionId: null}}) {
+clientMutationId
+projectV2Item {
+id
+createdAt
+fullDatabaseId
+isArchived
+type
+updatedAt
+}
+}
+updatelink: updateProjectV2ItemFieldValue(input: {projectId: "PVT_kwHOAAlD3s4AxVDI", itemId: "PVTI_lAHOAAlD3s4AxVDIzgXcyAk", fieldId: "PVTF_lAHOAAlD3s4AxVDIzgohH4w", value: {text: "https://www.notion.so/mzthunderbird/123123123"}}) {
+clientMutationId
+projectV2Item {
+id
+createdAt
+fullDatabaseId
+isArchived
+type
+updatedAt
+}
+}
+}

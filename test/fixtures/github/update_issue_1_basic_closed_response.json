@@ -1,0 +1,56 @@
+{
+  "data": {
+    "updateIssue": {
+      "actor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/607198?v=4",
+        "login": "kewisch",
+        "resourcePath": "/kewisch",
+        "url": "https://github.com/kewisch"
+      },
+      "clientMutationId": null,
+      "issue": {
+        "closed": true,
+        "closedAt": "2025-07-04T20:54:10Z",
+        "viewerCanClose": true,
+        "viewerCanReopen": true,
+        "authorAssociation": "OWNER",
+        "body": "description2",
+        "bodyHTML": "<p dir=\"auto\">description2</p>",
+        "bodyText": "description2",
+        "createdAt": "2024-09-11T11:57:39Z",
+        "createdViaEmail": false,
+        "id": "I_kwDOMwGgpM6WLTqc",
+        "includesCreatedEdit": true,
+        "lastEditedAt": "2025-07-04T20:54:10Z",
+        "publishedAt": "2024-09-11T11:57:39Z",
+        "updatedAt": "2025-07-04T20:54:10Z",
+        "viewerDidAuthor": true,
+        "viewerCanDelete": true,
+        "viewerCanLabel": true,
+        "activeLockReason": null,
+        "locked": false,
+        "databaseId": 2519546524,
+        "viewerCanReact": true,
+        "viewerCanSubscribe": true,
+        "viewerSubscription": "SUBSCRIBED",
+        "viewerThreadSubscriptionFormAction": "UNSUBSCRIBE",
+        "viewerThreadSubscriptionStatus": "SUBSCRIBED_TO_LIST",
+        "resourcePath": "/kewisch/test/issues/1",
+        "url": "https://github.com/kewisch/test/issues/1",
+        "viewerCanUpdate": true,
+        "viewerCannotUpdateReasons": [],
+        "bodyResourcePath": "/kewisch/test/issues/1#issue-2519546524",
+        "bodyUrl": "https://github.com/kewisch/test/issues/1#issue-2519546524",
+        "fullDatabaseId": "2519546524",
+        "isPinned": false,
+        "isReadByViewer": true,
+        "number": 1,
+        "state": "CLOSED",
+        "stateReason": null,
+        "title": "title2",
+        "titleHTML": "title2",
+        "trackedIssuesCount": 0
+      }
+    }
+  }
+}

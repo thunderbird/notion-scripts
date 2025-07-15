@@ -1,0 +1,40 @@
+{
+  "status": "NEW",
+  "comments": [
+    {
+      "count": 0,
+      "time": "2025-01-30T13:59:24Z",
+      "bug_id": 1944850,
+      "reactions": {},
+      "id": 17323709,
+      "tags": [],
+      "text": "Rebuild the Read Event dialog based on designs in blabla",
+      "creation_time": "2025-01-30T13:59:24Z",
+      "creator": "toby@thunderbird.net",
+      "author": "toby@thunderbird.net",
+      "is_private": false,
+      "raw_text": "Rebuild the Read Event dialog based on designs in blabla",
+      "attachment_id": null
+    }
+  ],
+  "cf_user_story": "",
+  "assigned_to": "nobody@mozilla.org",
+  "blocks": [
+    1944847
+  ],
+  "depends_on": [
+    1944885
+  ],
+  "id": 1944850,
+  "see_also": [],
+  "priority": "--",
+  "summary": "[meta] Rebuild the calendar Read Event dialog",
+  "attachments": [],
+  "assigned_to_detail": {
+    "nick": "nobody",
+    "id": 1,
+    "name": "nobody@mozilla.org",
+    "real_name": "Nobody; OK to take it and work on it",
+    "email": "nobody@mozilla.org"
+  }
+}

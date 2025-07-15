@@ -1,0 +1,10 @@
+query {
+repository(owner: "org", name: "repo") {
+label_0: label(name: "a") {
+id
+}
+label_1: label(name: "b") {
+id
+}
+}
+}

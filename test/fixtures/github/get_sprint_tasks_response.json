@@ -1,0 +1,303 @@
+{
+  "data": {
+    "node": {
+      "__typename": "ProjectV2",
+      "items": {
+        "nodes": [
+          {
+            "content": {
+              "__typename": "Issue",
+              "number": 4,
+              "repository": {
+                "nameWithOwner": "kewisch/test",
+                "id": "R_kgDOMwGgpA",
+                "name": "test",
+                "isPrivate": false
+              },
+              "title": "test2-sub2",
+              "updatedAt": "2025-01-31T23:11:17Z",
+              "createdAt": "2025-01-31T23:11:17Z",
+              "closedAt": null,
+              "state": "OPEN",
+              "url": "https://github.com/kewisch/test/issues/4",
+              "id": "I_kwDOMwGgpM6oWzIv",
+              "body": "test",
+              "parent": {
+                "number": 2,
+                "repository": {
+                  "nameWithOwner": "kewisch/test"
+                }
+              },
+              "labels": {
+                "nodes": []
+              },
+              "assignees": {
+                "nodes": []
+              },
+              "projectItems": {
+                "nodes": [
+                  {
+                    "id": "PVTI_lAHOAAlD3s4AxVFWzgW66S0",
+                    "project": {
+                      "__typename": "ProjectV2",
+                      "id": "PVT_kwHOAAlD3s4AxVFW",
+                      "number": 2,
+                      "title": "Test Sprints"
+                    },
+                    "priority": {
+                      "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                      "name": "P1",
+                      "optionId": "09a377fd",
+                      "field": {
+                        "__typename": "ProjectV2SingleSelectField",
+                        "id": "PVTSSF_lAHOAAlD3s4AxVFWzgndSP0"
+                      }
+                    },
+                    "start_date": null,
+                    "target_date": null,
+                    "status": {
+                      "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                      "field": {
+                        "__typename": "ProjectV2SingleSelectField",
+                        "id": "PVTSSF_lAHOAAlD3s4AxVFWzgndRt0"
+                      },
+                      "name": "In progress",
+                      "optionId": "47fc9ee4"
+                    },
+                    "sprint": {
+                      "__typename": "ProjectV2ItemFieldIterationValue",
+                      "field": {
+                        "__typename": "ProjectV2IterationField",
+                        "id": "PVTIF_lAHOAAlD3s4AxVFWzgndSWI"
+                      },
+                      "iterationId": "adaae9c2",
+                      "startDate": "2025-02-09",
+                      "title": "Sprint 2",
+                      "duration": 7
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "content": {
+              "__typename": "Issue",
+              "number": 3,
+              "repository": {
+                "nameWithOwner": "kewisch/test",
+                "id": "R_kgDOMwGgpA",
+                "name": "test",
+                "isPrivate": false
+              },
+              "title": "test2-sub1",
+              "updatedAt": "2025-02-18T16:21:19Z",
+              "createdAt": "2025-01-31T20:38:43Z",
+              "closedAt": null,
+              "state": "OPEN",
+              "url": "https://github.com/kewisch/test/issues/3",
+              "id": "I_kwDOMwGgpM6oWELp",
+              "body": "sup",
+              "parent": {
+                "number": 2,
+                "repository": {
+                  "nameWithOwner": "kewisch/test"
+                }
+              },
+              "labels": {
+                "nodes": []
+              },
+              "assignees": {
+                "nodes": [
+                  {
+                    "id": "MDQ6VXNlcjYwNzE5OA==",
+                    "login": "kewisch"
+                  }
+                ]
+              },
+              "projectItems": {
+                "nodes": [
+                  {
+                    "id": "PVTI_lAHOAAlD3s4AxVFWzgW66Rg",
+                    "project": {
+                      "__typename": "ProjectV2",
+                      "id": "PVT_kwHOAAlD3s4AxVFW",
+                      "number": 2,
+                      "title": "Test Sprints"
+                    },
+                    "priority": {
+                      "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                      "name": "P2",
+                      "optionId": "0c858f8d",
+                      "field": {
+                        "__typename": "ProjectV2SingleSelectField",
+                        "id": "PVTSSF_lAHOAAlD3s4AxVFWzgndSP0"
+                      }
+                    },
+                    "start_date": null,
+                    "target_date": null,
+                    "status": {
+                      "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                      "field": {
+                        "__typename": "ProjectV2SingleSelectField",
+                        "id": "PVTSSF_lAHOAAlD3s4AxVFWzgndRt0"
+                      },
+                      "name": "In review",
+                      "optionId": "0febcacd"
+                    },
+                    "sprint": {
+                      "__typename": "ProjectV2ItemFieldIterationValue",
+                      "field": {
+                        "__typename": "ProjectV2IterationField",
+                        "id": "PVTIF_lAHOAAlD3s4AxVFWzgndSWI"
+                      },
+                      "iterationId": "08dfe996",
+                      "startDate": "2025-02-02",
+                      "title": "Sprint 1",
+                      "duration": 7
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "content": {
+              "__typename": "Issue",
+              "number": 6,
+              "repository": {
+                "nameWithOwner": "kewisch/test",
+                "id": "R_kgDOMwGgpA",
+                "name": "test",
+                "isPrivate": false
+              },
+              "title": "project board issue",
+              "updatedAt": "2025-02-19T10:57:07Z",
+              "createdAt": "2025-02-19T10:57:07Z",
+              "closedAt": null,
+              "state": "OPEN",
+              "url": "https://github.com/kewisch/test/issues/6",
+              "id": "I_kwDOMwGgpM6qpYBM",
+              "body": "",
+              "parent": null,
+              "labels": {
+                "nodes": []
+              },
+              "assignees": {
+                "nodes": []
+              },
+              "projectItems": {
+                "nodes": [
+                  {
+                    "id": "PVTI_lAHOAAlD3s4AxVFWzgXffhY",
+                    "project": {
+                      "__typename": "ProjectV2",
+                      "id": "PVT_kwHOAAlD3s4AxVFW",
+                      "number": 2,
+                      "title": "Test Sprints"
+                    },
+                    "priority": null,
+                    "start_date": null,
+                    "target_date": null,
+                    "status": {
+                      "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                      "field": {
+                        "__typename": "ProjectV2SingleSelectField",
+                        "id": "PVTSSF_lAHOAAlD3s4AxVFWzgndRt0"
+                      },
+                      "name": "In progress",
+                      "optionId": "47fc9ee4"
+                    },
+                    "sprint": {
+                      "__typename": "ProjectV2ItemFieldIterationValue",
+                      "field": {
+                        "__typename": "ProjectV2IterationField",
+                        "id": "PVTIF_lAHOAAlD3s4AxVFWzgndSWI"
+                      },
+                      "iterationId": "ff6e72b7",
+                      "startDate": "2025-02-16",
+                      "title": "Sprint 3",
+                      "duration": 7
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "content": {
+              "__typename": "Issue",
+              "number": 16,
+              "repository": {
+                "nameWithOwner": "kewisch/test2",
+                "id": "R_kgDOOE8YYw",
+                "name": "test2",
+                "isPrivate": false
+              },
+              "title": "subissue 1",
+              "updatedAt": "2025-03-28T11:59:10Z",
+              "createdAt": "2025-03-28T11:59:10Z",
+              "closedAt": null,
+              "state": "OPEN",
+              "url": "https://github.com/kewisch/test2/issues/16",
+              "id": "I_kwDOOE8YY86wMEga",
+              "body": "hello",
+              "parent": {
+                "number": 31,
+                "repository": {
+                  "nameWithOwner": "kewisch/test2"
+                }
+              },
+              "labels": {
+                "nodes": []
+              },
+              "assignees": {
+                "nodes": []
+              },
+              "projectItems": {
+                "nodes": [
+                  {
+                    "id": "PVTI_lAHOAAlD3s4AxVFWzgad1BA",
+                    "project": {
+                      "__typename": "ProjectV2",
+                      "id": "PVT_kwHOAAlD3s4AxVFW",
+                      "number": 2,
+                      "title": "Test Sprints"
+                    },
+                    "priority": null,
+                    "start_date": null,
+                    "target_date": null,
+                    "status": {
+                      "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                      "field": {
+                        "__typename": "ProjectV2SingleSelectField",
+                        "id": "PVTSSF_lAHOAAlD3s4AxVFWzgndRt0"
+                      },
+                      "name": "In progress",
+                      "optionId": "47fc9ee4"
+                    },
+                    "sprint": {
+                      "__typename": "ProjectV2ItemFieldIterationValue",
+                      "field": {
+                        "__typename": "ProjectV2IterationField",
+                        "id": "PVTIF_lAHOAAlD3s4AxVFWzgndSWI"
+                      },
+                      "iterationId": "08c4a1b9",
+                      "startDate": "2025-03-02",
+                      "title": "Sprint 5",
+                      "duration": 7
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "pageInfo": {
+          "hasNextPage": false,
+          "endCursor": "Y3Vyc29yOnYyOpK5MDAwMDAwMDAuMzMzMzMzMzMzMzMzMzMzM84GndQQ"
+        }
+      }
+    }
+  }
+}

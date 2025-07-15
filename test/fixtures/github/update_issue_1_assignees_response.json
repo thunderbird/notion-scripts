@@ -1,0 +1,23 @@
+{
+  "data": {
+    "removeAssigneesFromAssignable": {
+      "clientMutationId": null
+    },
+    "addAssigneesToAssignable": {
+      "clientMutationId": null
+    }
+  },
+  "extensions": {
+    "warnings": [
+      {
+        "type": "DEPRECATION",
+        "message": "The id MDQ6VXNlcjYwNzE5OA== is deprecated. Update your cache to use the next_global_id from the data payload.",
+        "data": {
+          "legacy_global_id": "MDQ6VXNlcjYwNzE5OA==",
+          "next_global_id": "U_kgDOAAlD3g"
+        },
+        "link": "https://docs.github.com"
+      }
+    ]
+  }
+}

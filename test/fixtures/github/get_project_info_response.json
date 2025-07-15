@@ -1,0 +1,68 @@
+{
+  "data": {
+    "node": {
+      "__typename": "ProjectV2",
+      "number": 1,
+      "title": "Test Roadmap - Readonly",
+      "id": "PVT_kwHOAAlD3s4AxVDI",
+      "status": {
+        "__typename": "ProjectV2SingleSelectField",
+        "id": "PVTSSF_lAHOAAlD3s4AxVDIzgndP5s",
+        "name": "Status",
+        "dataType": "SINGLE_SELECT",
+        "options": [
+          {
+            "id": "f75ad846",
+            "name": "Not started"
+          },
+          {
+            "id": "47fc9ee4",
+            "name": "In progress"
+          },
+          {
+            "id": "98236657",
+            "name": "Done"
+          }
+        ]
+      },
+      "priority": {
+        "__typename": "ProjectV2SingleSelectField",
+        "id": "PVTSSF_lAHOAAlD3s4AxVDIzgndQGw",
+        "name": "Priority",
+        "dataType": "SINGLE_SELECT",
+        "options": [
+          {
+            "id": "c117565e",
+            "name": "P1"
+          },
+          {
+            "id": "f993bd2e",
+            "name": "P2"
+          },
+          {
+            "id": "c82ffbcf",
+            "name": "P3"
+          }
+        ]
+      },
+      "start_date": {
+        "__typename": "ProjectV2Field",
+        "id": "PVTF_lAHOAAlD3s4AxVDIzgndQIs",
+        "dataType": "DATE",
+        "name": "Start Date"
+      },
+      "target_date": {
+        "__typename": "ProjectV2Field",
+        "id": "PVTF_lAHOAAlD3s4AxVDIzgndQUU",
+        "dataType": "DATE",
+        "name": "Target Date"
+      },
+      "link": {
+        "__typename": "ProjectV2Field",
+        "id": "PVTF_lAHOAAlD3s4AxVDIzgohH4w",
+        "dataType": "TEXT",
+        "name": "Link"
+      }
+    }
+  }
+}

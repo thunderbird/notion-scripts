@@ -1,0 +1,91 @@
+{
+  "cf_user_story": "",
+  "priority": "P3",
+  "summary": "Read Calendar Event - Acceptance Widget",
+  "attachments": [
+    {
+      "file_name": "phabricator-D248065-url.txt",
+      "attacher": "user1@example.com",
+      "creator_detail": {},
+      "content_type": "text/x-phabricator-request",
+      "size": 48,
+      "creator": "user1@example.com",
+      "creation_time": "2025-05-06T16:06:11Z",
+      "flags": [],
+      "is_private": 0,
+      "is_patch": 0,
+      "summary": "Bug 1944885 - Add acceptance widget for calendar dialog. r=#thunderbird-front-end-reviewers",
+      "bug_id": 1944885,
+      "id": 9485760,
+      "description": "Bug 1944885 - Add acceptance widget for calendar dialog. r=#thunderbird-front-end-reviewers",
+      "data": "aHR0cHM6Ly9waGFicmljYXRvci5zZXJ2aWNlcy5tb3ppbGxhLmNvbS9EMjQ4MDY1",
+      "last_change_time": "2025-05-06T16:06:11Z",
+      "is_obsolete": 0
+    }
+  ],
+  "depends_on": [],
+  "see_also": [
+    "https://github.com/thunderbird/thunderbird-android/issues/8445",
+    "https://www.notion.so/mzthunderbird/b183c949289f4282864cd373cb8b2cb7"
+  ],
+  "id": 1944885,
+  "assigned_to": "user1@example.com",
+  "status": "ASSIGNED",
+  "comments": [
+    {
+      "tags": [],
+      "bug_id": 1944885,
+      "id": 17323862,
+      "time": "2025-01-30T15:32:37Z",
+      "count": 0,
+      "raw_text": "- Radio with the potential of no pre-selected state\n- Inputs:\n    - boolean if rsvp is possible/available\n    - string for current ical status (NEEDS-ACTION/ACCEPTED/DECLINED/TENTATIVE/DELEGATED/COMPLETED/IN-PROCESS)",
+      "attachment_id": null,
+      "text": "- Radio with the potential of no pre-selected state\n- Inputs:\n    - boolean if rsvp is possible/available\n    - string for current ical status (NEEDS-ACTION/ACCEPTED/DECLINED/TENTATIVE/DELEGATED/COMPLETED/IN-PROCESS)",
+      "reactions": {},
+      "is_private": false,
+      "creator": "toby@thunderbird.net",
+      "author": "toby@thunderbird.net",
+      "creation_time": "2025-01-30T15:32:37Z"
+    },
+    {
+      "reactions": {},
+      "is_private": false,
+      "creator": "user1@example.com",
+      "author": "user1@example.com",
+      "creation_time": "2025-02-14T03:14:13Z",
+      "tags": [],
+      "bug_id": 1944885,
+      "id": 17348487,
+      "time": "2025-02-14T03:14:13Z",
+      "count": 1,
+      "attachment_id": null,
+      "raw_text": "- If the input is blurred the state should be saved\n- if the dialog is closed the state should be saved\n- if the client becomes idle for more than X minutes the state should be saved",
+      "text": "- If the input is blurred the state should be saved\n- if the dialog is closed the state should be saved\n- if the client becomes idle for more than X minutes the state should be saved"
+    },
+    {
+      "is_private": false,
+      "creation_time": "2025-05-06T16:06:11Z",
+      "creator": "user1@example.com",
+      "author": "user1@example.com",
+      "reactions": {},
+      "attachment_id": 9485760,
+      "raw_text": "",
+      "text": "Created attachment 9485760\nBug 1944885 - Add acceptance widget for calendar dialog. r=#thunderbird-front-end-reviewers",
+      "bug_id": 1944885,
+      "id": 17477081,
+      "tags": [],
+      "count": 2,
+      "time": "2025-05-06T16:06:11Z"
+    }
+  ],
+  "assigned_to_detail": {
+    "real_name": "User One",
+    "name": "user1@example.com",
+    "id": 753875,
+    "nick": "user1",
+    "email": "user1@example.com"
+  },
+  "blocks": [
+    1944850
+  ]
+}
