@@ -16,12 +16,20 @@ from .handlers import BaseTestCase
 
 USER_MAP = {"user1@example.com": "a5fba708-e170-4a68-8392-ba6894272c70"}
 
+TEST_PROPERTY_NAMES = {
+    "notion_milestones_title": "Title",
+    "notion_tasks_text_assignee": "Text Assignee",
+    "notion_tasks_review_url": "Review URL",
+    "notion_sprint_tracker_id": "TestTracker ID",
+}
+
 
 class TestTracker(IssueTracker):
     name = "TestTracker"
 
-    def __init__(self, user_map={}, issues=[], **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, user_map={}, issues=[], property_names={}, **kwargs):
+        all_props = {**TEST_PROPERTY_NAMES, **property_names}
+        super().__init__(property_names=all_props, **kwargs)
         self.user_map = user_map
         self.issues = {str(issue.id): issue for issue in issues}
         self.additional_tasks = []
@@ -155,12 +163,6 @@ class ProjectSyncTest(BaseTestCase):
             "milestones_tracker_prefix": "",
             "milestones_extra_label": None,
             "tasks_notion_prefix": "[tasks_notion_prefix] ",
-            "property_names": {
-                "notion_milestones_title": "Title",
-                "notion_tasks_text_assignee": "Text Assignee",
-                "notion_tasks_review_url": "Review URL",
-                "notion_sprint_tracker_id": "TestTracker ID",
-            },
             "sprints_merge_by_name": False,
             "dry": False,
         }
@@ -661,13 +663,13 @@ class ProjectSyncTest(BaseTestCase):
         )
 
     def test_task_wrong_title(self):
-        tracker = TestTracker(issues=self.issues)
-        self.synchronize_project(
-            tracker,
+        tracker = TestTracker(
+            issues=self.issues,
             property_names={
                 "notion_milestones_title": "Headline",
             },
         )
+        self.synchronize_project(tracker)
 
         self.assertEqual(tracker.update_milestone_issue.call_count, 1)
         self.assertEqual(tracker.update_milestone_issue.call_args[0][0].title, "Rebuild the calendar Read Event dialog")

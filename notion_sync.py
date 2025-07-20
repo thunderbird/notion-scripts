@@ -99,6 +99,7 @@ def main(projects, config, verbose=0, user_map_file=None, dry_run=False):
                     token=os.environ["BUGZILLA_TOKEN"],
                     dry=dry_run,
                     user_map=user_map.get("bugzilla") or {},
+                    property_names=project.get("properties", {}),
                 )
             elif project["method"] == "github_project":
                 tracker = GitHub(
@@ -106,6 +107,7 @@ def main(projects, config, verbose=0, user_map_file=None, dry_run=False):
                     repositories=project["repositories"],
                     dry=dry_run,
                     user_map=user_map.get("github") or {},
+                    property_names=project.get("properties", {}),
                 )
 
             else:
@@ -124,7 +126,6 @@ def main(projects, config, verbose=0, user_map_file=None, dry_run=False):
                 milestones_tracker_prefix=project.get("milestones_tracker_prefix", ""),
                 milestones_extra_label=project.get("milestones_extra_label", ""),
                 tasks_notion_prefix=project.get("tasks_notion_prefix", ""),
-                property_names=project.get("properties", {}),
                 sprints_merge_by_name=project.get("sprints_merge_by_name", False),
                 dry=dry_run,
             )

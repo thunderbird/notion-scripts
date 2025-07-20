@@ -182,10 +182,10 @@ class GitHub(IssueTracker):
             return
 
         op = Operation(schema.mutation_type)
+        closed_states = self.property_names["notion_closed_states"]
         issue_data = {
             "id": new_issue.gql.id,
-            # TODO closed states
-            "state": "CLOSED" if new_issue.state in ("Done", "Canceled") else "OPEN",
+            "state": "CLOSED" if new_issue.state in closed_states else "OPEN",
         }
 
         if new_issue.title != old_issue.title:
@@ -250,7 +250,9 @@ class GitHub(IssueTracker):
             old_issue.gql, self.github_milestones_projects[old_issue.repo].database_id
         )
 
-        old_state = getnestedattr(lambda: gh_project_item.status.name, None)  # TODO default open state
+        default_open_state = self.property_names["notion_default_open_state"]
+
+        old_state = getnestedattr(lambda: gh_project_item.status.name, default_open_state)
         old_start_date = getnestedattr(lambda: gh_project_item.start_date.date, None)
         old_end_date = getnestedattr(lambda: gh_project_item.target_date.date, None)
         old_priority = getnestedattr(lambda: gh_project_item.priority.name, None)
@@ -304,15 +306,19 @@ class GitHub(IssueTracker):
             for ref in itertools.islice(issues, i, i + chunk_size):
                 ghissue = getattr(datarepo, f"issue{ref.id}", None)
 
-                # TODO be more explicit here
-                gh_project_item = self.github_tasks_projects[ref.repo].find_project_item(
+                tasks_project_item = self.github_tasks_projects[ref.repo].find_project_item(
                     ghissue, self.github_tasks_projects[ref.repo].database_id
                 )
 
-                if not gh_project_item:
-                    gh_project_item = self.github_milestones_projects[ref.repo].find_project_item(
-                        ghissue, self.github_milestones_projects[ref.repo].database_id
-                    )
+                milestones_project_item = self.github_milestones_projects[ref.repo].find_project_item(
+                    ghissue, self.github_milestones_projects[ref.repo].database_id
+                )
+
+                if tasks_project_item and milestones_project_item:
+                    raise Exception(f"Issue {ghissue.url} has both tasks and milestones project")
+
+                gh_project_item = tasks_project_item or milestones_project_item
+                default_open_state = self.property_names["notion_default_open_state"]
 
                 issue = res[ref.id] = GitHubIssue(
                     repo=ref.repo,
@@ -324,7 +330,7 @@ class GitHub(IssueTracker):
                         GitHubUser(user_map=self.user_map, tracker_user=a.login, dbid_user=a.id)
                         for a in ghissue.assignees.nodes
                     ],
-                    state=getnestedattr(lambda: gh_project_item.status.name, None),  # TODO default open state
+                    state=getnestedattr(lambda: gh_project_item.status.name, default_open_state),
                     start_date=getnestedattr(lambda: gh_project_item.start_date.date, None),
                     end_date=getnestedattr(lambda: gh_project_item.target_date.date, None),
                     priority=getnestedattr(lambda: gh_project_item.priority.name, None),

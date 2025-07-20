@@ -74,15 +74,43 @@ class User:
 
     def __repr__(self):
         """Representation of a user."""
-        return f"{self.__class__.__name__}({self._tracker_user},{self._notion_user})"
+        return f"{self.__class__.__name__}(tracker={self._tracker_user},notion={self._notion_user})"
 
 
 class IssueTracker:
     """Base class for issue trackers."""
 
-    def __init__(self, dry=False):
+    # In order to make Notion field names configurable we have a mapping from a static key to the
+    # Notion field name. These defaults will be overwritten by the field config
+    DEFAULT_PROPERTY_NAMES = {
+        "notion_tasks_title": "Task name",
+        "notion_tasks_assignee": "Owner",
+        "notion_tasks_dates": "Dates",
+        "notion_tasks_priority": "Priority",
+        "notion_tasks_milestone_relation": "Project",
+        "notion_tasks_sprint_relation": "Sprint",
+        "notion_tasks_text_assignee": "",  # Default is disabled
+        "notion_tasks_review_url": "",  # Default is disabled
+        "notion_milestones_title": "Project",
+        "notion_milestones_assignee": "Owner",
+        "notion_milestones_priority": "Priority",
+        "notion_milestones_status": "Status",
+        "notion_milestones_dates": "Dates",
+        "notion_issue_field": "Issue Link",
+        "notion_sprint_tracker_id": "Bug Tracker External ID",
+        "notion_sprint_title": "Sprint name",
+        "notion_sprint_status": "Sprint status",
+        "notion_sprint_dates": "Dates",
+        # Some default states and values
+        "notion_tasks_priority_values": ["P1", "P2", "P3"],
+        "notion_default_open_state": "Backlog",
+        "notion_closed_states": ["Done", "Canceled"],
+    }
+
+    def __init__(self, property_names={}, dry=False):
         """Initialize the issue tracker."""
         self.dry = dry
+        self.property_names = {**self.DEFAULT_PROPERTY_NAMES, **property_names}
 
     def new_user(self, notion_user=None, tracker_user=None):
         """Create a new user instance based on notion user or tracker user."""

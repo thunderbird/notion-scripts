@@ -145,6 +145,12 @@ class GitHubProjectTest(BaseTestCase):
             issues["3"].gql = None
             self.assertEqual(issues, {"3": issue3})
 
+    def test_github_get_issue_both_projects(self):
+        with self.assertRaisesRegex(
+            Exception, r"Issue https://github.com/kewisch/test/issues/4 has both tasks and milestones project"
+        ):
+            self.github.get_issues_by_number([IssueRef(repo="kewisch/test", id="4")])
+
     def test_github_update_no_change(self):
         self.github.user_map = GitHubUserMap(
             self.github.endpoint,
@@ -177,12 +183,14 @@ class GitHubProjectTest(BaseTestCase):
 
         notkewisch = self.github.new_user(tracker_user="notkewisch")
 
+        self.github.property_names["notion_closed_states"] = ("Banana", "Done")
+
         new_issue = dataclasses.replace(
             old_issue,
             title="title2",
             labels=["bug"],
             description="description2",
-            state="In Progress",
+            state="Banana",
             priority="P3",
             assignees=[notkewisch],
             notion_url="https://www.notion.so/mzthunderbird/123123123",
@@ -198,7 +206,7 @@ class GitHubProjectTest(BaseTestCase):
 
         self.assertEqual(len(self.github_handler.calls["get_users"]), 1)
         self.assertEqual(len(self.github_handler.calls["get_issues_1_and_2"]), 1)
-        self.assertEqual(len(self.github_handler.calls["update_issue_1_basic"]), 1)
+        self.assertEqual(len(self.github_handler.calls["update_issue_1_basic_closed"]), 1)
         self.assertEqual(len(self.github_handler.calls["update_issue_1_assignees"]), 1)
         self.assertEqual(len(self.github_handler.calls["update_issue_1_labels"]), 1)
         self.assertEqual(len(self.github_handler.calls["update_issue_1_project"]), 1)

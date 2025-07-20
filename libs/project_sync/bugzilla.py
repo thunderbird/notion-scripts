@@ -34,15 +34,21 @@ class Bugzilla(IssueTracker):
 
     BUGZILLA_SHOW_RE = re.compile(r"https://([A-Za-z0-9]+(\.[A-Za-z0-9]+)+)/show_bug\.cgi\?id=[0-9]+")
 
+    DEFAULT_PROPERTY_NAMES = {
+        **IssueTracker.DEFAULT_PROPERTY_NAMES,
+        "notion_tasks_priority_values": ["P1", "P2", "P3", "P4", "P5"],
+        "notion_default_open_state": "NEW",
+        "notion_default_closed_states": ["RESOLVED"],
+    }
+
     name = "Bugzilla"
 
-    def __init__(self, base_url, token=None, user_map=None, dry=False, **kwargs):
+    def __init__(self, base_url, token=None, user_map=None, **kwargs):
         """Initialize the Bugzilla issue tracker."""
         super().__init__(**kwargs)
 
         res = urllib.parse.urlparse(base_url)
 
-        self.dry = dry
         self.base_url = base_url
         self.repo_name = res.netloc
 

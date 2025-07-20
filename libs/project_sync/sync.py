@@ -36,33 +36,6 @@ class ProjectSync:
     TASK_BODY_WARNING = "ℹ️ _This task synchronizes with {0}. Any changes you make here will be overwritten._"
     LAST_SYNC_MESSAGE = "Last Issue Tracker Sync ({0}): {1}"
 
-    # In order to make Notion field names configurable we have a mapping from a static key to the
-    # Notion field name. These defaults will be overwritten by the field config
-    DEFAULT_PROPERTY_NAMES = {
-        "notion_tasks_title": "Task name",
-        "notion_tasks_assignee": "Owner",
-        "notion_tasks_dates": "Dates",
-        "notion_tasks_priority": "Priority",
-        "notion_tasks_milestone_relation": "Project",
-        "notion_tasks_sprint_relation": "Sprint",
-        "notion_tasks_text_assignee": "",  # Default is disabled
-        "notion_tasks_review_url": "",  # Default is disabled
-        "notion_milestones_title": "Project",
-        "notion_milestones_assignee": "Owner",
-        "notion_milestones_priority": "Priority",
-        "notion_milestones_status": "Status",
-        "notion_milestones_dates": "Dates",
-        "notion_issue_field": "Issue Link",
-        "notion_sprint_tracker_id": "Bug Tracker External ID",
-        "notion_sprint_title": "Sprint name",
-        "notion_sprint_status": "Sprint status",
-        "notion_sprint_dates": "Dates",
-        # Some default states and values
-        "notion_tasks_priority_values": ["P1", "P2", "P3"],
-        "notion_tasks_open_state": "Backlog",
-        "notion_tasks_closed_state": "Done",
-    }
-
     def __init__(
         self,
         project_key,
@@ -78,7 +51,6 @@ class ProjectSync:
         milestones_tracker_prefix="",
         milestones_extra_label="",
         tasks_notion_prefix="",
-        property_names={},
         sprints_merge_by_name=False,
         dry=False,
     ):
@@ -106,8 +78,6 @@ class ProjectSync:
                 milestones.
             tasks_notion_prefix (str): Optional prefix for Notion tasks synchronized from the issue
                 tracker.
-            property_names (dict[str,str]): Allows adjusting the Notion property names. See
-                DEFAULT_PROPERTY_NAMES for the defaults.
             sprints_merge_by_name (bool): If a sprint does not exist, find an existing one by name
                 and merge it
             dry (bool): If true, only query operations are done. Mutations are disabled for both
@@ -115,7 +85,6 @@ class ProjectSync:
         """
         self.notion = notion_client.Client(auth=notion_token, client=RetryingClient())
         self.tracker = tracker
-        self.propnames = {**self.DEFAULT_PROPERTY_NAMES, **property_names}
 
         # Milestones Database
         milestones_properties = [
@@ -167,6 +136,11 @@ class ProjectSync:
         self.dry = dry
         self.sprints_merge_by_name = sprints_merge_by_name
         self.project_key = project_key
+
+    @property
+    def propnames(self):
+        """Get the property names from the tracker."""
+        return self.tracker.property_names
 
     def _get_prop(self, block_or_page, key_name, default=None, safe=True):
         if safe:
