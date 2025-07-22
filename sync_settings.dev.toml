@@ -56,6 +56,7 @@ notion_sprint_tracker_id = "GitHub ID"
 
 [sync.bugzilla]
 method = "bugzilla_project"
+tracker_dry_run = true
 notion_tasks_id = "20edea4adcdf80b782faf2011506f86e"
 notion_milestones_id = "20edea4adcdf8064878af1281be913c8"
 bugzilla_base = "https://bugzilla.mozilla.org"

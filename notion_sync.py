@@ -97,7 +97,7 @@ def main(projects, config, verbose=0, user_map_file=None, dry_run=False):
                 tracker = Bugzilla(
                     base_url=project["bugzilla_base"],
                     token=os.environ["BUGZILLA_TOKEN"],
-                    dry=dry_run,
+                    dry=dry_run or project.get("tracker_dry_run", False),
                     user_map=user_map.get("bugzilla") or {},
                     property_names=project.get("properties", {}),
                 )
@@ -105,7 +105,7 @@ def main(projects, config, verbose=0, user_map_file=None, dry_run=False):
                 tracker = GitHub(
                     token=os.environ["GITHUB_TOKEN"],
                     repositories=project["repositories"],
-                    dry=dry_run,
+                    dry=dry_run or project.get("tracker_dry_run", False),
                     user_map=user_map.get("github") or {},
                     property_names=project.get("properties", {}),
                 )

@@ -74,6 +74,7 @@ github_milestones_project_id = "PVT_kwDOAOe9Jc4A1aX6"
 
 [sync.bugzilla]
 method = "bugzilla_project"
+tracker_dry_run = true
 notion_tasks_id = "20f2df5d45ae8004baeadc784d8f7ea4"
 notion_milestones_id = "20f2df5d45ae80be9a0dc390d0ac50f4"
 bugzilla_base = "https://bugzilla.mozilla.org"
