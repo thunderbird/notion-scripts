@@ -18,6 +18,7 @@ USER_MAP = {"user1@example.com": "a5fba708-e170-4a68-8392-ba6894272c70"}
 
 TEST_PROPERTY_NAMES = {
     "notion_milestones_title": "Title",
+    "notion_tasks_title": "Title",
     "notion_tasks_text_assignee": "Text Assignee",
     "notion_tasks_review_url": "Review URL",
     "notion_sprint_tracker_id": "TestTracker ID",
@@ -276,7 +277,7 @@ class ProjectSyncTest(BaseTestCase):
                     "Priority": {"select": None},
                     "Project": {"relation": [{"id": "726fac28-6b63-48ca-90ec-0066be1a2755"}]},
                     "Status": {"status": {"name": "NEW"}},
-                    "Task name": {
+                    "Title": {
                         "title": [{"text": {"content": "[tasks_notion_prefix] - test - Subissue 1"}}],
                         "type": "title",
                     },
@@ -352,17 +353,9 @@ class ProjectSyncTest(BaseTestCase):
 
     def test_milestone_sync_single_with_body_if_empty(self):
         """Tests the milestones_body_sync_if_empty setting."""
-        issues = [
-            Issue(
-                repo="repo",
-                id="123",
-                title="Rebuild the calendar Read Event dialog",
-                description="description",
-                state="NEW",
-                priority=None,
-                url="https://example.com/repo/123",
-            )
-        ]
+        self.issues[0].sub_issues = []
+        issues = [self.issues[0]]
+
         tracker = TestTracker(issues=issues, dry=False)
 
         with self.subTest(msg="not empty"):
@@ -446,7 +439,7 @@ class ProjectSyncTest(BaseTestCase):
             {
                 "properties": {
                     "Status": {"status": {"name": "NEW"}},
-                    "Task name": {
+                    "Title": {
                         "type": "title",
                         "title": [{"text": {"content": "[tasks_notion_prefix] - test - Subissue 2"}}],
                     },
@@ -474,7 +467,7 @@ class ProjectSyncTest(BaseTestCase):
                     "Project": {"relation": [{"id": "726fac28-6b63-48ca-90ec-0066be1a2755"}]},
                     "Status": {"status": {"name": "NEW"}},
                     "Sprint": {"relation": [{"id": "1c5dea4a-dcdf-8159-948b-f193a527ef1a"}]},
-                    "Task name": {
+                    "Title": {
                         "title": [{"text": {"content": "[tasks_notion_prefix] - test - Subissue 1"}}],
                         "type": "title",
                     },
@@ -546,7 +539,7 @@ class ProjectSyncTest(BaseTestCase):
                     "Project": {"relation": [{"id": "726fac28-6b63-48ca-90ec-0066be1a2755"}]},
                     "Status": {"status": {"name": "NEW"}},
                     "Sprint": {"relation": [{"id": "1c5dea4a-dcdf-8159-948b-f193a527ef1a"}]},
-                    "Task name": {
+                    "Title": {
                         "title": [{"text": {"content": "[tasks_notion_prefix] - test - Subissue 1"}}],
                         "type": "title",
                     },
@@ -566,7 +559,7 @@ class ProjectSyncTest(BaseTestCase):
                     "Project": {"relation": [{"id": "726fac28-6b63-48ca-90ec-0066be1a2755"}]},
                     "Status": {"status": {"name": "NEW"}},
                     "Sprint": {"relation": [{"id": "89cc4fa2-f788-430d-a337-64a9aa6cb0ab"}]},
-                    "Task name": {
+                    "Title": {
                         "title": [{"text": {"content": "[tasks_notion_prefix] - test - Subissue 2"}}],
                         "type": "title",
                     },
@@ -623,7 +616,7 @@ class ProjectSyncTest(BaseTestCase):
                     "Project": {"relation": [{"id": "726fac28-6b63-48ca-90ec-0066be1a2755"}]},
                     "Status": {"status": {"name": "NEW"}},
                     "Sprint": {"relation": [{"id": "1c5dea4a-dcdf-8159-948b-f193a527ef1a"}]},
-                    "Task name": {
+                    "Title": {
                         "title": [{"text": {"content": "[tasks_notion_prefix] - test - Subissue 2"}}],
                         "type": "title",
                     },
@@ -653,7 +646,7 @@ class ProjectSyncTest(BaseTestCase):
                     "Priority": {"select": None},
                     "Project": {"relation": []},
                     "Status": {"status": {"name": "NEW"}},
-                    "Task name": {
+                    "Title": {
                         "title": [{"text": {"content": "[tasks_notion_prefix] - test - Subissue 1"}}],
                         "type": "title",
                     },
