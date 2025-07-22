@@ -82,6 +82,7 @@ milestones_tracker_prefix = "[meta] "
 [sync.bugzilla.properties]
 notion_tasks_title = "Name"
 notion_issue_field = "Bugzilla Issue"
+notion_milestones_title = "Name"
 notion_tasks_milestone_relation = "Milestone"
 notion_tasks_priority_values = ["P1", "P2", "P3", "P4", "P5"]
 notion_tasks_assignee = "Assignee"

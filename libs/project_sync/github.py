@@ -325,6 +325,10 @@ class GitHub(IssueTracker):
 
                 gh_project_item = tasks_project_item or milestones_project_item
                 default_open_state = self.property_names["notion_default_open_state"]
+                closed_states = self.property_names["notion_closed_states"]
+
+                project_state = getnestedattr(lambda: gh_project_item.status.name, default_open_state)
+                issue_state = default_open_state if ghissue.state == "OPEN" else closed_states[0]
 
                 issue = res[ref.id] = GitHubIssue(
                     repo=ref.repo,
@@ -336,7 +340,7 @@ class GitHub(IssueTracker):
                         GitHubUser(user_map=self.user_map, tracker_user=a.login, dbid_user=a.id)
                         for a in ghissue.assignees.nodes
                     ],
-                    state=getnestedattr(lambda: gh_project_item.status.name, default_open_state),
+                    state=project_state if gh_project_item else issue_state,
                     start_date=getnestedattr(lambda: gh_project_item.start_date.date, None),
                     end_date=getnestedattr(lambda: gh_project_item.target_date.date, None),
                     priority=getnestedattr(lambda: gh_project_item.priority.name, None),
