@@ -296,8 +296,15 @@ class ProjectSync:
 
             if sprint.id in self._sprint_pages_by_id:
                 page = self._sprint_pages_by_id[sprint.id]
-                logger.info(f"Updating Sprint {sprint.id} ({sprint.name}) - {sprint.start_date} to {sprint.end_date}")
-                self.sprint_db.update_page(page, notion_data)
+                changed = self.sprint_db.update_page(page, notion_data)
+                if changed:
+                    logger.info(
+                        f"Updating Sprint {sprint.id} ({sprint.name}) - {sprint.start_date} to {sprint.end_date}"
+                    )
+                else:
+                    logger.info(
+                        f"Unchanged Sprint {sprint.id} ({sprint.name}) - {sprint.start_date} to {sprint.end_date}"
+                    )
             elif self.sprints_merge_by_name and sprint.name in self._sprint_pages_by_title:
                 page = self._sprint_pages_by_title[sprint.name]
                 page_tracker_ids = self._get_richtext_prop(page, "notion_sprint_tracker_id", "").split("\n")
@@ -339,9 +346,12 @@ class ProjectSync:
         notion_data = self._get_task_notion_data(tracker_issue=tracker_issue, milestone_id=parent)
 
         if page:
-            logger.info(f"Updating task {tracker_issue.id} - {tracker_issue.title}")
-            logger.debug("\t" + str(notion_data))
-            self.tasks_db.update_page(page, notion_data)
+            changed = self.tasks_db.update_page(page, notion_data)
+            if changed:
+                logger.info(f"Updating task {tracker_issue.id} - {tracker_issue.title}")
+                logger.info("\t" + str(notion_data))
+            else:
+                logger.info(f"Unchanged task {tracker_issue.id} - {tracker_issue.title}")
         else:
             logger.info(f"Adding new task {tracker_issue.id} - {tracker_issue.title}")
             logger.debug("\t" + str(notion_data))
@@ -365,10 +375,6 @@ class ProjectSync:
             tracker_issue (Issue): Issue that is being updated
             page (dict): The Notion page object of the milestone in notion.
         """
-        logger.info(f"Updating milestone {tracker_issue.id} - {tracker_issue.title}")
-        if self.dry:
-            return
-
         # Body
         body = tracker_issue.description
         if self.milestones_body_sync or (self.milestones_body_sync_if_empty and not len(tracker_issue.description)):
@@ -401,7 +407,12 @@ class ProjectSync:
         )
 
         if tracker_issue != new_issue:
-            self.tracker.update_milestone_issue(tracker_issue, new_issue)
+            logger.info(f"Updating milestone {tracker_issue.id} - {tracker_issue.title}")
+
+            if not self.dry:
+                self.tracker.update_milestone_issue(tracker_issue, new_issue)
+        else:
+            logger.info(f"Unchanged milestone {tracker_issue.id} - {tracker_issue.title}")
 
     def synchronize(self):
         """Synchronize all the things!"""
