@@ -7,7 +7,7 @@ import logging
 from collections import defaultdict
 from dataclasses import dataclass
 from sgqlc.endpoint.http import HTTPEndpoint
-from sgqlc.operation import Operation
+from sgqlc.operation import Operation, GraphQLErrors
 
 from ..github_schema import schema
 from ..util import getnestedattr
@@ -275,6 +275,73 @@ class GitHub(IssueTracker):
                 add=True,
             )
 
+    def _parse_issue(self, ref, ghissue, sub_issues=False):
+        tasks_project_item = self.github_tasks_projects[ref.repo].find_project_item(
+            ghissue, self.github_tasks_projects[ref.repo].database_id
+        )
+
+        milestones_project_item = self.github_milestones_projects[ref.repo].find_project_item(
+            ghissue, self.github_milestones_projects[ref.repo].database_id
+        )
+
+        if tasks_project_item and milestones_project_item:
+            raise Exception(f"Issue {ghissue.url} has both tasks and milestones project")
+
+        gh_project_item = tasks_project_item or milestones_project_item
+        default_open_state = self.property_names["notion_default_open_state"]
+        closed_states = self.property_names["notion_closed_states"]
+
+        project_state = getnestedattr(lambda: gh_project_item.status.name, default_open_state)
+        issue_state = default_open_state if ghissue.state == "OPEN" else closed_states[0]
+
+        issue = GitHubIssue(
+            repo=ref.repo,
+            id=ref.id,
+            url=f"https://github.com/{ref.repo}/issues/{ref.id}",
+            title=ghissue.title,
+            description=ghissue.body,
+            assignees={
+                GitHubUser(user_map=self.user_map, tracker_user=a.login, dbid_user=a.id)
+                for a in ghissue.assignees.nodes
+            },
+            state=project_state if gh_project_item else issue_state,
+            start_date=getnestedattr(lambda: gh_project_item.start_date.date, None),
+            end_date=getnestedattr(lambda: gh_project_item.target_date.date, None),
+            priority=getnestedattr(lambda: gh_project_item.priority.name, None),
+            notion_url=getnestedattr(lambda: gh_project_item.link.text, None),
+            labels={label.name for label in ghissue.labels.nodes},
+            gql=ghissue,
+        )
+
+        if ghissue.parent:
+            issue.parents = [IssueRef(repo=ghissue.parent.repository.name_with_owner, id=str(ghissue.parent.number))]
+
+        if sub_issues:
+            issue.sub_issues = [
+                IssueRef(id=str(subissue.number), repo=ref.repo, parents=[issue])
+                for subissue in ghissue.sub_issues.nodes
+            ]
+
+        if gh_project_item and getattr(gh_project_item, "sprint", None):
+            ghsprint = gh_project_item.sprint
+            today = datetime.date.today()
+            end_date = ghsprint.start_date + datetime.timedelta(days=ghsprint.duration - 1)
+            if ghsprint.start_date > today:
+                status = "Future"
+            elif end_date < today:
+                status = "Past"
+            else:
+                status = "Current"
+
+            issue.sprint = Sprint(
+                id=ghsprint.iteration_id,
+                name=ghsprint.title,
+                status=status,
+                start_date=ghsprint.start_date,
+                end_date=end_date,
+            )
+        return issue
+
     def get_issues_by_number(self, issues, sub_issues=False, chunk_size=50):
         """Get the indicated numbered issues."""
         res = {}
@@ -282,10 +349,14 @@ class GitHub(IssueTracker):
         if not len(issues):
             return res
 
-        for i in range(0, len(issues), chunk_size):
+        i = 0
+        chunk_size = 100
+
+        while i < len(issues):
             op = Operation(schema.query_type)
             org, repo = issues[0].repo.split("/")
             oprepo = op.repository(owner=org, name=repo)
+            logger.debug(f"Get issues {i} through {i+chunk_size}")
 
             for ref in itertools.islice(issues, i, i + chunk_size):
                 if ref.repo != issues[0].repo:
@@ -299,77 +370,21 @@ class GitHub(IssueTracker):
                     subissues = issue.sub_issues(first=100)
                     subissues.nodes.number()
 
-            data = self.endpoint(op)
-            datarepo = (op + data).repository
+            try:
+                data = self.endpoint(op)
+                datarepo = (op + data).repository
 
-            for ref in itertools.islice(issues, i, i + chunk_size):
-                ghissue = getattr(datarepo, f"issue{ref.id}", None)
+                for ref in itertools.islice(issues, i, i + chunk_size):
+                    ghissue = getattr(datarepo, f"issue{ref.id}", None)
+                    res[ref.id] = self._parse_issue(ref, ghissue, sub_issues)
 
-                tasks_project_item = self.github_tasks_projects[ref.repo].find_project_item(
-                    ghissue, self.github_tasks_projects[ref.repo].database_id
-                )
-
-                milestones_project_item = self.github_milestones_projects[ref.repo].find_project_item(
-                    ghissue, self.github_milestones_projects[ref.repo].database_id
-                )
-
-                if tasks_project_item and milestones_project_item:
-                    raise Exception(f"Issue {ghissue.url} has both tasks and milestones project")
-
-                gh_project_item = tasks_project_item or milestones_project_item
-                default_open_state = self.property_names["notion_default_open_state"]
-                closed_states = self.property_names["notion_closed_states"]
-
-                project_state = getnestedattr(lambda: gh_project_item.status.name, default_open_state)
-                issue_state = default_open_state if ghissue.state == "OPEN" else closed_states[0]
-
-                issue = res[ref.id] = GitHubIssue(
-                    repo=ref.repo,
-                    id=ref.id,
-                    url=f"https://github.com/{ref.repo}/issues/{ref.id}",
-                    title=ghissue.title,
-                    description=ghissue.body,
-                    assignees=[
-                        GitHubUser(user_map=self.user_map, tracker_user=a.login, dbid_user=a.id)
-                        for a in ghissue.assignees.nodes
-                    ],
-                    state=project_state if gh_project_item else issue_state,
-                    start_date=getnestedattr(lambda: gh_project_item.start_date.date, None),
-                    end_date=getnestedattr(lambda: gh_project_item.target_date.date, None),
-                    priority=getnestedattr(lambda: gh_project_item.priority.name, None),
-                    labels=[label.name for label in ghissue.labels.nodes],
-                    gql=ghissue,
-                )
-
-                if ghissue.parent:
-                    issue.parents = [
-                        IssueRef(repo=ghissue.parent.repository.name_with_owner, id=str(ghissue.parent.number))
-                    ]
-
-                if sub_issues:
-                    issue.sub_issues = [
-                        IssueRef(id=str(subissue.number), repo=ref.repo, parents=[issue])
-                        for subissue in ghissue.sub_issues.nodes
-                    ]
-
-                if gh_project_item and getattr(gh_project_item, "sprint", None):
-                    ghsprint = gh_project_item.sprint
-                    today = datetime.date.today()
-                    end_date = ghsprint.start_date + datetime.timedelta(days=ghsprint.duration - 1)
-                    if ghsprint.start_date > today:
-                        status = "Future"
-                    elif end_date < today:
-                        status = "Past"
-                    else:
-                        status = "Current"
-
-                    issue.sprint = Sprint(
-                        id=ghsprint.iteration_id,
-                        name=ghsprint.title,
-                        status=status,
-                        start_date=ghsprint.start_date,
-                        end_date=end_date,
-                    )
+                i += chunk_size
+            except GraphQLErrors as e:
+                if str(e) == "Timeout on validation of query" and chunk_size > 1:
+                    chunk_size = chunk_size // 2
+                    logger.info(f"Decreasing chunk size to {chunk_size} due to validation timeout")
+                    continue
+                raise e
 
         return res
 

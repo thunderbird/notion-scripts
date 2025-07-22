@@ -1,0 +1,100 @@
+{
+  "data": {
+    "repository": {
+      "issue2": {
+        "title": "test2",
+        "number": 2,
+        "updatedAt": "2025-02-18T23:01:58Z",
+        "createdAt": "2025-01-31T14:54:53Z",
+        "closedAt": null,
+        "state": "OPEN",
+        "url": "https://github.com/kewisch/test/issues/2",
+        "id": "I_kwDOMwGgpM6oTotN",
+        "body": "\nThis is a page with content\n\n\n@kewisch \n\n\n# hi\n\n\ndings\n\n\n---\n\n",
+        "parent": null,
+        "repository": {
+          "id": "R_kgDOMwGgpA",
+          "nameWithOwner": "kewisch/test",
+          "name": "test",
+          "isPrivate": false
+        },
+        "labels": {
+          "nodes": [
+            {
+              "name": "type: epic"
+            }
+          ]
+        },
+        "assignees": {
+          "nodes": []
+        },
+        "projectItems": {
+          "nodes": [
+            {
+              "id": "PVTI_lAHOAAlD3s4AxVDIzgW66DI",
+              "project": {
+                "__typename": "ProjectV2",
+                "id": "PVT_kwHOAAlD3s4AxVDI",
+                "number": 1,
+                "title": "Test Roadmap - Readonly"
+              },
+              "priority": {
+                "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                "name": "P3",
+                "optionId": "c82ffbcf",
+                "field": {
+                  "__typename": "ProjectV2SingleSelectField",
+                  "id": "PVTSSF_lAHOAAlD3s4AxVDIzgndQGw"
+                }
+              },
+              "start_date": {
+                "__typename": "ProjectV2ItemFieldDateValue",
+                "date": "2025-02-19",
+                "field": {
+                  "__typename": "ProjectV2Field",
+                  "id": "PVTF_lAHOAAlD3s4AxVDIzgndQIs"
+                }
+              },
+              "target_date": {
+                "__typename": "ProjectV2ItemFieldDateValue",
+                "date": "2025-02-23",
+                "field": {
+                  "__typename": "ProjectV2Field",
+                  "id": "PVTF_lAHOAAlD3s4AxVDIzgndQUU"
+                }
+              },
+              "status": {
+                "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                "field": {
+                  "__typename": "ProjectV2SingleSelectField",
+                  "id": "PVTSSF_lAHOAAlD3s4AxVDIzgndP5s"
+                },
+                "name": "In progress",
+                "optionId": "47fc9ee4"
+              },
+              "link": {
+                "__typename": "ProjectV2ItemFieldTextValue",
+                "field": {
+                  "__typename": "ProjectV2TextField",
+                  "id": "PVTSSF_jeoi24ntq1on23rn2ownf3r"
+                },
+                "text": "https://notion.so/example/test-ref-failure-a2b009b4b63447599b138cf059a7f885"
+              },
+              "sprint": null
+            }
+          ]
+        },
+        "subIssues": {
+          "nodes": [
+            {
+              "number": 4
+            },
+            {
+              "number": 3
+            }
+          ]
+        }
+      }
+    }
+  }
+}

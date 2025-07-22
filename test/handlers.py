@@ -38,6 +38,8 @@ class BaseTestCase(unittest.TestCase):
                 logger.setLevel(sync_log_level)
                 logger.addHandler(handler)
                 logger.propagate = False
+        else:
+            logging.getLogger("sgqlc.endpoint.http").setLevel(logging.CRITICAL)
 
         self._configure_mock_urlopen()
 

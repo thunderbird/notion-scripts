@@ -1,6 +1,7 @@
 import sys
 import datetime
 import dataclasses
+import sgqlc.operation
 
 from pathlib import Path
 from freezegun import freeze_time
@@ -398,3 +399,40 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(user_map.dbid_to_notion("MDQ6VXNlcjYwNzE5OA=="), "3df71ec3-17c7-4eb4-80bc-a321af157be6")
         self.assertEqual(user_map.tracker_to_notion("kewisch"), "3df71ec3-17c7-4eb4-80bc-a321af157be6")
         self.assertEqual(user_map.notion_to_tracker("3df71ec3-17c7-4eb4-80bc-a321af157be6"), "kewisch")
+
+    def test_validate_timeout(self):
+        issue_count_queried = []
+
+        count = 0
+        max_count = 6
+
+        def handler(request):
+            nonlocal count
+            reqdata = json.loads(request.data)
+            issue_count_queried.append(reqdata["query"].count("issue(number:"))
+
+            if count < max_count:
+                count += 1
+                return json.dumps({"errors": [{"message": "Timeout on validation of query"}]}).encode()
+            else:
+                return real_handler(request)
+
+        real_handler = self.github_handler.handle
+        self.github_handler.handle = handler
+
+        with self.subTest(msg="eventual success"):
+            issues = self.github.get_issues_by_number(
+                [IssueRef(repo="kewisch/test", id="1"), IssueRef(repo="kewisch/test", id="2")], True
+            )
+
+            self.assertEqual(issue_count_queried, [2, 2, 2, 2, 2, 2, 1, 1])
+            self.assertEqual(len(issues), 2)
+
+        count = 0
+        max_count = 9
+
+        with self.subTest(msg="eventual failure"):
+            with self.assertRaisesRegex(sgqlc.operation.GraphQLErrors, r"Timeout on validation of query"):
+                self.github.get_issues_by_number(
+                    [IssueRef(repo="kewisch/test", id="1"), IssueRef(repo="kewisch/test", id="2")], True
+                )
