@@ -5,6 +5,7 @@
 import logging
 import time
 import httpx
+import dataclasses
 
 logger = logging.getLogger("notion_sync")
 
@@ -47,3 +48,19 @@ def getnestedattr(func, default):
         return func()
     except (LookupError, AttributeError):
         return default
+
+
+def diff_dataclasses(a, b, log=None):
+    """Compare two dataclasses."""
+    if type(a) is not type(b):
+        raise TypeError("Both objects must be of the same dataclass type")
+
+    differences = {}
+    for field in dataclasses.fields(a):
+        value_a = getattr(a, field.name)
+        value_b = getattr(b, field.name)
+        if value_a != value_b:
+            if log:
+                log(f"\t{field.name}: {value_a} != {value_b}")
+            differences[field.name] = (value_a, value_b)
+    return differences

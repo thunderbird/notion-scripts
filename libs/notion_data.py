@@ -150,12 +150,15 @@ class NotionDatabase:
 
         # The status property needs special handling if it exists since it isn't a registered property.
         if datadict.get("Status") and datadict["Status"] != page["properties"]["Status"]["status"]["name"]:
+            logger.debug(
+                f"\tStatus changed from {page['properties']['Status']['status']['name']} to {datadict['Status']}"
+            )
             return True
         # Loop over all properties and see if any are different.
         for prop_name, prop_value in datadict.items():
-            if prop_name in cur_props and cur_props[prop_name].is_prop_diff(
-                page["properties"].get(prop_name, {}), prop_value
-            ):
+            old_prop = page["properties"].get(prop_name, {})
+            if prop_name in cur_props and cur_props[prop_name].is_prop_diff(old_prop, prop_value):
+                logger.debug(f"{prop_name} on {page['url']} changing from {old_prop[old_prop['type']]} to {prop_value}")
                 return True
         return False
 

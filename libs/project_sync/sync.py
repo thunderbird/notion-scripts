@@ -18,7 +18,7 @@ from notion_client.helpers import iterate_paginated_api
 
 from .. import notion_data as p
 from ..notion_data import CustomNotionToMarkdown, NotionDatabase
-from ..util import getnestedattr, RetryingClient
+from ..util import getnestedattr, RetryingClient, diff_dataclasses
 
 from .common import IssueRef
 
@@ -420,6 +420,7 @@ class ProjectSync:
 
         if tracker_issue != new_issue:
             logger.info(f"Updating milestone {tracker_issue.id} - {tracker_issue.title}")
+            diff_dataclasses(tracker_issue, new_issue, log=logger.debug)
 
             if not self.dry:
                 self.tracker.update_milestone_issue(tracker_issue, new_issue)
