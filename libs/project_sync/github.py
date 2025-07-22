@@ -717,6 +717,12 @@ def issue_field_ops(issue):
     fieldvalue.name()
     fieldvalue.option_id()
 
+    fieldvalue = project_items.field_value_by_name(name="Link", __alias__="link").__as__(
+        schema.ProjectV2ItemFieldTextValue
+    )
+    fieldvalue.field.__as__(schema.ProjectV2FieldCommon).id()
+    fieldvalue.text()
+
     fieldvalue = project_items.field_value_by_name(name="Sprint", __alias__="sprint").__as__(
         schema.ProjectV2ItemFieldIterationValue
     )

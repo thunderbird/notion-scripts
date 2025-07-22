@@ -102,10 +102,12 @@ class ProjectSync:
             p.relation(self.propnames["notion_tasks_milestone_relation"], milestones_id, True),
             p.title(self.propnames["notion_tasks_title"]),
             p.people(self.propnames["notion_tasks_assignee"]),
-            p.dates(self.propnames["notion_tasks_dates"]),
             p.link(self.propnames["notion_issue_field"]),
             p.select(self.propnames["notion_tasks_priority"], self.propnames["notion_tasks_priority_values"]),
         ]
+
+        if tasks_dates_prop := self.propnames["notion_tasks_dates"]:
+            tasks_properties.append(p.dates(tasks_dates_prop))
 
         if review_url_prop := self.propnames["notion_tasks_review_url"]:
             tasks_properties.append(p.link(review_url_prop))
@@ -237,17 +239,25 @@ class ProjectSync:
 
         # Dates
         if tracker_issue.start_date or tracker_issue.end_date:
-            notion_data[self.propnames["notion_tasks_dates"]] = {
-                "start": tracker_issue.start_date,
-                "end": tracker_issue.end_date,
-            }
+            self._set_if_prop(
+                notion_data,
+                "notion_tasks_dates",
+                {
+                    "start": tracker_issue.start_date,
+                    "end": tracker_issue.end_date,
+                },
+            )
         elif tracker_issue.sprint:
-            notion_data[self.propnames["notion_tasks_dates"]] = {
-                "start": tracker_issue.sprint.start_date,
-                "end": tracker_issue.sprint.end_date,
-            }
+            self._set_if_prop(
+                notion_data,
+                "notion_tasks_dates",
+                {
+                    "start": tracker_issue.sprint.start_date,
+                    "end": tracker_issue.sprint.end_date,
+                },
+            )
         else:
-            notion_data[self.propnames["notion_tasks_dates"]] = None
+            self._set_if_prop(notion_data, "notion_tasks_dates", None)
 
         # Sprints
         if self.sprint_db:
