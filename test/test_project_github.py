@@ -53,8 +53,8 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(issue.state, "Not started")
         self.assertEqual(issue.priority, "P2")
         self.assertEqual(len(issue.assignees), 1)
-        self.assertEqual(issue.assignees[0].tracker_user, "kewisch")
-        self.assertEqual(issue.labels, ["type: epic"])
+        self.assertEqual(next(iter(issue.assignees)).tracker_user, "kewisch")
+        self.assertEqual(issue.labels, {"type: epic"})
         self.assertEqual(issue.url, "https://github.com/kewisch/test/issues/1")
         self.assertEqual(issue.review_url, "")
         self.assertEqual(issue.notion_url, "")
@@ -106,8 +106,10 @@ class GitHubProjectTest(BaseTestCase):
             description="sup",
             state="In review",
             priority="P2",
-            assignees=[GitHubUser(user_map=self.github.user_map, tracker_user="kewisch", dbid_user="123")],
-            labels=[],
+            assignees={
+                GitHubUser(user_map=self.github.user_map, tracker_user="kewisch", dbid_user="MDQ6VXNlcjYwNzE5OA==")
+            },
+            labels=set(),
             url="https://github.com/kewisch/test/issues/3",
             review_url="",
             notion_url="",
@@ -191,11 +193,11 @@ class GitHubProjectTest(BaseTestCase):
         new_issue = dataclasses.replace(
             old_issue,
             title="title2",
-            labels=["bug"],
+            labels={"bug"},
             description="description2",
             state="Banana",
             priority="P3",
-            assignees=[notkewisch],
+            assignees={notkewisch},
             notion_url="https://www.notion.so/mzthunderbird/123123123",
             start_date=datetime.date.fromisoformat("2025-07-04"),
             end_date=datetime.date.fromisoformat("2025-07-04"),
@@ -233,11 +235,11 @@ class GitHubProjectTest(BaseTestCase):
         new_issue = dataclasses.replace(
             old_issue,
             title="title2",
-            labels=["bug"],
+            labels={"bug"},
             description="description2",
             state="In Progress",
             priority="P3",
-            assignees=[notkewisch],
+            assignees={notkewisch},
             notion_url="https://www.notion.so/mzthunderbird/123123123",
             start_date=datetime.date.fromisoformat("2025-07-04"),
             end_date=datetime.date.fromisoformat("2025-07-04"),
@@ -278,11 +280,11 @@ class GitHubProjectTest(BaseTestCase):
         new_issue = dataclasses.replace(
             old_issue,
             title="title2",
-            labels=["bug"],
+            labels={"bug"},
             description="description2",
             state="In Progress",
             priority="P3",
-            assignees=[notkewisch],
+            assignees={notkewisch},
             notion_url="https://www.notion.so/mzthunderbird/123123123",
             start_date=datetime.date.fromisoformat("2025-07-04"),
             end_date=datetime.date.fromisoformat("2025-07-04"),

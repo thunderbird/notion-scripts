@@ -253,8 +253,8 @@ class ProjectSyncTest(BaseTestCase):
 
         self.synchronize_project(tracker, milestones_extra_label="extra-label")
         self.assertEqual(tracker.update_milestone_issue.call_count, 1)
-        self.assertEqual(tracker.update_milestone_issue.call_args[0][0].labels, [])
-        self.assertEqual(tracker.update_milestone_issue.call_args[0][1].labels, ["extra-label"])
+        self.assertEqual(tracker.update_milestone_issue.call_args[0][0].labels, set())
+        self.assertEqual(tracker.update_milestone_issue.call_args[0][1].labels, {"extra-label"})
 
     def test_milestone_sync_with_task(self):
         tracker = TestTracker(issues=self.issues)

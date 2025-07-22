@@ -395,27 +395,30 @@ class ProjectSync:
             body = converter.convert(blocks)
 
         # Assignees
-        assignees = [
+        assignees = {
             self.tracker.new_user(notion_user=assignee["id"])
             for assignee in self._get_prop(page, "notion_milestones_assignee", [])
-        ]
+        }
 
         title = self._get_richtext_prop(page, "notion_milestones_title", "")
         labels = set(tracker_issue.labels)
         if self.milestones_extra_label:
             labels.add(self.milestones_extra_label)
 
+        start_date_str = (self._get_prop(page, "notion_milestones_dates") or {}).get("start")
+        end_date_str = (self._get_prop(page, "notion_milestones_dates") or {}).get("end")
+
         new_issue = dataclasses.replace(
             tracker_issue,
             title=self.milestones_tracker_prefix + title,
-            labels=list(labels),
+            labels=labels,
             description=body,
             state=(self._get_prop(page, "notion_milestones_status") or {}).get("name"),
             priority=(self._get_prop(page, "notion_milestones_priority") or {}).get("name"),
             assignees=assignees,
             notion_url=page.get("url", ""),
-            start_date=(self._get_prop(page, "notion_milestones_dates") or {}).get("start"),
-            end_date=(self._get_prop(page, "notion_milestones_dates") or {}).get("end"),
+            start_date=datetime.date.fromisoformat(start_date_str) if start_date_str else None,
+            end_date=datetime.date.fromisoformat(end_date_str) if end_date_str else None,
         )
 
         if tracker_issue != new_issue:

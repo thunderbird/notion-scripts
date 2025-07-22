@@ -79,18 +79,11 @@ class GitHubUser(User):
     def __init__(self, dbid_user=None, **kwargs):
         """Initialize a GitHubUser."""
         super().__init__(**kwargs)
-        self._dbid_user = dbid_user
-
-    @property
-    def dbid_user(self):
-        """Return internal database id."""
-        return self._dbid_user or self.user_map.trk_to_dbid(self.tracker_user)
+        self.dbid_user = dbid_user or self.user_map.trk_to_dbid(self.tracker_user)
 
     def __repr__(self):
         """Representation of a user."""
-        return (
-            f"{self.__class__.__name__}(tracker={self._tracker_user},notion={self._notion_user},dbid={self._dbid_user})"
-        )
+        return f"{self.__class__.__name__}(tracker={self.tracker_user},notion={self.notion_user},dbid={self.dbid_user})"
 
 
 @dataclass
@@ -235,7 +228,7 @@ class GitHub(IssueTracker):
             self.endpoint(op)
 
     def _update_issue_labels(self, old_issue, new_issue):
-        new_labels = set(new_issue.labels) - set(old_issue.labels)
+        new_labels = new_issue.labels - old_issue.labels
         if not len(new_labels):
             return
 

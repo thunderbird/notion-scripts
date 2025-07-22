@@ -103,8 +103,8 @@ class Bugzilla(IssueTracker):
             data["resolution"] = ""
 
         # Assignee
-        old_assignee = old_issue.assignees[0] if old_issue.assignees else None
-        new_assignee = new_issue.assignees[0] if new_issue.assignees else None
+        old_assignee = next(iter(old_issue.assignees or []), None)
+        new_assignee = next(iter(new_issue.assignees or []), None)
         old_assignee_is_notion_user = old_assignee and old_assignee.notion_user is not None
 
         if old_assignee != new_assignee:
@@ -147,9 +147,9 @@ class Bugzilla(IssueTracker):
                 url=f"{self.base_url}/show_bug.cgi?id={bug['id']}",
                 title=bug["summary"],
                 state=bug["status"],
-                labels=[],
+                labels=set(),
                 description=bug["cf_user_story"] or getnestedattr(lambda: bug["comments"][0]["text"], ""),
-                assignees=[User(self.user_map, tracker_user=assignee)] if assignee else [],
+                assignees={User(self.user_map, tracker_user=assignee)} if assignee else set(),
                 priority=bug["priority"] if bug["priority"] != "--" else None,
                 parents=parents,
             )

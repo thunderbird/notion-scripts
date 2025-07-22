@@ -31,8 +31,8 @@ class Issue(IssueRef):
     description: str
     state: str
     priority: str
-    assignees: list = field(default_factory=list)
-    labels: list = field(default_factory=list)
+    assignees: set = field(default_factory=set)
+    labels: set = field(default_factory=set)
     url: str
     review_url: str = ""
     notion_url: str = ""
@@ -48,18 +48,8 @@ class User:
     def __init__(self, user_map, notion_user=None, tracker_user=None):
         """Initialize a user by passing either notion or tracker user."""
         self.user_map = user_map
-        self._notion_user = notion_user
-        self._tracker_user = tracker_user
-
-    @property
-    def tracker_user(self):
-        """The issue tracker id/name for this user."""
-        return self._tracker_user or self.user_map.notion_to_tracker(self._notion_user)
-
-    @property
-    def notion_user(self):
-        """The notion user id for this user."""
-        return self._notion_user or self.user_map.tracker_to_notion(self._tracker_user)
+        self.notion_user = notion_user or self.user_map.tracker_to_notion(tracker_user)
+        self.tracker_user = tracker_user or self.user_map.notion_to_tracker(notion_user)
 
     @property
     def tracker_mention(self):
@@ -74,7 +64,11 @@ class User:
 
     def __repr__(self):
         """Representation of a user."""
-        return f"{self.__class__.__name__}(tracker={self._tracker_user},notion={self._notion_user})"
+        return f"{self.__class__.__name__}(tracker={self.tracker_user},notion={self.notion_user})"
+
+    def __hash__(self):
+        """Hash of the user, which is just the tracker_user."""
+        return hash(self.tracker_user)
 
 
 class IssueTracker:
