@@ -350,9 +350,6 @@ class ProjectSync:
             is not None
         ]
 
-        if tracker_issue.parents and not found_milestone_parents:
-            raise Exception(f"Could not find parent issue for {tracker_issue.url}")
-
         return found_milestone_parents
 
     def synchronize_single_task(self, tracker_issue, page=None):
@@ -432,13 +429,17 @@ class ProjectSync:
         )
 
         if tracker_issue != new_issue:
-            logger.info(f"Updating milestone {tracker_issue.id} - {tracker_issue.title}")
+            logger.info(
+                f"Updating milestone {tracker_issue.id} - {tracker_issue.title} ({tracker_issue.url} / {new_issue.notion_url})"
+            )
             diff_dataclasses(tracker_issue, new_issue, log=logger.debug)
 
             if not self.dry:
                 self.tracker.update_milestone_issue(tracker_issue, new_issue)
         else:
-            logger.info(f"Unchanged milestone {tracker_issue.id} - {tracker_issue.title}")
+            logger.info(
+                f"Unchanged milestone {tracker_issue.id} - {tracker_issue.title} ({tracker_issue.url} / {new_issue.notion_url})"
+            )
 
     def synchronize(self):
         """Synchronize all the things!"""
