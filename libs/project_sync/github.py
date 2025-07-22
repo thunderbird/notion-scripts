@@ -349,13 +349,13 @@ class GitHub(IssueTracker):
                 )
 
                 if ghissue.parent:
-                    issue.parent = IssueRef(
-                        repo=ghissue.parent.repository.name_with_owner, id=str(ghissue.parent.number)
-                    )
+                    issue.parents = [
+                        IssueRef(repo=ghissue.parent.repository.name_with_owner, id=str(ghissue.parent.number))
+                    ]
 
                 if sub_issues:
                     issue.sub_issues = [
-                        IssueRef(id=str(subissue.number), repo=ref.repo, parent=issue)
+                        IssueRef(id=str(subissue.number), repo=ref.repo, parents=[issue])
                         for subissue in ghissue.sub_issues.nodes
                     ]
 

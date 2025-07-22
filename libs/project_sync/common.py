@@ -20,7 +20,7 @@ class IssueRef:
 
     repo: str
     id: str
-    parent: "IssueRef" = None
+    parents: list["IssueRef"] = field(default_factory=list)
 
 
 @dataclass(kw_only=True)

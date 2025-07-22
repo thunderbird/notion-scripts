@@ -141,7 +141,7 @@ class BugzillaProjectTest(BaseTestCase):
         self.assertEqual(issue.description, "Rebuild the Read Event dialog based on designs in blabla")
         self.assertEqual(issue.assignees, [])
         self.assertEqual(issue.priority, None)
-        self.assertEqual(issue.parent, IssueRef(repo="bugzilla.dev", id="1944847"))
+        self.assertEqual(issue.parents, [IssueRef(repo="bugzilla.dev", id="1944847")])
         self.assertEqual(len(issue.sub_issues), 1)
         self.assertEqual(issue.sub_issues[0].id, "1944885")
 

@@ -101,7 +101,7 @@ class ProjectSyncTest(BaseTestCase):
                 url="https://example.com/repo/123",
             ),
             Issue(
-                parent=IssueRef(repo="repo", id="123"),
+                parents=[IssueRef(repo="repo", id="123")],
                 repo="repo",
                 id="234",
                 title="Subissue 1",
@@ -111,7 +111,7 @@ class ProjectSyncTest(BaseTestCase):
                 url="https://example.com/repo/234",
             ),
             Issue(
-                parent=IssueRef(repo="repo", id="123"),
+                parents=[IssueRef(repo="repo", id="123")],
                 repo="repo",
                 id="345",
                 title="Subissue 2",
@@ -122,8 +122,8 @@ class ProjectSyncTest(BaseTestCase):
             ),
         ]
         self.issues[0].sub_issues = [
-            IssueRef(repo="repo", id="234", parent=self.issues[0]),
-            IssueRef(repo="repo", id="345", parent=self.issues[0]),
+            IssueRef(repo="repo", id="234", parents=[self.issues[0]]),
+            IssueRef(repo="repo", id="345", parents=[self.issues[0]]),
         ]
 
     def expect_call(self, route, amount):
@@ -633,7 +633,7 @@ class ProjectSyncTest(BaseTestCase):
         )
 
     def test_task_no_parent(self):
-        self.issues[1].parent = None
+        self.issues[1].parents = []
 
         tracker = TestTracker(issues=self.issues)
         tracker.additional_tasks = [IssueRef(id="234", repo="repo")]

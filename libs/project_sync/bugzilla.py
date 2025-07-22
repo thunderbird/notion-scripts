@@ -138,9 +138,8 @@ class Bugzilla(IssueTracker):
         response_json = response.json()
 
         for bug in response_json["bugs"]:
-            parent = IssueRef(repo=self.repo_name, id=str(bug["blocks"][0])) if len(bug["blocks"]) else None
-
             assignee = bug["assigned_to"] if bug["assigned_to"] != "nobody@mozilla.org" else None
+            parents = [IssueRef(repo=self.repo_name, id=str(parent_id)) for parent_id in bug["blocks"]]
 
             issue = Issue(
                 id=str(bug["id"]),
@@ -152,7 +151,7 @@ class Bugzilla(IssueTracker):
                 description=bug["cf_user_story"] or getnestedattr(lambda: bug["comments"][0]["text"], ""),
                 assignees=[User(self.user_map, tracker_user=assignee)] if assignee else [],
                 priority=bug["priority"] if bug["priority"] != "--" else None,
-                parent=parent,
+                parents=parents,
             )
 
             phab = next(
@@ -172,9 +171,10 @@ class Bugzilla(IssueTracker):
                     issue.notion_url = url
                     break
 
-            issue.sub_issues = list(
-                map(lambda dep: IssueRef(repo=self.repo_name, id=str(dep), parent=issue), bug["depends_on"])
-            )
+            issue.sub_issues = [
+                IssueRef(repo=self.repo_name, id=str(sub_issue_id), parents=[issue])
+                for sub_issue_id in bug["depends_on"]
+            ]
 
             res[issue.id] = issue
 

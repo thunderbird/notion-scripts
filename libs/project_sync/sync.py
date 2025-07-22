@@ -213,7 +213,7 @@ class ProjectSync:
     def _notion_tasks_issues(self):
         return self._discover_notion_issues(self.tasks_db.database_id)
 
-    def _get_task_notion_data(self, tracker_issue, milestone_id):
+    def _get_task_notion_data(self, tracker_issue, parent_milestone_ids=[]):
         # Base data
         title = self.tracker.notion_tasks_title(self.tasks_notion_prefix, tracker_issue)
         notion_data = {
@@ -259,10 +259,7 @@ class ProjectSync:
                 notion_data[self.propnames["notion_tasks_sprint_relation"]] = []
 
         # Milestone relation
-        if milestone_id:
-            notion_data[self.propnames["notion_tasks_milestone_relation"]] = [milestone_id]
-        else:
-            notion_data[self.propnames["notion_tasks_milestone_relation"]] = []
+        notion_data[self.propnames["notion_tasks_milestone_relation"]] = parent_milestone_ids
 
         return notion_data
 
@@ -330,6 +327,24 @@ class ProjectSync:
                 page = self.sprint_db.create_page(notion_data)
                 self._sprint_pages_by_id[sprint.id] = page
 
+    def _find_task_parents(self, tracker_issue):
+        found_milestone_parents = [
+            milestone_parent["id"]
+            for parent in tracker_issue.parents
+            if (
+                milestone_parent := getnestedattr(
+                    lambda: self._notion_milestone_issues[parent.repo][parent.id],
+                    None,
+                )
+            )
+            is not None
+        ]
+
+        if tracker_issue.parents and not found_milestone_parents:
+            raise Exception(f"Could not find parent issue for {tracker_issue.url}")
+
+        return found_milestone_parents
+
     def synchronize_single_task(self, tracker_issue, page=None):
         """Synchronize a single tracker issue to Notion.
 
@@ -338,12 +353,9 @@ class ProjectSync:
             page (dict): The Notion page object of the existing task in notion. Leave out to add
                 instead of update.
         """
-        parent = getnestedattr(
-            lambda: self._notion_milestone_issues[tracker_issue.parent.repo][tracker_issue.parent.id]["id"],
-            None,
+        notion_data = self._get_task_notion_data(
+            tracker_issue=tracker_issue, parent_milestone_ids=self._find_task_parents(tracker_issue)
         )
-
-        notion_data = self._get_task_notion_data(tracker_issue=tracker_issue, milestone_id=parent)
 
         if page:
             changed = self.tasks_db.update_page(page, notion_data)

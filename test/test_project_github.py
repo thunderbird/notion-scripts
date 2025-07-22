@@ -47,7 +47,7 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(issue.repo, "kewisch/test")
         self.assertEqual(issue.id, "1")
         self.assertEqual(issue.gql.id, "I_kwDOMwGgpM6WLTqc")
-        self.assertEqual(issue.parent, None)
+        self.assertEqual(issue.parents, [])
         self.assertEqual(issue.title, "Account Drawer Improvements")
         self.assertEqual(issue.description, "I am the body")
         self.assertEqual(issue.state, "Not started")
@@ -68,7 +68,7 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(issue.repo, "kewisch/test")
         self.assertEqual(issue.id, "2")
         self.assertEqual(issue.gql.id, "I_kwDOMwGgpM6oTotN")
-        self.assertEqual(issue.parent, None)
+        self.assertEqual(issue.parents, [])
         self.assertEqual(issue.title, "test2")
         self.assertEqual(
             issue.description, "\nThis is a page with content\n\n\n@kewisch \n\n\n# hi\n\n\ndings\n\n\n---\n\n"
@@ -85,7 +85,10 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(issue.sprint, None)
         self.assertEqual(
             issue.sub_issues,
-            [IssueRef(repo="kewisch/test", id="4", parent=issue), IssueRef(repo="kewisch/test", id="3", parent=issue)],
+            [
+                IssueRef(repo="kewisch/test", id="4", parents=[issue]),
+                IssueRef(repo="kewisch/test", id="3", parents=[issue]),
+            ],
         )
 
         self.assertEqual(len(self.github_handler.calls), 1)
@@ -98,7 +101,7 @@ class GitHubProjectTest(BaseTestCase):
         issue3 = GitHubIssue(
             repo="kewisch/test",
             id="3",
-            parent=IssueRef(repo="kewisch/test", id="2", parent=None),
+            parents=[IssueRef(repo="kewisch/test", id="2", parents=[])],
             title="test2-sub1",
             description="sup",
             state="In review",
