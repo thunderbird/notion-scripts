@@ -86,6 +86,12 @@ class GitHubUser(User):
         """Return internal database id."""
         return self._dbid_user or self.user_map.trk_to_dbid(self.tracker_user)
 
+    def __repr__(self):
+        """Representation of a user."""
+        return (
+            f"{self.__class__.__name__}(tracker={self._tracker_user},notion={self._notion_user},dbid={self._dbid_user})"
+        )
+
 
 @dataclass
 class GitHubIssue(Issue):
