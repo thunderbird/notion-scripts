@@ -69,7 +69,8 @@
                 "startDate": "2025-02-02",
                 "title": "Sprint 1",
                 "duration": 7
-              }
+              },
+              "link": null
             },
             {
               "id": "PVTI_lAHOAAlD3s4AxVDIzgXcyAk",
@@ -113,6 +114,7 @@
                 "name": "Not started",
                 "optionId": "f75ad846"
               },
+              "link": null,
               "sprint": null
             }
           ]

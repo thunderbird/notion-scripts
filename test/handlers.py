@@ -150,6 +150,7 @@ class NotionDatabaseHandler:
     def create_handler(self, reqjson):
         self.pages.append(reqjson)
         reqjson["id"] = str(uuid.uuid4())
+        reqjson["url"] = "https://notion.so/example/" + reqjson["id"]
 
         for prop in reqjson["properties"].values():
             if len(prop) == 1:

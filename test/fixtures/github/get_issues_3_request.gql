@@ -106,6 +106,18 @@ name
 optionId
 }
 }
+link: fieldValueByName(name: "Link") {
+__typename
+... on ProjectV2ItemFieldTextValue {
+field {
+__typename
+... on ProjectV2FieldCommon {
+id
+}
+}
+text
+}
+}
 sprint: fieldValueByName(name: "Sprint") {
 __typename
 ... on ProjectV2ItemFieldIterationValue {

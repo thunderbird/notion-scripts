@@ -99,6 +99,7 @@ class ProjectSyncTest(BaseTestCase):
                 state="NEW",
                 priority=None,
                 url="https://example.com/repo/123",
+                notion_url="https://notion.so/example/rebuild-event-read-dialog-726fac286b6348ca90ec0066be1a2755",
             ),
             Issue(
                 parents=[IssueRef(repo="repo", id="123")],

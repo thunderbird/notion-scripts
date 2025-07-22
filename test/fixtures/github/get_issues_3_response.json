@@ -64,6 +64,7 @@
                 "name": "In review",
                 "optionId": "0febcacd"
               },
+              "link": null,
               "sprint": {
                 "__typename": "ProjectV2ItemFieldIterationValue",
                 "field": {

@@ -74,6 +74,14 @@
                       "startDate": "2025-02-09",
                       "title": "Sprint 2",
                       "duration": 7
+                    },
+                    "link": {
+                      "__typename": "ProjectV2ItemFieldTextValue",
+                      "field": {
+                        "__typename": "ProjectV2TextField",
+                        "id": "PVTSSF_jeoi24ntq1on23rn2ownf3r"
+                      },
+                      "text": "https://notion.so/example/test2-sub2-123123123"
                     }
                   }
                 ]

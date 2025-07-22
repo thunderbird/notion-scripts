@@ -77,6 +77,14 @@
                 "name": "Not started",
                 "optionId": "f75ad846"
               },
+              "link": {
+                "__typename": "ProjectV2ItemFieldTextValue",
+                "field": {
+                  "__typename": "ProjectV2TextField",
+                  "id": "PVTSSF_jeoi24ntq1on23rn2ownf3r"
+                },
+                "text": "https://notion.so/example/rebuild-event-read-dialog-726fac286b6348ca90ec0066be1a2755"
+              },
               "sprint": null
             }
           ]
@@ -155,6 +163,14 @@
                 },
                 "name": "In progress",
                 "optionId": "47fc9ee4"
+              },
+              "link": {
+                "__typename": "ProjectV2ItemFieldTextValue",
+                "field": {
+                  "__typename": "ProjectV2TextField",
+                  "id": "PVTSSF_jeoi24ntq1on23rn2ownf3r"
+                },
+                "text": "https://notion.so/example/test-ref-failure-a2b009b4b63447599b138cf059a7f885"
               },
               "sprint": null
             }

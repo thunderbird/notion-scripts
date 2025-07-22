@@ -58,7 +58,9 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(issue.labels, {"type: epic"})
         self.assertEqual(issue.url, "https://github.com/kewisch/test/issues/1")
         self.assertEqual(issue.review_url, "")
-        self.assertEqual(issue.notion_url, "")
+        self.assertEqual(
+            issue.notion_url, "https://notion.so/example/rebuild-event-read-dialog-726fac286b6348ca90ec0066be1a2755"
+        )
         self.assertEqual(issue.start_date, datetime.date.fromisoformat("2025-01-24"))
         self.assertEqual(issue.end_date, datetime.date.fromisoformat("2025-01-28"))
         self.assertEqual(issue.sprint, None)
@@ -77,10 +79,12 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(issue.state, "In progress")
         self.assertEqual(issue.priority, "P3")
         self.assertEqual(len(issue.assignees), 0)
-        self.assertEqual(issue.labels, ["type: epic"])
+        self.assertEqual(issue.labels, {"type: epic"})
         self.assertEqual(issue.url, "https://github.com/kewisch/test/issues/2")
         self.assertEqual(issue.review_url, "")
-        self.assertEqual(issue.notion_url, "")
+        self.assertEqual(
+            issue.notion_url, "https://notion.so/example/test-ref-failure-a2b009b4b63447599b138cf059a7f885"
+        )
         self.assertEqual(issue.start_date, datetime.date.fromisoformat("2025-02-19"))
         self.assertEqual(issue.end_date, datetime.date.fromisoformat("2025-02-23"))
         self.assertEqual(issue.sprint, None)
@@ -113,7 +117,7 @@ class GitHubProjectTest(BaseTestCase):
             labels=set(),
             url="https://github.com/kewisch/test/issues/3",
             review_url="",
-            notion_url="",
+            notion_url=None,
             start_date=None,
             end_date=None,
             sprint=Sprint(
