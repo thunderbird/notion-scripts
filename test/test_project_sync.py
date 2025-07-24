@@ -600,31 +600,45 @@ class ProjectSyncTest(BaseTestCase):
         self.issues[2].end_date = datetime.date(2025, 4, 7)
 
         tracker = TestTracker(issues=self.issues)
-        self.issues[2].sprint = tracker.get_sprints()[1]
 
-        self.synchronize_project(tracker, sprint_id="sprints_id")
+        with self.subTest(msg="sprint date"):
+            self.issues[2].sprint = tracker.get_sprints()[1]
 
-        # Uses augmented dates, but still associated with the original sprint
-        self.assertEqual(
-            json.loads(self.respx.routes["pages_update"].calls[1].request.content),
-            {
-                "properties": {
-                    "Dates": {"date": {"end": "2025-04-07", "start": "2025-04-01"}},
-                    "Issue Link": {"url": "https://example.com/repo/345"},
-                    "Owner": {"type": "people", "people": []},
-                    "Priority": {"select": None},
-                    "Project": {"relation": [{"id": "726fac28-6b63-48ca-90ec-0066be1a2755"}]},
-                    "Status": {"status": {"name": "NEW"}},
-                    "Sprint": {"relation": [{"id": "1c5dea4a-dcdf-8159-948b-f193a527ef1a"}]},
-                    "Title": {
-                        "title": [{"text": {"content": "[tasks_notion_prefix] - test - Subissue 2"}}],
-                        "type": "title",
+            self.synchronize_project(tracker, sprint_id="sprints_id")
+
+            # Uses augmented dates, but still associated with the original sprint
+            self.assertEqual(
+                json.loads(self.respx.routes["pages_update"].calls[1].request.content),
+                {
+                    "properties": {
+                        "Dates": {"date": {"start": "2025-01-08", "end": "2025-01-15"}},
+                        "Issue Link": {"url": "https://example.com/repo/345"},
+                        "Owner": {"type": "people", "people": []},
+                        "Priority": {"select": None},
+                        "Project": {"relation": [{"id": "726fac28-6b63-48ca-90ec-0066be1a2755"}]},
+                        "Status": {"status": {"name": "NEW"}},
+                        "Sprint": {"relation": [{"id": "1c5dea4a-dcdf-8159-948b-f193a527ef1a"}]},
+                        "Title": {
+                            "title": [{"text": {"content": "[tasks_notion_prefix] - test - Subissue 2"}}],
+                            "type": "title",
+                        },
+                        "Text Assignee": {"rich_text": [{"text": {"content": ""}}]},
+                        "Review URL": {"url": None},
                     },
-                    "Text Assignee": {"rich_text": [{"text": {"content": ""}}]},
-                    "Review URL": {"url": None},
                 },
-            },
-        )
+            )
+
+        self.expect_reset()
+
+        with self.subTest(msg="explicit date"):
+            self.issues[2].sprint = None
+
+            self.synchronize_project(tracker, sprint_id="sprints_id")
+
+            content = json.loads(self.respx.routes["pages_update"].calls[1].request.content)
+
+            self.assertEqual(content["properties"]["Dates"]["date"]["start"], "2025-04-01")
+            self.assertEqual(content["properties"]["Dates"]["date"]["end"], "2025-04-07")
 
     def test_task_no_parent(self):
         self.issues[1].parents = []

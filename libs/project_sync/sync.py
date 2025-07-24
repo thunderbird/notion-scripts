@@ -243,22 +243,22 @@ class ProjectSync:
         self._set_if_prop(notion_data, "notion_tasks_review_url", tracker_issue.review_url or None)
 
         # Dates
-        if tracker_issue.start_date or tracker_issue.end_date:
-            self._set_if_prop(
-                notion_data,
-                "notion_tasks_dates",
-                {
-                    "start": tracker_issue.start_date,
-                    "end": tracker_issue.end_date,
-                },
-            )
-        elif tracker_issue.sprint:
+        if tracker_issue.sprint:
             self._set_if_prop(
                 notion_data,
                 "notion_tasks_dates",
                 {
                     "start": tracker_issue.sprint.start_date,
                     "end": tracker_issue.sprint.end_date,
+                },
+            )
+        elif tracker_issue.start_date or tracker_issue.end_date:
+            self._set_if_prop(
+                notion_data,
+                "notion_tasks_dates",
+                {
+                    "start": tracker_issue.start_date,
+                    "end": tracker_issue.end_date,
                 },
             )
         else:

@@ -2,6 +2,7 @@ import sys
 import datetime
 import dataclasses
 import sgqlc.operation
+import json
 
 from pathlib import Path
 from freezegun import freeze_time

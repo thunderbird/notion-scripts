@@ -98,7 +98,7 @@ class GitHub(IssueTracker):
 
     name = "GitHub"
 
-    def __init__(self, token=None, repositories={}, user_map=None, **kwargs):
+    def __init__(self, token=None, repositories={}, user_map=None, dates_openclose=False, **kwargs):
         """Initialize issue tracker."""
         super().__init__(**kwargs)
 
@@ -106,6 +106,7 @@ class GitHub(IssueTracker):
             url="https://api.github.com/graphql", base_headers={"Authorization": f"Bearer {token}"}, timeout=120.0
         )
 
+        self.dates_openclose = dates_openclose
         self.user_map = GitHubUserMap(self.endpoint, user_map)
         self.label_cache = LabelCache(self.endpoint)
 
@@ -316,6 +317,11 @@ class GitHub(IssueTracker):
         else:
             issue_state = closed_states[0]
 
+        start_date_default = ghissue.created_at.date() if self.dates_openclose and not gh_project_item else None
+        end_date_default = (
+            ghissue.closed_at.date() if self.dates_openclose and not gh_project_item and ghissue.closed_at else None
+        )
+
         issue = GitHubIssue(
             repo=repo,
             id=str(ghissue.number),
@@ -327,8 +333,8 @@ class GitHub(IssueTracker):
                 for a in ghissue.assignees.nodes
             },
             state=project_state if gh_project_item else issue_state,
-            start_date=getnestedattr(lambda: gh_project_item.start_date.date, None),
-            end_date=getnestedattr(lambda: gh_project_item.target_date.date, None),
+            start_date=getnestedattr(lambda: gh_project_item.start_date.date, start_date_default),
+            end_date=getnestedattr(lambda: gh_project_item.target_date.date, end_date_default),
             priority=getnestedattr(lambda: gh_project_item.priority.name, None),
             notion_url=getnestedattr(lambda: gh_project_item.link.text, None),
             labels={label.name for label in ghissue.labels.nodes},
