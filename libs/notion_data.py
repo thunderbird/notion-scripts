@@ -294,8 +294,8 @@ def dates(name: str) -> NotionProperty:
             return {
                 name: {
                     "date": {
-                        "start": content["start"].isoformat(),
-                        "end": content["end"].isoformat(),
+                        "start": content["start"].isoformat() if content.get("start") else None,
+                        "end": content["end"].isoformat() if content.get("end") else None,
                     }
                 }
             }
@@ -306,8 +306,8 @@ def dates(name: str) -> NotionProperty:
         start_data = property_data.get("date").get("start") if property_data.get("date") else None
         end_data = property_data.get("date").get("end") if property_data.get("date") else None
 
-        content_start = content["start"].isoformat() if content else None
-        content_end = content["end"].isoformat() if content else None
+        content_start = content["start"].isoformat() if content and content.get("start") else None
+        content_end = content["end"].isoformat() if content and content.get("end") else None
 
         if content_start != start_data or content_end != end_data:
             return True
