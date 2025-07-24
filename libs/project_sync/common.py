@@ -81,6 +81,7 @@ class IssueTracker:
         "notion_tasks_assignee": "Owner",
         "notion_tasks_dates": "Dates",
         "notion_tasks_priority": "Priority",
+        "notion_tasks_status": "Status",
         "notion_tasks_milestone_relation": "Project",
         "notion_tasks_sprint_relation": "Sprint",
         "notion_tasks_text_assignee": "",  # Default is disabled
@@ -101,6 +102,7 @@ class IssueTracker:
         "notion_tasks_priority_values": ["P1", "P2", "P3"],
         "notion_default_open_state": "Backlog",
         "notion_closed_states": ["Done", "Canceled"],
+        "notion_inprogress_state": "In progress",
     }
 
     def __init__(self, property_names={}, dry=False):

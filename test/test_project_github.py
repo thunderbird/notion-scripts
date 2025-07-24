@@ -464,3 +464,26 @@ class GitHubProjectTest(BaseTestCase):
                 self.github.get_issues_by_number(
                     [IssueRef(repo="kewisch/test", id="1"), IssueRef(repo="kewisch/test", id="2")], True
                 )
+
+    def test_issue_state(self):
+        # Remove project items so we can go by issue state
+        def handler(request):
+            res = real_handler(request)
+            data = json.loads(res)
+            for node in data["data"]["repository"]["issues"]["nodes"]:
+                node["projectItems"]["nodes"] = []
+
+            return json.dumps(data).encode()
+
+        real_handler = self.github_handler.handle
+        self.github_handler.handle = handler
+        self.github.property_names["notion_closed_states"] = ("Banana",)
+        self.github.property_names["notion_inprogress_state"] = "Orange"
+        self.github.property_names["notion_default_open_state"] = "Apple"
+
+        repos = self.github.get_all_issues()
+        issues = repos["kewisch/test"]
+
+        self.assertEqual(issues[0].state, "Orange")
+        self.assertEqual(issues[1].state, "Apple")
+        self.assertEqual(issues[4].state, "Banana")

@@ -236,8 +236,8 @@ class ProjectSync:
         self._set_if_prop(notion_data, "notion_tasks_text_assignee", " ".join(text_assignees))
 
         # Status and Priority
-        notion_data["Priority"] = tracker_issue.priority
-        notion_data["Status"] = tracker_issue.state
+        self._set_if_prop(notion_data, "notion_tasks_priority", tracker_issue.priority)
+        self._set_if_prop(notion_data, "notion_tasks_status", tracker_issue.state)
 
         # Review URL
         self._set_if_prop(notion_data, "notion_tasks_review_url", tracker_issue.review_url or None)

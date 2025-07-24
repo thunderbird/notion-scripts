@@ -299,7 +299,14 @@ class GitHub(IssueTracker):
         closed_states = self.property_names["notion_closed_states"]
 
         project_state = getnestedattr(lambda: gh_project_item.status.name, default_open_state)
-        issue_state = default_open_state if ghissue.state == "OPEN" else closed_states[0]
+
+        if ghissue.state == "OPEN":
+            if ghissue.assignees.nodes:
+                issue_state = self.property_names["notion_inprogress_state"]
+            else:
+                issue_state = default_open_state
+        else:
+            issue_state = closed_states[0]
 
         issue = GitHubIssue(
             repo=ref.repo,
