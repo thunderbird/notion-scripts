@@ -64,3 +64,10 @@ def diff_dataclasses(a, b, log=None):
                 log(f"\t{field.name}: {value_a} != {value_b}")
             differences[field.name] = (value_a, value_b)
     return differences
+
+
+def strip_orgname(repos):
+    """Strip the org prefix if it is the same across all items."""
+    firstprefix, _ = repos[0].split("/", 1) if repos else (None, None)
+    stripped = [parts[1] for repo in repos if (parts := repo.split("/", 1)) and parts[0] == firstprefix]
+    return stripped if len(stripped) == len(repos) else repos

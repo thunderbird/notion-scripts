@@ -384,6 +384,23 @@ class GitHubProjectTest(BaseTestCase):
 
         self.assertEqual(len(self.github_handler.calls), 0)
 
+    def test_get_all_labels(self):
+        labels = self.github.get_all_labels()
+        self.assertEqual(
+            set(labels),
+            {
+                "wontfix",
+                "bug",
+                "duplicate",
+                "help wanted",
+                "good first issue",
+                "enhancement",
+                "documentation",
+                "question",
+                "invalid",
+            },
+        )
+
     def test_label_cache(self):
         cache = LabelCache(self.github.endpoint)
 

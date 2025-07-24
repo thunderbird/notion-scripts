@@ -668,3 +668,55 @@ class ProjectSyncTest(BaseTestCase):
         self.assertEqual(tracker.update_milestone_issue.call_count, 1)
         self.assertEqual(tracker.update_milestone_issue.call_args[0][0].title, "Rebuild the calendar Read Event dialog")
         self.assertEqual(tracker.update_milestone_issue.call_args[0][1].title, "")
+
+    def test_dropdown_props(self):
+        tracker = TestTracker(
+            issues=self.issues,
+            property_names={
+                "notion_tasks_labels": "Labels",
+                "notion_tasks_repository": "Repository",
+            },
+        )
+
+        with self.subTest(msg="strip orgname"):
+            tracker.get_all_repositories = lambda: ["kewisch/test", "kewisch/test2"]
+            project_sync = ProjectSync(
+                project_key="test",
+                notion_token="NOTION_TOKEN",
+                milestones_id="milestones_id",
+                tasks_id="tasks_id",
+                tracker=tracker,
+            )
+
+            self.assertEqual(
+                project_sync.tasks_db.properties["Repository"].additional["multi_select"]["options"],
+                [{"name": "test"}, {"name": "test2"}],
+            )
+
+        with self.subTest(msg="don't strip orgname"):
+            tracker.get_all_repositories = lambda: ["kewisch/test", "settings/test2"]
+            project_sync = ProjectSync(
+                project_key="test",
+                notion_token="NOTION_TOKEN",
+                milestones_id="milestones_id",
+                tasks_id="tasks_id",
+                tracker=tracker,
+            )
+            self.assertEqual(
+                project_sync.tasks_db.properties["Repository"].additional["multi_select"]["options"],
+                [{"name": "kewisch/test"}, {"name": "settings/test2"}],
+            )
+
+        with self.subTest(msg="all labels"):
+            tracker.get_all_labels = lambda: ["bug", "enhancement"]
+            project_sync = ProjectSync(
+                project_key="test",
+                notion_token="NOTION_TOKEN",
+                milestones_id="milestones_id",
+                tasks_id="tasks_id",
+                tracker=tracker,
+            )
+            self.assertEqual(
+                project_sync.tasks_db.properties["Labels"].additional["multi_select"]["options"],
+                [{"name": "bug"}, {"name": "enhancement"}],
+            )

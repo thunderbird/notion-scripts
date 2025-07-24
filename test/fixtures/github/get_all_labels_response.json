@@ -1,0 +1,50 @@
+{
+  "data": {
+    "repository": {
+      "labels": {
+        "nodes": [
+          {
+            "name": "bug",
+            "id": "LA_kwDOMwGgpM8AAAABvAun4g"
+          },
+          {
+            "name": "documentation",
+            "id": "LA_kwDOMwGgpM8AAAABvAun5Q"
+          },
+          {
+            "name": "duplicate",
+            "id": "LA_kwDOMwGgpM8AAAABvAun5w"
+          },
+          {
+            "name": "enhancement",
+            "id": "LA_kwDOMwGgpM8AAAABvAun6Q"
+          },
+          {
+            "name": "good first issue",
+            "id": "LA_kwDOMwGgpM8AAAABvAun7Q"
+          },
+          {
+            "name": "help wanted",
+            "id": "LA_kwDOMwGgpM8AAAABvAun6w"
+          },
+          {
+            "name": "invalid",
+            "id": "LA_kwDOMwGgpM8AAAABvAun7w"
+          },
+          {
+            "name": "question",
+            "id": "LA_kwDOMwGgpM8AAAABvAun8g"
+          },
+          {
+            "name": "wontfix",
+            "id": "LA_kwDOMwGgpM8AAAABvAun9Q"
+          }
+        ],
+        "pageInfo": {
+          "hasNextPage": false,
+          "endCursor": "MTA"
+        }
+      }
+    }
+  }
+}

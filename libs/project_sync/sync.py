@@ -18,7 +18,7 @@ from notion_client.helpers import iterate_paginated_api
 
 from .. import notion_data as p
 from ..notion_data import CustomNotionToMarkdown, NotionDatabase
-from ..util import getnestedattr, RetryingClient, diff_dataclasses
+from ..util import getnestedattr, RetryingClient, diff_dataclasses, strip_orgname
 
 from .common import IssueRef
 
@@ -111,6 +111,13 @@ class ProjectSync:
             tasks_properties.append(p.link(review_url_prop))
         if text_assignee_prop := self.propnames["notion_tasks_text_assignee"]:
             tasks_properties.append(p.rich_text(text_assignee_prop))
+
+        if labels_prop := self.propnames["notion_tasks_labels"]:
+            tasks_properties.append(p.multi_select(labels_prop, self.tracker.get_all_labels()))
+
+        if repo_prop := self.propnames["notion_tasks_repository"]:
+            all_repos = strip_orgname(self.tracker.get_all_repositories())
+            tasks_properties.append(p.multi_select(repo_prop, all_repos))
 
         # Sprint Database
         if sprint_id:

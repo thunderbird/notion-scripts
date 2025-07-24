@@ -85,6 +85,8 @@ class IssueTracker:
         "notion_tasks_sprint_relation": "Sprint",
         "notion_tasks_text_assignee": "",  # Default is disabled
         "notion_tasks_review_url": "",  # Default is disabled
+        "notion_tasks_labels": "",  # Default is disabled
+        "notion_tasks_repository": "",  # Default is disabled
         "notion_milestones_title": "Project",
         "notion_milestones_assignee": "Owner",
         "notion_milestones_priority": "Priority",
@@ -122,6 +124,10 @@ class IssueTracker:
         """If the repository is allowed as per repository setup."""
         return True
 
+    def get_all_repositories(self):
+        """Get a list of all associated repositories."""
+        return []
+
     def get_sprints(self):
         """Get the sprints associated with this tracker."""
         return []
@@ -130,6 +136,10 @@ class IssueTracker:
         """Get a single issue by issue ref."""
         issues = self.get_issues_by_number([issueref])
         return issues[issueref.id]
+
+    def get_all_labels(self):
+        """Get the names of all labels in all associated repositories."""
+        return []
 
 
 class UserMap:

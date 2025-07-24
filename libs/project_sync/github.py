@@ -154,6 +154,10 @@ class GitHub(IssueTracker):
         """If the repository is allowed as per repository setup."""
         return reporef in self.allowed_repositories
 
+    def get_all_repositories(self):
+        """Get a list of all associated repositories."""
+        return list(self.allowed_repositories)
+
     def collect_additional_tasks(self, collected_tasks):
         """Add additional tasks to the collected tasks for sync."""
         # Collect issues from sprint board, there may be a few not associated with a milestone
@@ -417,6 +421,16 @@ class GitHub(IssueTracker):
                 sprints.append(process_iteration(sprint, "Past"))
         return sprints
 
+    def get_all_labels(self):
+        """Get the names of all labels in all associated repositories."""
+        all_labels = set()
+
+        for orgrepo in self.allowed_repositories:
+            orgname, repo = orgrepo.split("/")
+            all_labels.update(self.label_cache.get_all(orgname, repo).keys())
+
+        return all_labels
+
 
 class LabelCache:
     """A cache for retrieving the label ids from GitHub."""
@@ -425,6 +439,34 @@ class LabelCache:
         """Initialize the label cache with an endpoint."""
         self._cache = defaultdict(dict)
         self.endpoint = endpoint
+
+    def get_all(self, org, repo):
+        """Get all labels in the repository."""
+        orgrepocache = self._cache[org + "/" + repo]
+
+        has_next_page = True
+        cursor = None
+
+        while has_next_page:
+            op = Operation(schema.query_type)
+            repo = op.repository(owner=org, name=repo)
+            labels = repo.labels(first=100, after=cursor)
+            labels.nodes.name()
+            labels.nodes.id()
+
+            labels.page_info.__fields__(has_next_page=True)
+            labels.page_info.__fields__(end_cursor=True)
+
+            data = self.endpoint(op)
+            datarepo = (op + data).repository
+
+            for label in datarepo.labels.nodes:
+                orgrepocache[label.name] = label
+
+            has_next_page = datarepo.labels.page_info.has_next_page
+            cursor = datarepo.labels.page_info.end_cursor
+
+        return orgrepocache
 
     def get_labels(self, org, repo, labels):
         """Get the list of labels from the org/repo."""

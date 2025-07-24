@@ -1,0 +1,14 @@
+query {
+repository(owner: "kewisch", name: "test") {
+labels(first: 100, after: null) {
+nodes {
+name
+id
+}
+pageInfo {
+hasNextPage
+endCursor
+}
+}
+}
+}
