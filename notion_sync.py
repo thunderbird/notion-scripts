@@ -61,18 +61,22 @@ def main(projects, config, verbose=0, user_map_file=None, dry_run=False):
     # This will list the GitHub project ids for you
     # import libs.ghhelper
     # libs.ghhelper.GitHubProjectV2.list("thunderbird", "thunderbird-android")
+    # sys.exit()
 
     # This will give you a list of users and their ids
     # from notion_client import Client
     # from pprint import pprint
     # notion = Client(auth=os.environ["NOTION_TOKEN"])
     # pprint(notion.users.list())
+    # sys.exit()
 
     # This will give you the properties
     # from pprint import pprint
     # from notion_client import Client
     # notion = Client(auth=os.environ["NOTION_TOKEN"])
     # pprint(notion.databases.retrieve(database_id="DB_ID_HERE"))
+    # pprint(notion.pages.retrieve("PAGE_ID_HERE"))
+    # sys.exit()
 
     if dry_run:
         logger.info("Doing a dry run, no changes will be made")
