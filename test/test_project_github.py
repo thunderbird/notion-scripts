@@ -429,6 +429,12 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(user_map.tracker_to_notion("kewisch"), "3df71ec3-17c7-4eb4-80bc-a321af157be6")
         self.assertEqual(user_map.notion_to_tracker("3df71ec3-17c7-4eb4-80bc-a321af157be6"), "kewisch")
 
+        user = GitHubUser(user_map=self.github.user_map, tracker_user="kewisch", dbid_user="MDQ6VXNlcjYwNzE5OA==")
+        self.assertEqual(
+            repr(user),
+            "GitHubUser(tracker=kewisch,notion=3df71ec3-17c7-4eb4-80bc-a321af157be6,dbid=MDQ6VXNlcjYwNzE5OA==)",
+        )
+
     def test_validate_timeout(self):
         issue_count_queried = []
 
