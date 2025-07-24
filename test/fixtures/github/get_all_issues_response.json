@@ -1,0 +1,167 @@
+{
+  "data": {
+    "repository": {
+      "issues": {
+        "pageInfo": {
+          "hasNextPage": true,
+          "endCursor": "Y3Vyc29yOnYyOpK5MjAyNS0wMi0xOVQxMTo1NzowNyswMTowMM6qpYBM"
+        },
+        "nodes": [
+          {
+            "title": "Account Drawer Improvements",
+            "number": 1,
+            "updatedAt": "2025-07-07T10:02:00Z",
+            "createdAt": "2024-09-11T11:57:39Z",
+            "closedAt": null,
+            "state": "OPEN",
+            "url": "https://github.com/kewisch/test/issues/1",
+            "id": "I_kwDOMwGgpM6WLTqc",
+            "body": "description2",
+            "parent": null,
+            "repository": {
+              "id": "R_kgDOMwGgpA",
+              "nameWithOwner": "kewisch/test",
+              "name": "test",
+              "isPrivate": false
+            },
+            "labels": {
+              "nodes": [
+                {
+                  "name": "bug"
+                },
+                {
+                  "name": "type: epic"
+                }
+              ]
+            },
+            "assignees": {
+              "nodes": [
+                {
+                  "id": "MDQ6VXNlcjYwNzE5OA==",
+                  "login": "kewisch"
+                }
+              ]
+            },
+            "projectItems": {
+              "nodes": [
+                {
+                  "id": "PVTI_lAHOAAlD3s4AxVDIzgXcyAk",
+                  "project": {
+                    "__typename": "ProjectV2",
+                    "id": "PVT_kwHOAAlD3s4AxVDI",
+                    "number": 1,
+                    "title": "Test Roadmap - Readonly"
+                  },
+                  "priority": {
+                    "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                    "name": "P2",
+                    "optionId": "f993bd2e",
+                    "field": {
+                      "__typename": "ProjectV2SingleSelectField",
+                      "id": "PVTSSF_lAHOAAlD3s4AxVDIzgndQGw"
+                    }
+                  },
+                  "start_date": {
+                    "__typename": "ProjectV2ItemFieldDateValue",
+                    "date": "2025-01-24",
+                    "field": {
+                      "__typename": "ProjectV2Field",
+                      "id": "PVTF_lAHOAAlD3s4AxVDIzgndQIs"
+                    }
+                  },
+                  "target_date": {
+                    "__typename": "ProjectV2ItemFieldDateValue",
+                    "date": "2025-01-28",
+                    "field": {
+                      "__typename": "ProjectV2Field",
+                      "id": "PVTF_lAHOAAlD3s4AxVDIzgndQUU"
+                    }
+                  },
+                  "status": {
+                    "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                    "field": {
+                      "__typename": "ProjectV2SingleSelectField",
+                      "id": "PVTSSF_lAHOAAlD3s4AxVDIzgndP5s"
+                    },
+                    "name": "Not started",
+                    "optionId": "f75ad846"
+                  },
+                  "link": {
+                    "__typename": "ProjectV2ItemFieldTextValue",
+                    "field": {
+                      "__typename": "ProjectV2Field",
+                      "id": "PVTF_lAHOAAlD3s4AxVDIzgohH4w"
+                    },
+                    "text": "https://www.notion.so/Account-Drawer-Improvements-18adea4adcdf80f9ae08c01bcb69963a"
+                  },
+                  "sprint": null
+                }
+              ]
+            }
+          },
+          {
+            "title": "project board issue",
+            "number": 6,
+            "updatedAt": "2025-02-19T10:57:07Z",
+            "createdAt": "2025-02-19T10:57:07Z",
+            "closedAt": null,
+            "state": "OPEN",
+            "url": "https://github.com/kewisch/test/issues/6",
+            "id": "I_kwDOMwGgpM6qpYBM",
+            "body": "",
+            "parent": null,
+            "repository": {
+              "id": "R_kgDOMwGgpA",
+              "nameWithOwner": "kewisch/test",
+              "name": "test",
+              "isPrivate": false
+            },
+            "labels": {
+              "nodes": []
+            },
+            "assignees": {
+              "nodes": []
+            },
+            "projectItems": {
+              "nodes": [
+                {
+                  "id": "PVTI_lAHOAAlD3s4AxVFWzgXffhY",
+                  "project": {
+                    "__typename": "ProjectV2",
+                    "id": "PVT_kwHOAAlD3s4AxVFW",
+                    "number": 2,
+                    "title": "Test Sprints"
+                  },
+                  "priority": null,
+                  "start_date": null,
+                  "target_date": null,
+                  "status": {
+                    "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                    "field": {
+                      "__typename": "ProjectV2SingleSelectField",
+                      "id": "PVTSSF_lAHOAAlD3s4AxVFWzgndRt0"
+                    },
+                    "name": "In progress",
+                    "optionId": "47fc9ee4"
+                  },
+                  "link": null,
+                  "sprint": {
+                    "__typename": "ProjectV2ItemFieldIterationValue",
+                    "field": {
+                      "__typename": "ProjectV2IterationField",
+                      "id": "PVTIF_lAHOAAlD3s4AxVFWzgndSWI"
+                    },
+                    "iterationId": "ff6e72b7",
+                    "startDate": "2025-02-16",
+                    "title": "Sprint 3",
+                    "duration": 7
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

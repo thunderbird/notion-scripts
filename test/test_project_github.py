@@ -385,6 +385,12 @@ class GitHubProjectTest(BaseTestCase):
 
         self.assertEqual(len(self.github_handler.calls), 0)
 
+    def test_get_all_issues(self):
+        issues = self.github.get_all_issues()
+
+        self.assertEqual(len(issues), 1)
+        self.assertEqual(len(issues["kewisch/test"]), 6)
+
     def test_get_all_labels(self):
         labels = self.github.get_all_labels()
         self.assertEqual(

@@ -436,6 +436,44 @@ class GitHub(IssueTracker):
                 sprints.append(process_iteration(sprint, "Past"))
         return sprints
 
+    def _get_repo_issues(self, reporef, sub_issues=False):
+        has_next_page = True
+        cursor = None
+
+        orgname, reponame = reporef.split("/")
+
+        all_issues = []
+        while has_next_page:
+            op = Operation(schema.query_type)
+            issues = op.repository(owner=orgname, name=reponame).issues(
+                first=100,
+                after=cursor,
+                order_by={"field": "UPDATED_AT", "direction": "DESC"},
+            )
+            issues.page_info.__fields__(has_next_page=True)
+            issues.page_info.__fields__(end_cursor=True)
+            issue_field_ops(issues.nodes)
+
+            data = self.endpoint(op)
+            repo = (op + data).repository
+
+            for ghissue in repo.issues.nodes:
+                issue = self._parse_issue(ghissue, sub_issues)
+                all_issues.append(issue)
+
+            has_next_page = repo.issues.page_info.has_next_page
+            cursor = repo.issues.page_info.end_cursor
+
+        return all_issues
+
+    def get_all_issues(self, sub_issues=False):
+        """Get all issues in all asscoiated repositories."""
+        all_issues = {}
+        for orgrepo in self.allowed_repositories:
+            orgname, repo = orgrepo.split("/")
+            all_issues[orgrepo] = self._get_repo_issues(orgrepo, sub_issues)
+        return all_issues
+
     def get_all_labels(self):
         """Get the names of all labels in all associated repositories."""
         all_labels = set()

@@ -137,14 +137,29 @@ def main(projects, config, verbose=0, user_map_file=None, dry_run=False):
                 dry=dry_run,
             )
         elif project["method"] == "github_labels":
-            synchronize_gh_label(
-                notion_token=os.environ["NOTION_TOKEN"],
+            tracker = GitHub(
+                token=os.environ["GITHUB_TOKEN"],
                 repositories=project["repositories"],
+                dry=dry_run or project.get("tracker_dry_run", False),
+                user_map=user_map.get("github") or {},
+                property_names=project.get("properties", {}),
+                dates_openclose=project.get("notion_tasks_dates_openclose", False),
+            )
+            synchronize_gh_label(
+                project_key=key,
+                tracker=tracker,
+                notion_token=os.environ["NOTION_TOKEN"],
                 milestones_id=project["notion_milestones_id"],
                 tasks_id=project["notion_tasks_id"],
-                sync_status=project.get("sync_status", "all"),
-                milestone_prefix=project.get("milestone_prefix", "M:"),
-                strip_orgname=project.get("strip_orgname", False),
+                sprint_id=project.get("notion_sprints_id", None),
+                milestones_body_sync=project.get("milestones_body_sync", False),
+                milestones_body_sync_if_empty=project.get("milestones_body_sync_if_empty", False),
+                tasks_body_sync=project.get("tasks_body_sync", False),
+                milestones_tracker_prefix=project.get("milestones_tracker_prefix", ""),
+                milestones_extra_label=project.get("milestones_extra_label", ""),
+                tasks_notion_prefix=project.get("tasks_notion_prefix", ""),
+                sprints_merge_by_name=project.get("sprints_merge_by_name", False),
+                milestone_label_prefix=project.get("milestone_label_prefix", "M: "),
                 dry=dry_run,
             )
         elif project["method"] == "bugzilla":

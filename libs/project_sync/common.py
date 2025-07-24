@@ -139,6 +139,10 @@ class IssueTracker:
         issues = self.get_issues_by_number([issueref])
         return issues[issueref.id]
 
+    def get_all_issues(self):
+        """Get all issues in all asscoiated repositories."""
+        return []
+
     def get_all_labels(self):
         """Get the names of all labels in all associated repositories."""
         return []
