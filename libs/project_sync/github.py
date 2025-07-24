@@ -282,13 +282,21 @@ class GitHub(IssueTracker):
                 add=True,
             )
 
-    def _parse_issue(self, ref, ghissue, sub_issues=False):
-        tasks_project_item = self.github_tasks_projects[ref.repo].find_project_item(
-            ghissue, self.github_tasks_projects[ref.repo].database_id
+    def _parse_issue(self, ghissue, sub_issues=False):
+        repo = ghissue.repository.name_with_owner
+
+        tasks_project_item = (
+            self.github_tasks_projects[repo].find_project_item(ghissue, self.github_tasks_projects[repo].database_id)
+            if repo in self.github_tasks_projects
+            else None
         )
 
-        milestones_project_item = self.github_milestones_projects[ref.repo].find_project_item(
-            ghissue, self.github_milestones_projects[ref.repo].database_id
+        milestones_project_item = (
+            self.github_milestones_projects[repo].find_project_item(
+                ghissue, self.github_milestones_projects[repo].database_id
+            )
+            if repo in self.github_milestones_projects
+            else None
         )
 
         if tasks_project_item and milestones_project_item:
@@ -309,9 +317,9 @@ class GitHub(IssueTracker):
             issue_state = closed_states[0]
 
         issue = GitHubIssue(
-            repo=ref.repo,
-            id=ref.id,
-            url=f"https://github.com/{ref.repo}/issues/{ref.id}",
+            repo=repo,
+            id=str(ghissue.number),
+            url=f"https://github.com/{repo}/issues/{ghissue.number}",
             title=ghissue.title,
             description=ghissue.body,
             assignees={
@@ -332,8 +340,7 @@ class GitHub(IssueTracker):
 
         if sub_issues:
             issue.sub_issues = [
-                IssueRef(id=str(subissue.number), repo=ref.repo, parents=[issue])
-                for subissue in ghissue.sub_issues.nodes
+                IssueRef(id=str(subissue.number), repo=repo, parents=[issue]) for subissue in ghissue.sub_issues.nodes
             ]
 
         if gh_project_item and getattr(gh_project_item, "sprint", None):
@@ -390,7 +397,7 @@ class GitHub(IssueTracker):
 
                 for ref in itertools.islice(issues, i, i + chunk_size):
                     ghissue = getattr(datarepo, f"issue{ref.id}", None)
-                    res[ref.id] = self._parse_issue(ref, ghissue, sub_issues)
+                    res[ref.id] = self._parse_issue(ghissue, sub_issues)
 
                 i += chunk_size
             except GraphQLErrors as e:

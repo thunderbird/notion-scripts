@@ -158,7 +158,7 @@ class ProjectSync:
             return prop[prop["type"]]
 
     def _get_richtext_prop(self, block_or_page, key_name, default=None):
-        prop = self._get_prop(block_or_page, key_name)
+        prop = self._get_prop(block_or_page, key_name, default)
 
         if prop:
             return "".join(map(lambda rich_text: rich_text["plain_text"], prop))
@@ -372,10 +372,10 @@ class ProjectSync:
         if page:
             changed = self.tasks_db.update_page(page, notion_data)
             if changed:
-                logger.info(f"Updating task {tracker_issue.id} - {tracker_issue.title}")
+                logger.info(f"Updating task {tracker_issue.repo}#{tracker_issue.id} - {tracker_issue.title}")
                 logger.info("\t" + str(notion_data))
             else:
-                logger.info(f"Unchanged task {tracker_issue.id} - {tracker_issue.title}")
+                logger.info(f"Unchanged task {tracker_issue.repo}#{tracker_issue.id} - {tracker_issue.title}")
         else:
             logger.info(f"Adding new task {tracker_issue.id} - {tracker_issue.title}")
             logger.debug("\t" + str(notion_data))
