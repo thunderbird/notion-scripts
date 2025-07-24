@@ -31,11 +31,7 @@ repositories = [
     "thunderbird/thunderbird-notifications",
     "thunderbird/thunderbird-website",
     "thunderbird/thunderblog",
-    "thunderbird/thundernest-ansible",
-    "thunderbird/knowledgebase-issues",
-    "thunderbird/android-knowledgebase-issues",
-    "thunderbird/tbpro-knowledgebase-issues",
-    "thunderbird/zendesk-config"
+    "thunderbird/thundernest-ansible"
 ]
 
 [sync.mobile]
@@ -87,3 +83,30 @@ notion_milestones_title = "Name"
 notion_tasks_milestone_relation = "Milestone"
 notion_tasks_priority_values = ["P1", "P2", "P3", "P4", "P5"]
 notion_tasks_assignee = "Assignee"
+
+
+[sync.support]
+method = "github_labels"
+
+notion_milestones_id = "2392df5d45ae80748e13d988b78818cf"
+notion_tasks_id = "2392df5d45ae80698282f808ab44f48b"
+notion_tasks_dates_openclose = true
+
+strip_orgname = true
+
+[sync.support.repositories]
+repositories = [
+    "thunderbird/knowledgebase-issues",
+    "thunderbird/android-knowledgebase-issues",
+    "thunderbird/tbpro-knowledgebase-issues",
+    "thunderbird/zendesk-config"
+]
+
+[sync.support.properties]
+notion_issue_field = "GitHub Issue"
+notion_tasks_title = "Title"
+notion_milestones_title = "Project name"
+notion_tasks_milestone_relation = "Milestones"
+notion_tasks_labels = "Labels"
+notion_tasks_repository = "Repository"
+notion_tasks_priority = ""
