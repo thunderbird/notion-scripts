@@ -47,7 +47,6 @@ class ProjectSync:
         milestones_body_sync=False,
         milestones_body_sync_if_empty=True,
         tasks_body_sync=True,
-        repository_settings=None,
         milestones_tracker_prefix="",
         milestones_extra_label="",
         tasks_notion_prefix="",
@@ -71,7 +70,6 @@ class ProjectSync:
                 time import.
             tasks_body_sync (bool): If true, the issue body will be synced to Notion tasks.
                 Note this takes a lot of requests, so recommend avoiding.
-            repository_settings (dict[str,dict]): Repository mappings with list of repos and project.
             milestones_tracker_prefix (str): Optional prefix on the issue tracker when synchronized
                 from milestones.
             milestones_extra_label (str): Optional label for GitHub issues synchronized from

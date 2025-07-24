@@ -118,22 +118,25 @@ class GitHub(IssueTracker):
         self.all_tasks_projects = []
         self.all_milestones_projects = []
 
+        if "repositories" in repository_settings:
+            repository_settings = {"default": repository_settings}
+
         for settings in repository_settings.values():
             self.allowed_repositories.update(settings["repositories"])
 
-            tasks_project = GitHubProjectV2(
-                self.endpoint, settings["github_tasks_project_id"], GITHUB_PROJECT_TASKS_FIELDS
-            )
-            milestones_project = GitHubProjectV2(
-                self.endpoint, settings["github_milestones_project_id"], GITHUB_PROJECT_MILESTONE_FIELDS
-            )
+            if tasks_project_id := settings.get("github_tasks_project_id"):
+                tasks_project = GitHubProjectV2(self.endpoint, tasks_project_id, GITHUB_PROJECT_TASKS_FIELDS)
+                self.all_tasks_projects.append(tasks_project)
+                for repo in settings["repositories"]:
+                    self.github_tasks_projects[repo] = tasks_project
 
-            self.all_tasks_projects.append(tasks_project)
-            self.all_milestones_projects.append(milestones_project)
-
-            for repo in settings["repositories"]:
-                self.github_tasks_projects[repo] = tasks_project
-                self.github_milestones_projects[repo] = milestones_project
+            if milestones_project_id := settings.get("github_milestones_project_id"):
+                milestones_project = GitHubProjectV2(
+                    self.endpoint, milestones_project_id, GITHUB_PROJECT_MILESTONE_FIELDS
+                )
+                self.all_milestones_projects.append(milestones_project)
+                for repo in settings["repositories"]:
+                    self.github_milestones_projects[repo] = milestones_project
 
     def parse_issueref(self, ref):
         """Parse an issue identifier (e.g. github url) to an IssueRef."""

@@ -28,6 +28,13 @@ class GitHubProjectTest(BaseTestCase):
 
         self.github = GitHub(token="GITHUB_TOKEN", repositories=REPO_SETTINGS, user_map={}, dry=False)
 
+    def test_init_flat_repo(self):
+        flat_repo_settings = REPO_SETTINGS["reposetA"]
+
+        github = GitHub(token="GITHUB_TOKEN", repositories=flat_repo_settings, user_map={}, dry=False)
+        self.assertTrue(github.is_repo_allowed("kewisch/test"))
+        self.assertEqual(github.get_all_repositories(), ["kewisch/test"])
+
     def test_github_get_issues_basics(self):
         issues = self.github.get_issues_by_number([], True)
         self.assertEqual(issues, {})
