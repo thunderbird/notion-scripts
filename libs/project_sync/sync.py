@@ -406,8 +406,9 @@ class ProjectSync:
             converter = CustomNotionToMarkdown(self.notion, strip_images=True, tracker=self.tracker)
             body = converter.convert(blocks)
 
-        # Assignees
-        assignees = {
+        # Assignees. Community assignees should be kept on the issue so a sync doesn't remove them.
+        community_assignees = {assignee for assignee in tracker_issue.assignees if assignee.notion_user is None}
+        milestone_assignees = {
             self.tracker.new_user(notion_user=assignee["id"])
             for assignee in self._get_prop(page, "notion_milestones_assignee", [])
         }
@@ -427,7 +428,7 @@ class ProjectSync:
             description=body,
             state=(self._get_prop(page, "notion_milestones_status") or {}).get("name"),
             priority=(self._get_prop(page, "notion_milestones_priority") or {}).get("name"),
-            assignees=assignees,
+            assignees=community_assignees.union(milestone_assignees),
             notion_url=page.get("url", ""),
             start_date=datetime.date.fromisoformat(start_date_str) if start_date_str else None,
             end_date=datetime.date.fromisoformat(end_date_str) if end_date_str else None,

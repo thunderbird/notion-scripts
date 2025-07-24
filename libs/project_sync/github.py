@@ -206,14 +206,9 @@ class GitHub(IssueTracker):
             self.endpoint(op)
 
     def _update_issue_assignees(self, old_issue, new_issue):
-        db_assignees = self.user_map.map(lambda user: user.dbid_user, new_issue.assignees)
-
-        # If we've assigned a community member to this milestone, keep them on the issue
-        community_assignees = {assignee.dbid_user for assignee in old_issue.assignees if assignee.notion_user is None}
-
         # Check if assignees have not changed
         old_assignees = {assignee.dbid_user for assignee in old_issue.assignees}
-        new_assignees = community_assignees.union(db_assignees)
+        new_assignees = {assignee.dbid_user for assignee in new_issue.assignees}
 
         # Check who to add or remove
         remove = old_assignees - new_assignees
