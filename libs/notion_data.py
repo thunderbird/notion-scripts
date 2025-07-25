@@ -4,12 +4,14 @@
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+import datetime
 from typing import Any, Callable, Dict, List
 
 from md2notionpage.core import parse_md
 from notion_client.helpers import collect_paginated_api
 from notion_to_md import NotionToMarkdown
+
+from .util import getnestedattr
 
 logger = logging.getLogger("notion_database")
 
@@ -302,12 +304,23 @@ def dates(name: str) -> NotionProperty:
         else:
             return {name: {"date": None}}
 
-    def _diff(property_data: Dict[str, Any], content: datetime) -> bool:
-        start_data = property_data.get("date").get("start") if property_data.get("date") else None
-        end_data = property_data.get("date").get("end") if property_data.get("date") else None
+    def _diff(property_data: Dict[str, Any], content: datetime.datetime) -> bool:
+        start_data = getnestedattr(lambda: property_data["date"]["start"], None)
+        end_data = getnestedattr(lambda: property_data["date"]["end"], None)
 
-        content_start = content["start"].isoformat() if content and content.get("start") else None
-        content_end = content["end"].isoformat() if content and content.get("end") else None
+        content_start = content.get("start") if content else None
+        content_end = content.get("end") if content else None
+
+        # Notion only saves datetimes up to the minute.
+        if isinstance(content_start, datetime.datetime):
+            content_start = content_start.replace(second=0, microsecond=0).isoformat(timespec="milliseconds")
+        elif isinstance(content_start, datetime.date):
+            content_start = content_start.isoformat()
+
+        if isinstance(content_end, datetime.datetime):
+            content_end = content_end.replace(second=0, microsecond=0).isoformat(timespec="milliseconds")
+        elif isinstance(content_end, datetime.date):
+            content_end = content_end.isoformat()
 
         if content_start != start_data or content_end != end_data:
             return True
@@ -319,16 +332,21 @@ def dates(name: str) -> NotionProperty:
 def date(name: str) -> NotionProperty:
     """A singular date property."""
 
-    def _update(content: datetime) -> Dict[str, Any]:
+    def _update(content: datetime.datetime) -> Dict[str, Any]:
         if content:
-            return {name: {"date": {"start": content.date().isoformat()}}}
+            return {name: {"date": {"start": content.isoformat()}}}
         else:
             return {name: {"date": None}}
 
-    def _diff(property_data: Dict[str, Any], content: datetime) -> bool:
-        property_data = property_data.get("date").get("start") if property_data.get("date") else None
-        if content:
-            content = content.date().isoformat()
+    def _diff(property_data: Dict[str, Any], content: datetime.datetime) -> bool:
+        property_data = getnestedattr(lambda: property_data["date"]["start"], None)
+
+        # Notion only saves up to the minute
+        if isinstance(content, datetime.datetime):
+            content = content.replace(second=0, microsecond=0).isoformat(timespec="milliseconds")
+        elif isinstance(content, datetime.date):
+            content = content.isoformat()
+
         if property_data != content:
             return True
         return False
@@ -392,6 +410,32 @@ def rich_text(name: str) -> NotionProperty:
         if property_data["rich_text"][0]["plain_text"] != content:
             return True
         return False
+
+    return NotionProperty(
+        name=name,
+        type="rich_text",
+        additional={"rich_text": {}},
+        _update=_update,
+        _diff=_diff,
+    )
+
+
+def rich_text_space_set(name: str) -> NotionProperty:
+    """A rich text property with a set() of words delimited by spaces."""
+
+    def _update(content: str) -> Dict[str, Any]:
+        return {name: {"rich_text": [{"text": {"content": content}}]}}
+
+    def _diff(property_data: Dict[str, Any], content: str) -> bool:
+        if "rich_text" not in property_data:
+            return True
+        if len(property_data["rich_text"]) == 0:
+            return True
+
+        prop_data_set = set(property_data["rich_text"][0]["plain_text"].split(" "))
+        content_set = set(content.split(" "))
+
+        return prop_data_set != content_set
 
     return NotionProperty(
         name=name,
@@ -544,6 +588,6 @@ def people(name: str) -> NotionProperty:
         if "people" not in property_data:
             return True
         vals = [v["id"] for v in property_data["people"]]
-        return set(vals) != set(content)
+        return set(vals) != set(content or [])
 
     return NotionProperty(name=name, type="people", additional={}, _update=_update, _diff=_diff)
