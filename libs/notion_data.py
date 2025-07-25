@@ -157,12 +157,17 @@ class NotionDatabase:
             )
             return True
         # Loop over all properties and see if any are different.
+        changed = False
         for prop_name, prop_value in datadict.items():
+            if prop_name == "Status":
+                continue
+
             old_prop = page["properties"].get(prop_name, {})
             if prop_name in cur_props and cur_props[prop_name].is_prop_diff(old_prop, prop_value):
-                logger.debug(f"{prop_name} on {page['url']} changing from {old_prop[old_prop['type']]} to {prop_value}")
-                return True
-        return False
+                old_prop_value = old_prop.get(old_prop.get("type"))
+                logger.debug(f"{prop_name} on {page['url']} changing from {old_prop_value} to {prop_value}")
+                changed = True
+        return changed
 
     def get_page_contents(self, page_id):
         """Retrieves the blocks in a Notion page in this database."""
