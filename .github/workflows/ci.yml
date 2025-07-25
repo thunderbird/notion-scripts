@@ -33,3 +33,9 @@ jobs:
           VERBOSE: ${{ runner.debug && '-v' || '' }}
         run:
           rye fmt --check ${VERBOSE}
+
+      - name: Rye Test
+        env:
+          VERBOSE: ${{ runner.debug && '-v' || '' }}
+        run:
+          rye run test ${VERBOSE}
