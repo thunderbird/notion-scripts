@@ -90,6 +90,8 @@ class ProjectSync:
             p.link(self.propnames["notion_issue_field"]),
         ]
         self.milestones_db = NotionDatabase(milestones_id, self.notion, milestones_properties, dry=dry)
+        if not self.milestones_db.validate_props():
+            raise Exception("Milestone schema failed to validate")
         self.milestones_body_sync = milestones_body_sync
         self.milestones_body_sync_if_empty = milestones_body_sync_if_empty
         self.milestones_tracker_prefix = milestones_tracker_prefix
@@ -99,25 +101,20 @@ class ProjectSync:
         tasks_properties = [
             p.relation(self.propnames["notion_tasks_milestone_relation"], milestones_id, True),
             p.title(self.propnames["notion_tasks_title"]),
-            p.people(self.propnames["notion_tasks_assignee"]),
             p.link(self.propnames["notion_issue_field"]),
-            p.select(self.propnames["notion_tasks_priority"], self.propnames["notion_tasks_priority_values"]),
         ]
 
-        if tasks_dates_prop := self.propnames["notion_tasks_dates"]:
-            tasks_properties.append(p.dates(tasks_dates_prop))
-
-        if review_url_prop := self.propnames["notion_tasks_review_url"]:
-            tasks_properties.append(p.link(review_url_prop))
-        if text_assignee_prop := self.propnames["notion_tasks_text_assignee"]:
-            tasks_properties.append(p.rich_text(text_assignee_prop))
-
-        if labels_prop := self.propnames["notion_tasks_labels"]:
-            tasks_properties.append(p.multi_select(labels_prop, self.tracker.get_all_labels()))
-
-        if repo_prop := self.propnames["notion_tasks_repository"]:
-            all_repos = strip_orgname(self.tracker.get_all_repositories())
-            tasks_properties.append(p.multi_select(repo_prop, all_repos))
+        self._setup_prop(
+            tasks_properties, "notion_tasks_priority", "select", self.propnames["notion_tasks_priority_values"]
+        )
+        self._setup_prop(tasks_properties, "notion_tasks_assignee", "people")
+        self._setup_prop(tasks_properties, "notion_tasks_review_url", "link")
+        self._setup_prop(tasks_properties, "notion_tasks_text_assignee", "rich_text_space_set")
+        self._setup_prop(tasks_properties, "notion_tasks_labels", "multi_select", self.tracker.get_all_labels())
+        self._setup_prop(
+            tasks_properties, "notion_tasks_repository", "select", strip_orgname(self.tracker.get_all_repositories())
+        )
+        self._setup_date_prop(tasks_properties, "notion_tasks_dates")
 
         # Sprint Database
         if sprint_id:
@@ -136,6 +133,8 @@ class ProjectSync:
 
         # Tasks Database
         self.tasks_db = NotionDatabase(tasks_id, self.notion, tasks_properties, dry=dry)
+        if not self.tasks_db.validate_props():
+            raise Exception("Tasks schema failed to validate")
         self.tasks_body_sync = tasks_body_sync
         self.tasks_notion_prefix = tasks_notion_prefix
 
@@ -156,6 +155,19 @@ class ProjectSync:
         else:
             prop = block_or_page["properties"][self.propnames[key_name]]
             return prop[prop["type"]]
+
+    def _setup_date_prop(self, properties, key_name):
+        if prop := self.propnames[key_name]:
+            if isinstance(prop, list):
+                properties.append(p.date(prop[0]))
+                properties.append(p.date(prop[1]))
+            else:
+                properties.append(p.dates(prop))
+
+    def _setup_prop(self, properties, key_name, type_name, *extra_args):
+        if prop := self.propnames[key_name]:
+            typefunc = getattr(p, type_name)
+            properties.append(typefunc(prop, *extra_args))
 
     def _get_richtext_prop(self, block_or_page, key_name, default=None):
         prop = self._get_prop(block_or_page, key_name, default)

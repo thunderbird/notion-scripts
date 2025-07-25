@@ -195,7 +195,7 @@ class NotionDatabase:
         """Returns the database information (e.g. properties)."""
         return self.notion.databases.retrieve(database_id=self.database_id)
 
-    def update_props(self, delete=False):
+    def validate_props(self, delete=False, update=False):
         """Updates the properties of the remote Notion database tied to the local instance."""
         # TODO: This method could use some error checking and verifying that it worked properly.
         desired_props = self.to_dict()
@@ -223,21 +223,44 @@ class NotionDatabase:
         # Add or update missing properties
         changes = False
         for prop_name, prop_schema in desired_props.items():
-            if prop_name not in current_props or current_props[prop_name]["type"] != prop_schema["type"]:
-                if prop_schema["type"] == "title":
-                    # The title property always has the id "title" so can be renamed that way.
-                    properties = {"title": {"name": prop_name}}
-                else:
-                    properties = {prop_name: prop_schema}
+            if prop_schema["type"] == "title":
+                # The title property always has the id "title" so can be renamed that way.
+                properties = {"title": {"name": prop_name}}
+            else:
+                properties = {prop_name: prop_schema}
 
+            if prop_name not in current_props:
                 changes = True
-                if self.dry:
-                    logger.info(f"Updating property {prop_name} to schema {prop_schema} on {self.database_id}")
+                if not update or self.dry:
+                    logger.warn(f"Missing property {prop_name} with {properties} on {self.database_id}")
                 else:
                     self.notion.databases.update(database_id=self.database_id, properties=properties)
 
-        if not changes and self.dry:
+            elif current_props[prop_name]["type"] != prop_schema["type"]:
+                changes = True
+                if not update or self.dry:
+                    logger.warn(
+                        f"Property {prop_name} has mismatching type {current_props[prop_name]['type']} != {prop_schema['type']}"
+                    )
+                else:
+                    self.notion.databases.update(database_id=self.database_id, properties=properties)
+            elif prop_schema["type"] == "select":
+                desired_options = {option["name"] for option in prop_schema["select"]["options"]}
+                current_options = {option["name"] for option in current_props[prop_name]["select"]["options"]}
+
+                if current_options != desired_options:
+                    # changes = True
+                    if not update or self.dry:
+                        logger.warn(
+                            f"Property {prop_name} has mismatching options {current_options} != {desired_options}"
+                        )
+                    else:
+                        self.notion.databases.update(database_id=self.database_id, properties=properties)
+
+        if not changes:
             logger.info(f"All properties on {self.database_id} are up to date")
+
+        return not changes
 
 
 class CustomNotionToMarkdown(NotionToMarkdown):

@@ -2,6 +2,7 @@ import sys
 import json
 import urllib
 import datetime
+import logging
 
 from pathlib import Path
 
@@ -147,7 +148,7 @@ class ProjectSyncTest(BaseTestCase):
     def expect_typical_db_update(self):
         db_count = 3 if self.project_sync.sprint_db else 2
 
-        self.expect_call("db_info", 0 if self.project_sync.dry else db_count)
+        self.expect_call("db_info", 2 if self.project_sync.dry else db_count + 2)
         self.expect_call("db_update", 0 if self.project_sync.dry else db_count)
         self.expect_call("db_query", db_count)
 
@@ -703,12 +704,16 @@ class ProjectSyncTest(BaseTestCase):
             )
 
             self.assertEqual(
-                project_sync.tasks_db.properties["Repository"].additional["multi_select"]["options"],
+                project_sync.tasks_db.properties["Repository"].additional["select"]["options"],
                 [{"name": "test"}, {"name": "test2"}],
             )
 
         with self.subTest(msg="don't strip orgname"):
             tracker.get_all_repositories = lambda: ["kewisch/test", "settings/test2"]
+            self.notion_handler.tasks_handler.database_info["properties"]["Repository"]["select"]["options"] = [
+                {"name": "kewisch/test"},
+                {"name": "settings/test2"},
+            ]
             project_sync = ProjectSync(
                 project_key="test",
                 notion_token="NOTION_TOKEN",
@@ -717,7 +722,7 @@ class ProjectSyncTest(BaseTestCase):
                 tracker=tracker,
             )
             self.assertEqual(
-                project_sync.tasks_db.properties["Repository"].additional["multi_select"]["options"],
+                project_sync.tasks_db.properties["Repository"].additional["select"]["options"],
                 [{"name": "kewisch/test"}, {"name": "settings/test2"}],
             )
 
@@ -733,4 +738,29 @@ class ProjectSyncTest(BaseTestCase):
             self.assertEqual(
                 project_sync.tasks_db.properties["Labels"].additional["multi_select"]["options"],
                 [{"name": "bug"}, {"name": "enhancement"}],
+            )
+
+    def test_validate_schema(self):
+        tracker = TestTracker(dry=True)
+        logging.getLogger("notion_database").setLevel(logging.CRITICAL)
+
+        del self.notion_handler.tasks_handler.database_info["properties"]["Issue Link"]
+        with self.assertRaisesRegex(Exception, r"Tasks schema failed to validate"):
+            ProjectSync(
+                project_key="test",
+                notion_token="NOTION_TOKEN",
+                milestones_id="milestones_id",
+                tasks_id="tasks_id",
+                tracker=tracker,
+            )
+
+        del self.notion_handler.milestones_handler.database_info["properties"]["Issue Link"]
+
+        with self.assertRaisesRegex(Exception, r"Milestone schema failed to validate"):
+            ProjectSync(
+                project_key="test",
+                notion_token="NOTION_TOKEN",
+                milestones_id="milestones_id",
+                tasks_id="tasks_id",
+                tracker=tracker,
             )

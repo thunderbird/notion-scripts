@@ -7,7 +7,9 @@
     "last_edited_time": "2020-03-17T21:49:37.913Z",
     "title": [  { "type": "text", "text": { "content": "Milestones", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "Milestones", "href": null } ],
     "description": [  { "type": "text", "text": { "content": "Previous Content", "link": null } } ],
-    "properties": {},
+    "properties": {
+      "Issue Link": { "id": "n%3EUR", "name": "GitHub Issue", "type": "url", "url": {}}
+    },
     "archived": false,
     "in_trash": false,
     "is_inline": false,

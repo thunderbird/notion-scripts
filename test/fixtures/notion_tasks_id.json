@@ -8,7 +8,25 @@
     "title": [  { "type": "text", "text": { "content": "Tasks", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "Tasks", "href": null } ],
     "description": [],
     
-    "properties": {},
+    "properties": {
+      "Issue Link": { "id": "n%3EUR", "name": "Issue Link", "type": "url", "url": {}},
+      "Project": {
+        "name": "Project",
+        "type": "relation",
+        "relation": {"database_id": "milestones_id", "type": "dual_property", "dual_property": {}}
+      },
+      "Title": {"type": "title", "title": {"name": "Title"}},
+      "Priority": {"name": "Priority", "type": "select", "select": {"options": [{"name": "P1"}, {"name": "P2"}, {"name": "P3"}]}},
+      "Owner": {"name": "Owner", "type": "people"},
+      "Review URL": {"name": "Review URL", "type": "url", "url": {}},
+      "Text Assignee": {"name": "Text Assignee", "type": "rich_text", "rich_text": {}},
+      "Dates": {"name": "Dates", "type": "date", "date": {}},
+      "Created": {"name": "Created", "type": "date", "date": {}},
+      "Closed": {"name": "Closed", "type": "date", "date": {}},
+      "Sprint": {"name": "Sprint", "type": "relation", "relation": {"database_id": "sprints_id", "type": "dual_property", "dual_property": {}}},
+      "Labels": {"name": "Labels", "type": "multi_select", "multi_select": {"options": []}},
+      "Repository": {"name": "Repository", "type": "select", "select": {"options": [{"name": "test"}, {"name": "test2"}]}}
+    },
     "archived": false,
     "in_trash": false,
     "is_inline": false,
