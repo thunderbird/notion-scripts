@@ -41,6 +41,7 @@ class Bugzilla(IssueTracker):
         "notion_default_open_state": "NEW",
         "notion_tasks_dates": None,  # We don't support dates
         "notion_default_closed_states": ["RESOLVED"],
+        "bugzilla_allowed_products": None,  # Default to all is allowed
     }
 
     name = "Bugzilla"
@@ -77,6 +78,12 @@ class Bugzilla(IssueTracker):
     def is_repo_allowed(self, reporef):
         """If the repository is allowed as per repository setup."""
         return reporef == self.repo_name
+
+    def _is_allowed_product(self, bug):
+        return (
+            self.property_names["bugzilla_allowed_products"] is None
+            or bug["product"] in self.property_names["bugzilla_allowed_products"]
+        )
 
     def notion_tasks_title(self, tasks_notion_prefix, issue):
         """The augmented notion tasks title (includes bug reference)."""
@@ -134,7 +141,7 @@ class Bugzilla(IssueTracker):
         """Retrieve issues by their id number."""
         res = {}
         bugids = map(lambda bug: urllib.parse.quote(str(bug.id), safe=""), bugrefs)
-        fields = "id,summary,status,cf_user_story,assigned_to,priority,depends_on,blocks,attachments,comments,see_also,creation_time,cf_last_resolved"
+        fields = "id,summary,status,product,cf_user_story,assigned_to,priority,depends_on,blocks,attachments,comments,see_also,creation_time,cf_last_resolved"
 
         response = self.client.get("/bug", params={"id": ",".join(bugids), "include_fields": fields})
         response_json = response.json()
@@ -182,6 +189,7 @@ class Bugzilla(IssueTracker):
             issue.sub_issues = [
                 IssueRef(repo=self.repo_name, id=str(sub_issue_id), parents=[issue])
                 for sub_issue_id in bug["depends_on"]
+                if self._is_allowed_product(bug)
             ]
 
             res[issue.id] = issue

@@ -104,7 +104,9 @@ notion_milestones_title = "Name"
 notion_tasks_milestone_relation = "Milestone"
 notion_tasks_priority_values = ["P1", "P2", "P3", "P4", "P5"]
 notion_tasks_assignee = "Assignee"
+notion_tasks_openclose = "Dates"
 
+bugzilla_allowed_products = ["Thunderbird", "MailNews Core", "Calendar"]
 
 [sync.support]
 method = "github_labels"
