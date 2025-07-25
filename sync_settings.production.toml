@@ -12,7 +12,8 @@ notion_tasks_id = "3ca7ed3fe75b4a6d805953156a603540"
 
 # This is the ID of the Milestones database.
 notion_milestones_id = "1352df5d45ae8068a42dc799f13ea87a"
-strip_orgname = true
+
+[sync.services.repositories]
 
 repositories = [
     "thunderbird/addons-server",
@@ -33,6 +34,26 @@ repositories = [
     "thunderbird/thunderblog",
     "thunderbird/thundernest-ansible"
 ]
+
+[sync.services.properties]
+notion_tasks_title = "Title"
+#notion_tasks_assignee = "Owner"
+notion_tasks_assignee = ""
+notion_tasks_dates = ""
+notion_tasks_openclose = ["Opened", "Closed"]
+notion_tasks_priority = ""
+notion_tasks_milestone_relation = "Milestones"
+notion_tasks_text_assignee = "Assignee"
+notion_tasks_labels = "Labels"
+notion_tasks_repository = "Repository"
+notion_milestones_title = "Project name"
+notion_milestones_assignee = "Owner"
+notion_milestones_priority = ""
+notion_milestones_dates = ["Start Date", "Wanted End Date"]
+notion_issue_field = "Link"
+notion_default_open_state = "Not started"
+notion_inprogress_state = "In progress"
+notion_closed_states = ["Done"]
 
 [sync.mobile]
 method = "github_project"
@@ -90,16 +111,13 @@ method = "github_labels"
 
 notion_milestones_id = "2392df5d45ae80748e13d988b78818cf"
 notion_tasks_id = "2392df5d45ae80698282f808ab44f48b"
-notion_tasks_dates_openclose = true
-
-strip_orgname = true
 
 [sync.support.repositories]
 repositories = [
     "thunderbird/knowledgebase-issues",
     "thunderbird/android-knowledgebase-issues",
     "thunderbird/tbpro-knowledgebase-issues",
-    "thunderbird/zendesk-config"
+    #"thunderbird/zendesk-config"
 ]
 
 [sync.support.properties]
@@ -110,3 +128,5 @@ notion_tasks_milestone_relation = "Milestones"
 notion_tasks_labels = "Labels"
 notion_tasks_repository = "Repository"
 notion_tasks_priority = ""
+notion_tasks_dates = ""
+notion_tasks_openclose = "Dates"
