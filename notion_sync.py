@@ -78,7 +78,14 @@ def main(projects, config, verbose=0, user_map_file=None, dry_run=False):
     # pprint(notion.pages.retrieve("PAGE_ID_HERE"))
     # sys.exit()
 
-    if dry_run:
+    if settings.get("dry", False):
+        if dry_run is None or dry_run is True:
+            logger.info("Forcing a dry run via configuration, no changes will be made")
+            dry_run = True
+        elif dry_run is False:
+            logger.info("Ignoring dry run from configuration due to --no-dry-run")
+            dry_run = False
+    elif dry_run:
         logger.info("Doing a dry run, no changes will be made")
 
     if not projects:
@@ -203,7 +210,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "-n",
         "--dry-run",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
+        default=None,
         help="Run the script without making changes",
     )
     parser.add_argument("-l", "--list", action="store_true", help="List synchronizers and exit")
