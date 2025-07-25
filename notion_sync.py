@@ -44,9 +44,9 @@ def main(projects, config, verbose=0, user_map_file=None, dry_run=False):
         }
 
     httpx_log_level = (
-        [logging.WARNING, logging.INFO, logging.INFO, logging.DEBUG][verbose] if verbose <= 4 else logging.DEBUG
+        [logging.WARNING, logging.INFO, logging.INFO, logging.DEBUG][verbose] if verbose <= 3 else logging.DEBUG
     )
-    sync_log_level = [logging.INFO, logging.INFO, logging.DEBUG][verbose] if verbose <= 3 else logging.DEBUG
+    sync_log_level = [logging.INFO, logging.INFO, logging.DEBUG][verbose] if verbose <= 2 else logging.DEBUG
 
     logging.getLogger("httpx").setLevel(httpx_log_level)
     logging.getLogger("httpcore").setLevel(httpx_log_level)
