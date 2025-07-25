@@ -114,7 +114,6 @@ def main(projects, config, verbose=0, user_map_file=None, dry_run=False):
                     dry=dry_run or project.get("tracker_dry_run", False),
                     user_map=user_map.get("github") or {},
                     property_names=project.get("properties", {}),
-                    dates_openclose=project.get("notion_tasks_dates_openclose", False),
                 )
 
             else:
@@ -143,7 +142,6 @@ def main(projects, config, verbose=0, user_map_file=None, dry_run=False):
                 dry=dry_run or project.get("tracker_dry_run", False),
                 user_map=user_map.get("github") or {},
                 property_names=project.get("properties", {}),
-                dates_openclose=project.get("notion_tasks_dates_openclose", False),
             )
             synchronize_gh_label(
                 project_key=key,

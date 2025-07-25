@@ -115,6 +115,7 @@ class ProjectSync:
             tasks_properties, "notion_tasks_repository", "select", strip_orgname(self.tracker.get_all_repositories())
         )
         self._setup_date_prop(tasks_properties, "notion_tasks_dates")
+        self._setup_date_prop(tasks_properties, "notion_tasks_openclose")
 
         # Sprint Database
         if sprint_id:
@@ -169,6 +170,24 @@ class ProjectSync:
             typefunc = getattr(p, type_name)
             properties.append(typefunc(prop, *extra_args))
 
+    def _get_date_prop(self, block_or_page, key_name, default=None):
+        propinfo = self.propnames[key_name]
+        if isinstance(propinfo, list):
+            start_prop_name, end_prop_name = propinfo
+            start_prop_key = end_prop_key = "start"
+        else:
+            start_prop_name = end_prop_name = propinfo
+            start_prop_key = "start"
+            end_prop_key = "end"
+
+        start_prop = getnestedattr(lambda: block_or_page["properties"][start_prop_name], default)
+        end_prop = getnestedattr(lambda: block_or_page["properties"][end_prop_name], default)
+
+        return (
+            getnestedattr(lambda: start_prop[start_prop["type"]][start_prop_key], default),
+            getnestedattr(lambda: end_prop[end_prop["type"]][end_prop_key], default),
+        )
+
     def _get_richtext_prop(self, block_or_page, key_name, default=None):
         prop = self._get_prop(block_or_page, key_name, default)
 
@@ -180,6 +199,14 @@ class ProjectSync:
     def _set_if_prop(self, obj, key_name, value):
         if propname := self.propnames[key_name]:
             obj[propname] = value
+
+    def _set_if_date_prop(self, obj, key_name, start=None, end=None):
+        if propname := self.propnames[key_name]:
+            if isinstance(propname, list):
+                obj[propname[0]] = start if start else None
+                obj[propname[1]] = end if end else None
+            else:
+                obj[propname] = {"start": start, "end": end} if start or end else None
 
     def _discover_notion_issues(self, notion_db_id):
         repos = defaultdict(dict)
@@ -232,7 +259,7 @@ class ProjectSync:
     def _notion_tasks_issues(self):
         return self._discover_notion_issues(self.tasks_db.database_id)
 
-    def _get_task_notion_data(self, tracker_issue, parent_milestone_ids=[]):
+    def _get_task_notion_data(self, tracker_issue, parent_milestone_ids=[], old_page=None):
         # Base data
         title = self.tracker.notion_tasks_title(self.tasks_notion_prefix, tracker_issue)
         notion_data = {
@@ -244,37 +271,51 @@ class ProjectSync:
         assignees = [user.notion_user for user in tracker_issue.assignees if user.notion_user is not None]
         text_assignees = [user.tracker_user for user in tracker_issue.assignees]
 
-        self._set_if_prop(notion_data, "notion_tasks_assignee", assignees)
+        self._set_if_prop(notion_data, "notion_tasks_assignee", assignees or None)
         self._set_if_prop(notion_data, "notion_tasks_text_assignee", " ".join(text_assignees))
 
         # Status and Priority
         self._set_if_prop(notion_data, "notion_tasks_priority", tracker_issue.priority)
-        self._set_if_prop(notion_data, "notion_tasks_status", tracker_issue.state)
+
+        final_status = tracker_issue.state
+        if not tracker_issue.state:
+            # If we don't have a state, we just have opened/closed. Change if there is a transition.
+            if old_page:
+                old_status = getnestedattr(lambda: self._get_prop(old_page, "notion_tasks_status")["name"], None)
+                if old_status in self.propnames["notion_closed_states"] and not tracker_issue.closed_date:
+                    # If the existing page is closed and we have no closed date, open it
+                    final_status = self.propnames["notion_default_open_state"]
+                elif old_status not in self.propnames["notion_closed_states"] and tracker_issue.closed_date:
+                    # If the existing page is open and we have a closed date, close it
+                    final_status = self.propnames["notion_closed_states"][0]
+                else:
+                    # Otherwise keep whatever status we had
+                    final_status = old_status
+            else:
+                # Adjust the open/closed state based on if we have a closed date
+                if tracker_issue.closed_date:
+                    final_status = self.propnames["notion_closed_states"][0]
+                else:
+                    final_status = self.propnames["notion_default_open_state"]
+        self._set_if_prop(notion_data, "notion_tasks_status", final_status)
 
         # Review URL
         self._set_if_prop(notion_data, "notion_tasks_review_url", tracker_issue.review_url or None)
 
-        # Dates
+        # Start/end dates
         if tracker_issue.sprint:
-            self._set_if_prop(
-                notion_data,
-                "notion_tasks_dates",
-                {
-                    "start": tracker_issue.sprint.start_date,
-                    "end": tracker_issue.sprint.end_date,
-                },
+            self._set_if_date_prop(
+                notion_data, "notion_tasks_dates", tracker_issue.sprint.start_date, tracker_issue.sprint.end_date
             )
         elif tracker_issue.start_date or tracker_issue.end_date:
-            self._set_if_prop(
-                notion_data,
-                "notion_tasks_dates",
-                {
-                    "start": tracker_issue.start_date,
-                    "end": tracker_issue.end_date,
-                },
-            )
+            self._set_if_date_prop(notion_data, "notion_tasks_dates", tracker_issue.start_date, tracker_issue.end_date)
         else:
-            self._set_if_prop(notion_data, "notion_tasks_dates", None)
+            self._set_if_date_prop(notion_data, "notion_tasks_dates", None)
+
+        # Open/close dates
+        self._set_if_date_prop(
+            notion_data, "notion_tasks_openclose", tracker_issue.created_date, tracker_issue.closed_date
+        )
 
         # Sprints
         if self.sprint_db:
@@ -378,7 +419,7 @@ class ProjectSync:
                 instead of update.
         """
         notion_data = self._get_task_notion_data(
-            tracker_issue=tracker_issue, parent_milestone_ids=self._find_task_parents(tracker_issue)
+            tracker_issue=tracker_issue, parent_milestone_ids=self._find_task_parents(tracker_issue), old_page=page
         )
 
         if page:
@@ -430,8 +471,7 @@ class ProjectSync:
         if self.milestones_extra_label:
             labels.add(self.milestones_extra_label)
 
-        start_date_str = (self._get_prop(page, "notion_milestones_dates") or {}).get("start")
-        end_date_str = (self._get_prop(page, "notion_milestones_dates") or {}).get("end")
+        start_date_str, end_date_str = self._get_date_prop(page, "notion_milestones_dates")
 
         new_issue = dataclasses.replace(
             tracker_issue,

@@ -151,6 +151,21 @@ class BugzillaProjectTest(BaseTestCase):
         self.assertEqual(issue.review_url, "https://phabricator.services.mozilla.com/D248065")
         self.assertEqual(issue.notion_url, "https://www.notion.so/mzthunderbird/b183c949289f4282864cd373cb8b2cb7")
 
+    def test_bugzilla_resolved_state(self):
+        issues = self.bugzilla.get_issues_by_number(
+            [IssueRef(repo="bugzilla.dev", id="1849476"), IssueRef(repo="bugzilla.dev", id="1944885")], True
+        )
+
+        issue = issues["1944885"]
+
+        self.assertEqual(issue.state, "IN REVIEW")
+        self.assertEqual(issue.closed_date, None)
+
+        issue = issues["1849476"]
+
+        self.assertEqual(issue.state, "RESOLVED")
+        self.assertEqual(issue.closed_date, datetime.datetime(2025, 2, 6, 10, 18, 39, tzinfo=datetime.timezone.utc))
+
     def test_parse_issueref_allowed(self):
         res = self.bugzilla.parse_issueref("https://bugzilla.dev/show_bug.cgi?garbage=1&id=2")
         self.assertEqual(res, IssueRef(repo="bugzilla.dev", id="2"))

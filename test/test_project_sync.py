@@ -99,6 +99,8 @@ class ProjectSyncTest(BaseTestCase):
                 title="Rebuild the calendar Read Event dialog",
                 description="description",
                 state="NEW",
+                created_date=datetime.datetime(2025, 1, 2, 3, 0, 0, tzinfo=datetime.timezone.utc),
+                closed_date=None,
                 priority=None,
                 url="https://example.com/repo/123",
                 notion_url="https://notion.so/example/rebuild-event-read-dialog-726fac286b6348ca90ec0066be1a2755",
@@ -110,6 +112,8 @@ class ProjectSyncTest(BaseTestCase):
                 title="Subissue 1",
                 description="description",
                 state="NEW",
+                created_date=datetime.datetime(2025, 2, 3, 4, 0, 0, tzinfo=datetime.timezone.utc),
+                closed_date=None,
                 priority=None,
                 url="https://example.com/repo/234",
             ),
@@ -120,6 +124,8 @@ class ProjectSyncTest(BaseTestCase):
                 title="Subissue 2",
                 description="description",
                 state="NEW",
+                created_date=datetime.datetime(2025, 3, 4, 5, 0, 0, tzinfo=datetime.timezone.utc),
+                closed_date=None,
                 priority=None,
                 url="https://example.com/repo/345",
             ),
@@ -231,12 +237,16 @@ class ProjectSyncTest(BaseTestCase):
 
     def test_milestone_sync_single_no_children_with_update(self):
         self.issues[0].title = "Title will be changed"
-        tracker = TestTracker(issues=self.issues, dry=False)
+        tracker = TestTracker(
+            issues=self.issues, dry=False, property_names={"notion_milestones_dates": ["Start", "End"]}
+        )
 
         self.synchronize_project(tracker)
         self.assertEqual(tracker.update_milestone_issue.call_count, 1)
         self.assertEqual(tracker.update_milestone_issue.call_args[0][0].title, "Title will be changed")
         self.assertEqual(tracker.update_milestone_issue.call_args[0][1].title, "Rebuild the calendar Read Event dialog")
+        self.assertEqual(tracker.update_milestone_issue.call_args[0][1].start_date, datetime.date(2025, 1, 2))
+        self.assertEqual(tracker.update_milestone_issue.call_args[0][1].end_date, datetime.date(2025, 2, 3))
 
         # Description should not change, body sync is off
         self.assertEqual(tracker.update_milestone_issue.call_args[0][1].description, "description")
@@ -309,6 +319,41 @@ class ProjectSyncTest(BaseTestCase):
 
         # Update database info
         self.expect_total_calls()
+
+    def test_milestone_sync_with_task_no_updates(self):
+        tracker = TestTracker(
+            issues=self.issues,
+            property_names={
+                "notion_tasks_review_url": None,
+                "notion_tasks_text_assignee": None,
+                "notion_tasks_priority": None,
+                "notion_tasks_assignee": None,
+            },
+        )
+        tracker.notion_tasks_title = lambda prefix, issue: issue.title
+        self.synchronize_project(tracker)
+
+        # Create the task to synchronize
+        self.expect_call("pages_create", 1)
+        self.assertEqual(
+            json.loads(self.respx.routes["pages_create"].calls.last.request.content),
+            {
+                "parent": {"database_id": "tasks_id"},
+                "properties": {
+                    "Dates": {"date": None},
+                    "Issue Link": {"url": "https://example.com/repo/234"},
+                    "Project": {"relation": [{"id": "726fac28-6b63-48ca-90ec-0066be1a2755"}]},
+                    "Status": {"status": {"name": "NEW"}},
+                    "Title": {
+                        "title": [{"text": {"content": "Subissue 1"}}],
+                        "type": "title",
+                    },
+                },
+            },
+        )
+
+        # No updates to the task
+        self.expect_call("pages_update", 0)
 
     def test_milestone_sync_with_task_sync_body(self):
         # Remove 234
@@ -600,7 +645,12 @@ class ProjectSyncTest(BaseTestCase):
         self.issues[2].start_date = datetime.date(2025, 4, 1)
         self.issues[2].end_date = datetime.date(2025, 4, 7)
 
-        tracker = TestTracker(issues=self.issues)
+        tracker = TestTracker(
+            issues=self.issues,
+            property_names={
+                "notion_tasks_openclose": ["Created", "Closed"],
+            },
+        )
 
         with self.subTest(msg="sprint date"):
             self.issues[2].sprint = tracker.get_sprints()[1]
@@ -612,6 +662,8 @@ class ProjectSyncTest(BaseTestCase):
                 json.loads(self.respx.routes["pages_update"].calls[1].request.content),
                 {
                     "properties": {
+                        "Created": {"date": {"start": "2025-03-04T05:00:00+00:00"}},
+                        "Closed": {"date": None},
                         "Dates": {"date": {"start": "2025-01-08", "end": "2025-01-15"}},
                         "Issue Link": {"url": "https://example.com/repo/345"},
                         "Owner": {"type": "people", "people": []},
@@ -763,4 +815,77 @@ class ProjectSyncTest(BaseTestCase):
                 milestones_id="milestones_id",
                 tasks_id="tasks_id",
                 tracker=tracker,
+            )
+
+    def test_null_state(self):
+        self.issues[1].state = None
+        self.issues[2].state = None
+        tracker = TestTracker(
+            issues=self.issues,
+            property_names={
+                "notion_default_open_state": "Wide",
+            },
+        )
+
+        with self.subTest(msg="open to closed"):
+            tracker.property_names["notion_closed_states"] = ("Done",)
+            self.issues[2].closed_date = datetime.datetime.now(datetime.UTC)
+            self.issues[1].closed_date = datetime.datetime.now(datetime.UTC)
+            self.synchronize_project(tracker)
+
+            self.expect_call("pages_update", 1)
+            self.assertEqual(
+                json.loads(self.respx.routes["pages_update"].calls.last.request.content)["properties"]["Status"][
+                    "status"
+                ]["name"],
+                "Done",
+            )
+
+            self.expect_call("pages_create", 1)
+            self.assertEqual(
+                json.loads(self.respx.routes["pages_create"].calls.last.request.content)["properties"]["Status"][
+                    "status"
+                ]["name"],
+                "Done",
+            )
+
+        self.expect_reset()
+        self.reset_handlers()
+
+        with self.subTest(msg="closed to open"):
+            self.issues[1].closed_date = None
+            self.issues[2].closed_date = None
+            tracker.property_names["notion_closed_states"] = ("NEW",)
+
+            self.synchronize_project(tracker)
+            self.expect_call("pages_update", 1)
+            self.assertEqual(
+                json.loads(self.respx.routes["pages_update"].calls.last.request.content)["properties"]["Status"][
+                    "status"
+                ]["name"],
+                "Wide",
+            )
+
+            self.expect_call("pages_create", 1)
+            self.assertEqual(
+                json.loads(self.respx.routes["pages_create"].calls.last.request.content)["properties"]["Status"][
+                    "status"
+                ]["name"],
+                "Wide",
+            )
+
+        self.expect_reset()
+        self.reset_handlers()
+
+        with self.subTest(msg="open same open"):
+            self.issues[2].closed_date = None
+            tracker.property_names["notion_closed_states"] = ("Done",)
+
+            self.synchronize_project(tracker)
+            self.expect_call("pages_update", 1)
+            self.assertEqual(
+                json.loads(self.respx.routes["pages_update"].calls.last.request.content)["properties"]["Status"][
+                    "status"
+                ]["name"],
+                "NEW",
             )

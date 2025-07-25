@@ -3,6 +3,7 @@ import urllib.parse
 import httpx
 import base64
 import logging
+import datetime
 
 from functools import cache
 
@@ -133,7 +134,7 @@ class Bugzilla(IssueTracker):
         """Retrieve issues by their id number."""
         res = {}
         bugids = map(lambda bug: urllib.parse.quote(str(bug.id), safe=""), bugrefs)
-        fields = "id,summary,status,cf_user_story,assigned_to,priority,depends_on,blocks,attachments,comments,see_also"
+        fields = "id,summary,status,cf_user_story,assigned_to,priority,depends_on,blocks,attachments,comments,see_also,creation_time,cf_last_resolved"
 
         response = self.client.get("/bug", params={"id": ",".join(bugids), "include_fields": fields})
         response_json = response.json()
@@ -141,6 +142,10 @@ class Bugzilla(IssueTracker):
         for bug in response_json["bugs"]:
             assignee = bug["assigned_to"] if bug["assigned_to"] != "nobody@mozilla.org" else None
             parents = [IssueRef(repo=self.repo_name, id=str(parent_id)) for parent_id in bug["blocks"]]
+
+            closed_date = None
+            if bug["cf_last_resolved"] and bug["status"] == "RESOLVED":
+                closed_date = datetime.datetime.fromisoformat(bug["cf_last_resolved"])
 
             issue = Issue(
                 id=str(bug["id"]),
@@ -153,6 +158,8 @@ class Bugzilla(IssueTracker):
                 assignees={User(self.user_map, tracker_user=assignee)} if assignee else set(),
                 priority=bug["priority"] if bug["priority"] != "--" else None,
                 parents=parents,
+                created_date=datetime.datetime.fromisoformat(bug["creation_time"]),
+                closed_date=closed_date,
             )
 
             phab = next(

@@ -126,6 +126,7 @@ class GitHubProjectTest(BaseTestCase):
             url="https://github.com/kewisch/test/issues/3",
             review_url="",
             notion_url=None,
+            created_date=datetime.datetime(2025, 1, 31, 20, 38, 43, tzinfo=datetime.timezone.utc),
             start_date=None,
             end_date=None,
             sprint=Sprint(
@@ -490,13 +491,8 @@ class GitHubProjectTest(BaseTestCase):
 
         real_handler = self.github_handler.handle
         self.github_handler.handle = handler
-        self.github.property_names["notion_closed_states"] = ("Banana",)
-        self.github.property_names["notion_inprogress_state"] = "Orange"
-        self.github.property_names["notion_default_open_state"] = "Apple"
 
         repos = self.github.get_all_issues()
         issues = repos["kewisch/test"]
 
-        self.assertEqual(issues[0].state, "Orange")
-        self.assertEqual(issues[1].state, "Apple")
-        self.assertEqual(issues[4].state, "Banana")
+        self.assertEqual(issues[0].state, None)

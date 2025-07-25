@@ -1,0 +1,41 @@
+{
+   "assigned_to" : "user1@example.com",
+   "assigned_to_detail" : {
+      "email" : "user1@example.com",
+      "id" : 550104,
+      "name" : "user1@example.com",
+      "nick" : "TbSync",
+      "real_name" : "John Bieling (:TbSync)"
+   },
+   "attachments" : [
+      {
+         "attacher" : "user1@example.com",
+         "bug_id" : 1849476,
+         "content_type" : "text/x-phabricator-request",
+         "creation_time" : "2025-02-05T09:23:43Z",
+         "creator" : "user1@example.com",
+         "creator_detail" : {},
+         "data" : "aHR0cHM6Ly9waGFicmljYXRvci5zZXJ2aWNlcy5tb3ppbGxhLmNvbS9EMjM2ODM2",
+         "description" : "Bug 1849476 - Make messages.move/copy() set mail.last_msg_movecopy_* preferences. r=#thunderbird-reviewers",
+         "file_name" : "phabricator-D236836-url.txt",
+         "flags" : [],
+         "id" : 9463983,
+         "is_obsolete" : 0,
+         "is_patch" : 0,
+         "is_private" : 0,
+         "last_change_time" : "2025-02-05T09:25:02Z",
+         "size" : 48,
+         "summary" : "Bug 1849476 - Make messages.move/copy() set mail.last_msg_movecopy_* preferences. r=#thunderbird-reviewers"
+      }
+   ],
+   "blocks" : [],
+   "cf_last_resolved" : "2025-02-06T10:18:39Z",
+   "cf_user_story" : "",
+   "creation_time" : "2023-08-19T18:40:32Z",
+   "depends_on" : [],
+   "id" : 1849476,
+   "priority" : "--",
+   "see_also" : [],
+   "status" : "RESOLVED",
+   "summary" : "messages.move/copy() doesn't set mail.last_msg_movecopy_target_uri"
+}

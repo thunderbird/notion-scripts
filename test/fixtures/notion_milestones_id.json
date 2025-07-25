@@ -56,6 +56,14 @@
           },
           "type" : "status"
         },
+        "Start": {
+          "type": "date",
+          "date": { "start": "2025-01-02"}
+        },
+        "End": {
+          "type": "date",
+          "date": { "start": "2025-02-03"}
+        },
         "Issue Link": {
           "type": "url",
           "url": "https://example.com/repo/123"

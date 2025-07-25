@@ -75,6 +75,10 @@
         "Issue Link": {
           "type": "url",
           "url": "https://example.com/repo/345"
+        },
+        "Project": {
+          "type": "relation",
+          "relation": [{"id": "726fac28-6b63-48ca-90ec-0066be1a2755"}]
         }
       },
       "page_or_database": {},

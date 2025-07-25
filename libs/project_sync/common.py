@@ -36,6 +36,8 @@ class Issue(IssueRef):
     url: str
     review_url: str = ""
     notion_url: str = ""
+    created_date: datetime.datetime = None
+    closed_date: datetime.datetime = None
     start_date: datetime.date = None
     end_date: datetime.date = None
     sprint: Sprint = None
@@ -88,6 +90,7 @@ class IssueTracker:
         "notion_tasks_review_url": "",  # Default is disabled
         "notion_tasks_labels": "",  # Default is disabled
         "notion_tasks_repository": "",  # Default is disabled
+        "notion_tasks_openclose": "",  # Default is disabled
         "notion_milestones_title": "Project",
         "notion_milestones_assignee": "Owner",
         "notion_milestones_priority": "Priority",

@@ -47,6 +47,10 @@ class BaseTestCase(unittest.TestCase):
         self.maxDiff = None
         self.respx.start()
 
+        self.reset_handlers()
+
+    def reset_handlers(self):
+        self.respx.reset()
         self.bugzilla_handler = BugzillaHandler(self.respx)
         self.notion_handler = NotionHandler(self.respx)
         self.github_handler = GitHubHandler()

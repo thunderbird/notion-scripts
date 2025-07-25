@@ -46,7 +46,7 @@ def getnestedattr(func, default):
     """Oh I wish python supported optional chaining!"""
     try:
         return func()
-    except (LookupError, AttributeError):
+    except (LookupError, AttributeError, TypeError):
         return default
 
 
