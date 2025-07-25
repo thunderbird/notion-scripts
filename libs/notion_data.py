@@ -232,7 +232,7 @@ class NotionDatabase:
             if prop_name not in current_props:
                 changes = True
                 if not update or self.dry:
-                    logger.warn(f"Missing property {prop_name} with {properties} on {self.database_id}")
+                    logger.warning(f"Missing property {prop_name} with {properties} on {self.database_id}")
                 else:
                     self.notion.databases.update(database_id=self.database_id, properties=properties)
 

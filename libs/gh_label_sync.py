@@ -59,7 +59,7 @@ class LabelSync(ProjectSync):
         # Synchronize all issues into the tasks db
         for reporef, issues in tracker_issues.items():
             for issue in issues:
-                self.synchronize_single_task(issue, tasks_issues[issue.repo][issue.id])
+                self.synchronize_single_task(issue, tasks_issues.get(issue.repo, {}).get(issue.id))
 
         # Update the description with the last updated timestamp
         self._update_timestamp(self.milestones_db, timestamp)
