@@ -16,10 +16,17 @@ class RetryingClient(httpx.Client):
     Handles Notion's rate limiting and request timeouts.
     """
 
+    def __init__(self, autoraise=False, **kwargs):
+        """Initialize client. autoraise is useful if not used for NotionClient."""
+        self.autoraise = autoraise
+        super().__init__(**kwargs)
+
     def send(self, request, *args, recur=10, **kwargs):
         """httpx.Client send that retries."""
         try:
             response = super().send(request, *args, **kwargs)
+            if self.autoraise:
+                response.raise_for_status()
         except (httpx.TimeoutException, httpx.NetworkError, httpx.HTTPStatusError, ConnectionError) as e:
             # Bail if our retry limit has been reached
             if recur <= 0:

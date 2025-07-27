@@ -61,6 +61,7 @@ class Bugzilla(IssueTracker):
             http2=True,
             params={"api_key": token},
             timeout=60.0,
+            autoraise=True,
         )
 
         self.user_map = BugzillaUserMap(self.client, user_map)
