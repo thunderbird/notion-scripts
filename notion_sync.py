@@ -8,7 +8,6 @@ import os
 import sys
 import tomllib
 
-from libs.bugzilla_sync import synchronize as synchronize_bugzilla
 from libs.gh_label_sync import synchronize as synchronize_gh_label
 from libs.project_sync import synchronize as synchronize_project, GitHub, Bugzilla
 
@@ -165,17 +164,6 @@ def main(projects, config, verbose=0, user_map_file=None, dry_run=False):
                 tasks_notion_prefix=project.get("tasks_notion_prefix", ""),
                 sprints_merge_by_name=project.get("sprints_merge_by_name", False),
                 milestone_label_prefix=project.get("milestone_label_prefix", "M: "),
-                dry=dry_run,
-            )
-        elif project["method"] == "bugzilla":
-            synchronize_bugzilla(
-                notion_token=os.environ["NOTION_TOKEN"],
-                bugzilla_api_key=os.environ["BZ_KEY"],
-                bugs_id=project["notion_bugs_id"],
-                products=project["products"],
-                list_id=project.get("list_id", None),
-                bugzilla_base_url=project.get("bugzilla_base_url", "https://bugzilla.mozilla.org"),
-                bugzilla_limit=project.get("bugzilla_limit", 100),
                 dry=dry_run,
             )
         else:
