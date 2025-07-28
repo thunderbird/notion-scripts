@@ -1,14 +1,10 @@
-import sys
 import json
 import urllib
 import datetime
 import logging
 
-from pathlib import Path
-
-sys.path.insert(0, Path(__file__).parent.parent)
-from libs.project_sync.common import IssueRef, Issue, IssueTracker, Sprint
-from libs.project_sync.sync import ProjectSync
+from mzla_notion.tracker.common import IssueRef, Issue, IssueTracker, Sprint
+from mzla_notion.sync.project import ProjectSync
 
 from freezegun import freeze_time
 from unittest.mock import MagicMock

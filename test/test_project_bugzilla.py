@@ -1,15 +1,10 @@
-import sys
 import unittest
 import json
 import datetime
 import dataclasses
 
-from pathlib import Path
-
-sys.path.insert(0, Path(__file__).parent.parent)
-from libs.project_sync import Bugzilla
-from libs.project_sync.common import IssueRef, Issue, User
-from libs.project_sync.bugzilla import BugzillaUserMap
+from mzla_notion.tracker.bugzilla import Bugzilla, BugzillaUserMap
+from mzla_notion.tracker.common import IssueRef, Issue, User
 
 from .handlers import BaseTestCase
 

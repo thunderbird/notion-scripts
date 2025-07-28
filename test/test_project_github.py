@@ -1,16 +1,12 @@
-import sys
 import datetime
 import dataclasses
 import sgqlc.operation
 import json
 
-from pathlib import Path
 from freezegun import freeze_time
 
-sys.path.insert(0, Path(__file__).parent.parent)
-from libs.project_sync import GitHub
-from libs.project_sync.common import IssueRef, Sprint
-from libs.project_sync.github import GitHubUserMap, LabelCache, GitHubIssue, GitHubUser
+from mzla_notion.tracker.github import GitHub, GitHubUserMap, LabelCache, GitHubIssue, GitHubUser
+from mzla_notion.tracker.common import IssueRef, Sprint
 
 from .handlers import BaseTestCase
 

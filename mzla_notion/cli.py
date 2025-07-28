@@ -8,13 +8,15 @@ import os
 import sys
 import tomllib
 
-from libs.gh_label_sync import synchronize as synchronize_gh_label
-from libs.project_sync import synchronize as synchronize_project, GitHub, Bugzilla
+from .sync.label import synchronize as synchronize_gh_label
+from .sync.project import synchronize as synchronize_project
+from .tracker.github import GitHub
+from .tracker.bugzilla import Bugzilla
 
 logger = logging.getLogger("notion_sync")
 
 
-def list_synchronizers(config):
+def cmd_list_synchronizers(config):
     """Just list synchronizers."""
     with open(config, "rb") as fp:
         settings = tomllib.load(fp)
@@ -23,7 +25,7 @@ def list_synchronizers(config):
     print("\n".join(enabled))
 
 
-def main(projects, config, verbose=0, user_map_file=None, dry_run=False):
+def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_run=False):
     """This is the main cli. Please use --help on how to use it."""
     logging.basicConfig(
         format="%(levelname)s [%(asctime)s] %(name)s - %(message)s",
@@ -174,7 +176,8 @@ def main(projects, config, verbose=0, user_map_file=None, dry_run=False):
     return 0
 
 
-if __name__ == "__main__":
+def main():
+    """Main mzla-notion program."""
     parser = argparse.ArgumentParser(description="Notion Synchronization for MZLA")
     parser.add_argument(
         "-c",
@@ -213,10 +216,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.list:
-        list_synchronizers(args.config)
+        cmd_list_synchronizers(args.config)
     else:
         sys.exit(
-            main(
+            cmd_synchronize(
                 args.projects,
                 config=args.config,
                 verbose=args.verbose,

@@ -51,7 +51,7 @@ jobs:
         run: |
           if [ -z "${PROJECTS}" ]
           then
-            echo "synchronizers=$(rye run sync -l -c sync_settings.${ENVIRONMENT}.toml | jq -R . | jq -sc .)" | tee -a $GITHUB_OUTPUT
+            echo "synchronizers=$(rye run sync -l -c config/sync_settings.${ENVIRONMENT}.toml | jq -R . | jq -sc .)" | tee -a $GITHUB_OUTPUT
           else
             echo "synchronizers=$(echo ${PROJECTS} | jq -R . | jq -sc .)" | tee -a $GITHUB_OUTPUT
           fi
@@ -91,4 +91,4 @@ jobs:
           NOTION_SYNC_GITHUB_USERMAP: ${{ vars.NOTION_SYNC_GITHUB_USERMAP }}
           NOTION_SYNC_BUGZILLA_USERMAP: ${{ vars.NOTION_SYNC_BUGZILLA_USERMAP }}
         run: |
-          rye run sync ${DRY} ${VERBOSE} -c sync_settings.${ENVIRONMENT}.toml ${PROJECT}
+          rye run sync ${DRY} ${VERBOSE} -c config/sync_settings.${ENVIRONMENT}.toml ${PROJECT}

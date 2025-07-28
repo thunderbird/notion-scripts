@@ -7,12 +7,12 @@ import datetime
 
 from functools import cached_property
 
-from .project_sync.sync import ProjectSync
+from .base import BaseSync
 
 logger = logging.getLogger("gh_label_sync")
 
 
-class LabelSync(ProjectSync):
+class LabelSync(BaseSync):
     """This is a label-based sync between Notion and an GitHub.
 
     All tasks in the associated repositories are synchronized to notion. The relation to the
@@ -62,10 +62,7 @@ class LabelSync(ProjectSync):
                 self.synchronize_single_task(issue, tasks_issues.get(issue.repo, {}).get(issue.id))
 
         # Update the description with the last updated timestamp
-        self._update_timestamp(self.milestones_db, timestamp)
         self._update_timestamp(self.tasks_db, timestamp)
-        if self.sprint_db:
-            self._update_timestamp(self.sprint_db, timestamp)
 
 
 def synchronize(**kwargs):  # pragma: no cover

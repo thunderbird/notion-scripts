@@ -1,5 +1,5 @@
 [project]
-name = "notion-scripts"
+name = "mzla-notion"
 version = "0.2"
 description = "Sync and utility scripts for Notion and other services."
 authors = [
@@ -20,6 +20,9 @@ dependencies = [
 readme = "README.md"
 requires-python = ">= 3.12"
 
+[project.scripts]
+mzla-notion = "mzla_notion.cli:main"
+
 [tool.rye]
 managed = true
 virtual = true
@@ -30,7 +33,7 @@ dev-dependencies = [
 ]
 
 [tool.rye.scripts]
-sync = "python notion_sync.py"
+sync = { call = "mzla_notion.cli:main" }
 test = "python -m unittest"
 "test:coverage" = "python -m coverage run -m unittest"
 "test:coverage-report" = "python -m coverage html"
@@ -39,11 +42,11 @@ cover = { chain = ["test:coverage", "test:coverage-report"] }
 [tool.ruff]
 line-length = 120
 target-version = "py312"
-extend-exclude = ["libs/github_schema.py"]
+extend-exclude = ["mzla_notion/github_schema.py"]
 
 [tool.coverage.run]
-source = ["libs"]
-omit = ["libs/github_schema.py"]
+source = ["mzla_notion"]
+omit = ["mzla_notion/github_schema.py"]
 
 [tool.ruff.lint]
 fixable = ["ALL"]
@@ -61,4 +64,4 @@ convention = "google"
 quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
-exclude = ["libs/github_schema.py"]
+exclude = ["mzla_notion/github_schema.py"]
