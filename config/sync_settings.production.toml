@@ -33,6 +33,7 @@ repositories = [
     "thunderbird/thunderbird-website",
     "thunderbird/thunderblog",
     "thunderbird/thundernest-ansible"
+    #"thunderbird/zendesk-config"
 ]
 
 [sync.services.properties]
@@ -93,13 +94,13 @@ github_milestones_project_id = "PVT_kwDOAOe9Jc4A1aX6"
 method = "bugzilla_project"
 tracker_dry_run = true
 notion_tasks_id = "20f2df5d45ae8004baeadc784d8f7ea4"
-notion_milestones_id = "20f2df5d45ae80be9a0dc390d0ac50f4"
+notion_milestones_id = "b0343817fb69424e85722e5d5fc8077b"
 bugzilla_base = "https://bugzilla.mozilla.org"
 milestones_tracker_prefix = "[meta] "
 
 [sync.bugzilla.properties]
 notion_tasks_title = "Name"
-notion_issue_field = "Bugzilla Issue"
+notion_issue_field = "Bugzilla URL"
 notion_milestones_title = "Name"
 notion_tasks_milestone_relation = "Milestone"
 notion_tasks_priority_values = ["P1", "P2", "P3", "P4", "P5"]
@@ -111,24 +112,27 @@ bugzilla_allowed_products = ["Thunderbird", "MailNews Core", "Calendar"]
 [sync.support]
 method = "github_labels"
 
-notion_milestones_id = "2392df5d45ae80748e13d988b78818cf"
-notion_tasks_id = "2392df5d45ae80698282f808ab44f48b"
+notion_milestones_id = "2312df5d45ae80aab24bec2ebaff37b5"
+notion_tasks_id = "22b2df5d45ae80f1a07af6b252e6bc65"
 
 [sync.support.repositories]
 repositories = [
     "thunderbird/knowledgebase-issues",
     "thunderbird/android-knowledgebase-issues",
     "thunderbird/tbpro-knowledgebase-issues",
-    #"thunderbird/zendesk-config"
 ]
 
 [sync.support.properties]
-notion_issue_field = "GitHub Issue"
-notion_tasks_title = "Title"
-notion_milestones_title = "Project name"
-notion_tasks_milestone_relation = "Milestones"
-notion_tasks_labels = "Labels"
-notion_tasks_repository = "Repository"
-notion_tasks_priority = ""
+notion_tasks_title = "Task name"
+notion_tasks_assignee = "Assignee"
 notion_tasks_dates = ""
-notion_tasks_openclose = "Dates"
+notion_tasks_openclose = "GitHub Dates"
+notion_tasks_priority = ""
+notion_tasks_milestone_relation = "🎧 Support Milestones"
+notion_milestones_title = "Project name"
+notion_milestones_assignee = "Assignee"
+notion_issue_field = "GitHub Issue"
+notion_default_open_state = "Backlog"
+notion_closed_states = ["Done"]
+#notion_tasks_labels = "Labels"
+#notion_tasks_repository = "Repository"
