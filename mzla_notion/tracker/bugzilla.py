@@ -88,7 +88,7 @@ class Bugzilla(IssueTracker):
 
     def notion_tasks_title(self, tasks_notion_prefix, issue):
         """The augmented notion tasks title (includes bug reference)."""
-        return f"{tasks_notion_prefix}bug {issue.id} - {issue.title}"
+        return f"{tasks_notion_prefix}{issue.title} - bug {issue.id}"
 
     def update_milestone_issue(self, old_issue, new_issue):
         """Update an issue on the tracker."""

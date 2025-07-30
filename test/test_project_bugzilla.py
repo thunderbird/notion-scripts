@@ -172,7 +172,7 @@ class BugzillaProjectTest(BaseTestCase):
 
     def test_notion_tasks_prefix(self):
         res = self.bugzilla.notion_tasks_title("[PREFIX] ", self.issue)
-        self.assertEqual(res, "[PREFIX] bug 1944850 - title")
+        self.assertEqual(res, "[PREFIX] title - bug 1944850")
 
     def test_usermap(self):
         user_map = BugzillaUserMap(self.bugzilla.client, {"staff@example.com": "3f92ed7d-9ca8-4266-98d7-4604ea623c46"})
