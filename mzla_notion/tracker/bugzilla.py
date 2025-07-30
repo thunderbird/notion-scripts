@@ -38,6 +38,7 @@ class Bugzilla(IssueTracker):
     DEFAULT_PROPERTY_NAMES = {
         **IssueTracker.DEFAULT_PROPERTY_NAMES,
         "notion_tasks_priority_values": ["P1", "P2", "P3", "P4", "P5"],
+        "notion_tasks_review_url": "Review URL",
         "notion_default_open_state": "NEW",
         "notion_tasks_dates": None,  # We don't support dates
         "notion_default_closed_states": ["RESOLVED"],
