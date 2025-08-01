@@ -10,6 +10,7 @@ import tomllib
 
 from .sync.label import synchronize as synchronize_gh_label
 from .sync.project import synchronize as synchronize_project
+from .sync.board import synchronize as synchronize_board
 from .tracker.github import GitHub
 from .tracker.bugzilla import Bugzilla
 
@@ -25,7 +26,7 @@ def cmd_list_synchronizers(config):
     print("\n".join(enabled))
 
 
-def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_run=False):
+def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_run=False, synchronous=False):
     """This is the main cli. Please use --help on how to use it."""
     logging.basicConfig(
         format="%(levelname)s [%(asctime)s] %(name)s - %(message)s",
@@ -54,6 +55,7 @@ def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_run=Fal
     logging.getLogger("sgqlc.endpoint.http").setLevel(httpx_log_level)
 
     logging.getLogger("project_sync").setLevel(sync_log_level)
+    logging.getLogger("board_sync").setLevel(sync_log_level)
     logging.getLogger("gh_label_sync").setLevel(sync_log_level)
     logging.getLogger("bugzilla_sync").setLevel(sync_log_level)
     logging.getLogger("notion_sync").setLevel(sync_log_level)
@@ -142,6 +144,7 @@ def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_run=Fal
                 tasks_notion_prefix=project.get("tasks_notion_prefix", ""),
                 sprints_merge_by_name=project.get("sprints_merge_by_name", False),
                 dry=dry_run,
+                synchronous=synchronous,
             )
         elif project["method"] == "github_labels":
             tracker = GitHub(
@@ -167,6 +170,16 @@ def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_run=Fal
                 sprints_merge_by_name=project.get("sprints_merge_by_name", False),
                 milestone_label_prefix=project.get("milestone_label_prefix", "M: "),
                 dry=dry_run,
+                synchronous=synchronous,
+            )
+        elif project["method"] == "project_board":
+            synchronize_board(
+                project_key=key,
+                notion_token=os.environ["NOTION_TOKEN"],
+                board_id=project["notion_board_id"],
+                properties=project.get("properties", {}),
+                dry=dry_run,
+                synchronous=synchronous,
             )
         else:
             raise Exception(f"Unknown synchronization {project['method']}")
@@ -199,6 +212,12 @@ def main():
         help="Enable verbose logging. Use multiple times for more.",
     )
     parser.add_argument(
+        "--synchronous",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Run requests in order, for debugging",
+    )
+    parser.add_argument(
         "-n",
         "--dry-run",
         action=argparse.BooleanOptionalAction,
@@ -225,5 +244,6 @@ def main():
                 verbose=args.verbose,
                 user_map_file=args.usermap,
                 dry_run=args.dry_run,
+                synchronous=args.synchronous,
             )
         )

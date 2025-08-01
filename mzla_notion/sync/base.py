@@ -42,6 +42,7 @@ class BaseSync:
         tasks_notion_prefix="",
         sprints_merge_by_name=False,
         dry=False,
+        synchronous=False,
     ):
         """Set up the project sync.
 
@@ -70,6 +71,7 @@ class BaseSync:
                 and merge it
             dry (bool): If true, only query operations are done. Mutations are disabled for both
                 the issue tracker and Notion.
+            synchronous (bool): If true, run any async tasks sequentially.
         """
         self.notion = notion_client.Client(auth=notion_token, client=RetryingClient())
         self.tracker = tracker
@@ -131,6 +133,7 @@ class BaseSync:
 
         # Other settings
         self.dry = dry
+        self.synchronous = synchronous
         self.sprints_merge_by_name = sprints_merge_by_name
         self.project_key = project_key
 

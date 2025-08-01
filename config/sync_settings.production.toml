@@ -138,3 +138,39 @@ notion_default_open_state = "Backlog"
 notion_closed_states = ["Done"]
 #notion_tasks_labels = "Labels"
 #notion_tasks_repository = "Repository"
+
+[sync.pro]
+method = "project_board"
+notion_board_id = "2402df5d45ae807998f1cb8965707084"
+
+[sync.pro.properties]
+
+[sync.pro.properties.desktop]
+database = "b0343817fb69424e85722e5d5fc8077b"
+dates = ["Start Date", "Wanted End Date"]
+title = "Name"
+
+[sync.pro.properties.mobile]
+database = "637245a2c53b4d86a99c6e97006153df"
+dates = "Dates"
+title = "Project"
+
+[sync.pro.properties.services]
+database = "1352df5d45ae8068a42dc799f13ea87a"
+dates = ["Start Date", "Wanted End Date"]
+title = "Project name"
+
+[sync.pro.properties.design]
+database = "9fbbc92a85eb49499a568f2fd9a7ab65"
+dates = "dates"
+title = "Name"
+
+[sync.pro.properties.marketing]
+database = "cd8ade702e36485eab435c1fa669d63e"
+dates = ["Start Date", "Wanted End Date"]
+title = "Project name"
+
+[sync.pro.properties.support]
+database = "2312df5d45ae80aab24bec2ebaff37b5"
+dates = ["Start date", "End date"]
+title = "Project name"

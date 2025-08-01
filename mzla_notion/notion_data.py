@@ -146,6 +146,15 @@ class NotionDatabase:
             return True
         return False
 
+    async def update_page_async(self, tmp_notion, page: Dict[str, Any], datadict: Dict[str, Any]) -> bool:
+        """Update `page` with the data in `datadict`. Updates only occur if `page` and `datadict` are different."""
+        if self.page_diff(datadict, page):
+            data = self.dict_to_page(datadict)
+            if not self.dry:
+                await tmp_notion.pages.update(page["id"], properties=data)
+            return True
+        return False
+
     def page_diff(self, datadict: Dict[str, Any], page: Dict[str, Any]) -> bool:
         """Return true or false based on whether the Notion `datadict` matches `page` or not."""
         cur_props = self.properties
