@@ -28,7 +28,7 @@ class RetryingClient(httpx.Client):
             response = super().send(request, *args, **kwargs)
             if self.autoraise:
                 response.raise_for_status()
-        except (httpx.TimeoutException, httpx.NetworkError, httpx.HTTPStatusError, ConnectionError) as e:
+        except (httpx.TransportError, httpx.HTTPStatusError, ConnectionError) as e:
             # Bail if our retry limit has been reached
             if recur <= 0:
                 raise
@@ -67,7 +67,7 @@ class AsyncRetryingClient(httpx.Client):
             response = super().send(request, *args, **kwargs)
             if self.autoraise:
                 response.raise_for_status()
-        except (httpx.TimeoutException, httpx.NetworkError, httpx.HTTPStatusError, ConnectionError) as e:
+        except (httpx.TransportError, httpx.HTTPStatusError, ConnectionError) as e:
             # Bail if our retry limit has been reached
             if recur <= 0:
                 raise
