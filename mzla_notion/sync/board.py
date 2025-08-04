@@ -167,7 +167,7 @@ class BoardSync:
         }
 
         notion_data = {
-            "Dates": dates if earliest_start or latest_end else None,
+            "Dates": dates if dates["start"] or dates["end"] else None,
             "Status": status,
             "Team": area,
             "Name": title,

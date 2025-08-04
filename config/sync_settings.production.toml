@@ -174,3 +174,8 @@ title = "Project name"
 database = "2312df5d45ae80aab24bec2ebaff37b5"
 dates = ["Start date", "End date"]
 title = "Project name"
+
+[sync.pro.properties.community]
+database = "23a2df5d45ae801ab440cda2b98c3e34"
+dates = ["Start date", "End date"]
+title = "Project name"
