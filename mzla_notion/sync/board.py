@@ -166,8 +166,14 @@ class BoardSync:
             "end": latest_end if latest_end != unchanged_end else None,
         }
 
+        if not dates["start"] and dates["end"]:
+            dates["start"] = dates["end"]
+            dates["end"] = None
+        elif not dates["start"] and not dates["end"]:
+            dates = None
+
         notion_data = {
-            "Dates": dates if dates["start"] or dates["end"] else None,
+            "Dates": dates,
             "Status": status,
             "Team": area,
             "Name": title,
