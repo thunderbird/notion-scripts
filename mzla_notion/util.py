@@ -7,6 +7,7 @@ import time
 import httpx
 import dataclasses
 import asyncio
+import http.client
 
 logger = logging.getLogger("notion_sync")
 
@@ -28,7 +29,7 @@ class RetryingClient(httpx.Client):
             response = super().send(request, *args, **kwargs)
             if self.autoraise:
                 response.raise_for_status()
-        except (httpx.TransportError, httpx.HTTPStatusError, ConnectionError) as e:
+        except (httpx.TransportError, httpx.HTTPStatusError, ConnectionError, http.client.HTTPException) as e:
             # Bail if our retry limit has been reached
             if recur <= 0:
                 raise
@@ -67,7 +68,7 @@ class AsyncRetryingClient(httpx.Client):
             response = super().send(request, *args, **kwargs)
             if self.autoraise:
                 response.raise_for_status()
-        except (httpx.TransportError, httpx.HTTPStatusError, ConnectionError) as e:
+        except (httpx.TransportError, httpx.HTTPStatusError, ConnectionError, http.client.HTTPException) as e:
             # Bail if our retry limit has been reached
             if recur <= 0:
                 raise
