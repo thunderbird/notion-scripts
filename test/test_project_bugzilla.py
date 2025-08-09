@@ -33,7 +33,7 @@ class BugzillaProjectTest(BaseTestCase):
             sub_issues=[],
         )
 
-    def test_bugzilla_update_milestone_issue(self):
+    async def test_bugzilla_update_milestone_issue(self):
         day2 = datetime.date.fromisoformat("2025-07-04")
 
         old_issue = self.issue
@@ -53,7 +53,7 @@ class BugzillaProjectTest(BaseTestCase):
             sub_issues=[],
         )
 
-        self.bugzilla.update_milestone_issue(old_issue, new_issue)
+        await self.bugzilla.update_milestone_issue(old_issue, new_issue)
 
         self.assertEqual(self.respx.routes["bugs_update"].calls.call_count, 1)
         issue = json.loads(self.respx.routes["bugs_update"].calls.last.request.content)
@@ -73,7 +73,7 @@ class BugzillaProjectTest(BaseTestCase):
         # Move from open to resolved
         self.respx.reset()
         new_issue.state = "RESOLVED"
-        self.bugzilla.update_milestone_issue(old_issue, new_issue)
+        await self.bugzilla.update_milestone_issue(old_issue, new_issue)
 
         self.assertEqual(self.respx.routes["bugs_update"].calls.call_count, 1)
         issue = json.loads(self.respx.routes["bugs_update"].calls.last.request.content)
@@ -85,7 +85,7 @@ class BugzillaProjectTest(BaseTestCase):
         self.respx.reset()
         old_issue.state = "RESOLVED"
         new_issue.state = "REOPENED"
-        self.bugzilla.update_milestone_issue(old_issue, new_issue)
+        await self.bugzilla.update_milestone_issue(old_issue, new_issue)
 
         self.assertEqual(self.respx.routes["bugs_update"].calls.call_count, 1)
         issue = json.loads(self.respx.routes["bugs_update"].calls.last.request.content)
@@ -98,13 +98,13 @@ class BugzillaProjectTest(BaseTestCase):
 
         self.respx.reset()
         old_issue.assignees = [User(user_map, tracker_user="community@example.com")]
-        self.bugzilla.update_milestone_issue(old_issue, new_issue)
+        await self.bugzilla.update_milestone_issue(old_issue, new_issue)
         old_issue.assignees = []
         new_issue.assignees = [User(user_map, tracker_user="community@example.com")]
-        self.bugzilla.update_milestone_issue(old_issue, new_issue)
+        await self.bugzilla.update_milestone_issue(old_issue, new_issue)
         old_issue.assignees = [User(user_map, tracker_user="staff@example.com")]
         new_issue.assignees = [User(user_map, tracker_user="staff2@example.com")]
-        self.bugzilla.update_milestone_issue(old_issue, new_issue)
+        await self.bugzilla.update_milestone_issue(old_issue, new_issue)
 
         self.assertEqual(self.respx.routes["bugs_update"].calls.call_count, 3)
 
@@ -117,8 +117,8 @@ class BugzillaProjectTest(BaseTestCase):
         issue = json.loads(self.respx.routes["bugs_update"].calls[2].request.content)
         self.assertEqual(issue["assigned_to"], "staff2@example.com")
 
-    def test_bugzilla_get_issues_by_number(self):
-        issues = self.bugzilla.get_issues_by_number(
+    async def test_bugzilla_get_issues_by_number(self):
+        issues = await self.bugzilla.get_issues_by_number(
             [IssueRef(repo="bugzilla.dev", id="1944850"), IssueRef(repo="bugzilla.dev", id="1944885")], True
         )
 
@@ -146,8 +146,8 @@ class BugzillaProjectTest(BaseTestCase):
         self.assertEqual(issue.review_url, "https://phabricator.services.mozilla.com/D248065")
         self.assertEqual(issue.notion_url, "https://www.notion.so/mzthunderbird/b183c949289f4282864cd373cb8b2cb7")
 
-    def test_bugzilla_resolved_state(self):
-        issues = self.bugzilla.get_issues_by_number(
+    async def test_bugzilla_resolved_state(self):
+        issues = await self.bugzilla.get_issues_by_number(
             [IssueRef(repo="bugzilla.dev", id="1849476"), IssueRef(repo="bugzilla.dev", id="1944885")], True
         )
 
@@ -175,7 +175,9 @@ class BugzillaProjectTest(BaseTestCase):
         self.assertEqual(res, "[PREFIX] title - bug 1944850")
 
     def test_usermap(self):
-        user_map = BugzillaUserMap(self.bugzilla.client, {"staff@example.com": "3f92ed7d-9ca8-4266-98d7-4604ea623c46"})
+        user_map = BugzillaUserMap(
+            self.bugzilla.sync_client, {"staff@example.com": "3f92ed7d-9ca8-4266-98d7-4604ea623c46"}
+        )
 
         self.assertEqual(user_map.tracker_mention("staff@example.com"), "Staff user")
         self.assertEqual(user_map.tracker_to_notion("staff@example.com"), "3f92ed7d-9ca8-4266-98d7-4604ea623c46")

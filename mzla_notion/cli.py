@@ -6,6 +6,7 @@ import argparse
 import logging
 import os
 import sys
+import asyncio
 import tomllib
 
 from .sync.label import synchronize as synchronize_gh_label
@@ -26,7 +27,7 @@ def cmd_list_synchronizers(config):
     print("\n".join(enabled))
 
 
-def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_run=False, synchronous=False):
+async def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_run=False, synchronous=False):
     """This is the main cli. Please use --help on how to use it."""
     logging.basicConfig(
         format="%(levelname)s [%(asctime)s] %(name)s - %(message)s",
@@ -129,7 +130,7 @@ def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_run=Fal
             else:
                 raise Exception(f"Unknown synchronization {project['method']}")
 
-            synchronize_project(
+            await synchronize_project(
                 project_key=key,
                 tracker=tracker,
                 notion_token=os.environ["NOTION_TOKEN"],
@@ -154,7 +155,7 @@ def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_run=Fal
                 user_map=user_map.get("github") or {},
                 property_names=project.get("properties", {}),
             )
-            synchronize_gh_label(
+            await synchronize_gh_label(
                 project_key=key,
                 tracker=tracker,
                 notion_token=os.environ["NOTION_TOKEN"],
@@ -173,7 +174,7 @@ def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_run=Fal
                 synchronous=synchronous,
             )
         elif project["method"] == "project_board":
-            synchronize_board(
+            await synchronize_board(
                 project_key=key,
                 notion_token=os.environ["NOTION_TOKEN"],
                 board_id=project["notion_board_id"],
@@ -190,6 +191,11 @@ def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_run=Fal
 
 
 def main():
+    """Main mzla-notion program entry point."""
+    asyncio.run(async_main())
+
+
+async def async_main():
     """Main mzla-notion program."""
     parser = argparse.ArgumentParser(description="Notion Synchronization for MZLA")
     parser.add_argument(
@@ -238,7 +244,7 @@ def main():
         cmd_list_synchronizers(args.config)
     else:
         sys.exit(
-            cmd_synchronize(
+            await cmd_synchronize(
                 args.projects,
                 config=args.config,
                 verbose=args.verbose,

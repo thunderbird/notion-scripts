@@ -8,10 +8,9 @@ import notion_client
 import re
 import asyncio
 
-from functools import cached_property
 
 from .. import notion_data as p
-from ..util import getnestedattr, RetryingClient, AsyncRetryingClient
+from ..util import getnestedattr, AsyncRetryingClient
 from ..notion_data import NotionDatabase
 
 logger = logging.getLogger("board_sync")
@@ -32,9 +31,7 @@ class BoardSync:
 
     def __init__(self, project_key, notion_token, board_id, properties={}, dry=False, synchronous=False):
         """Initialize board sync."""
-        # TODO async everything
-        self.notion = notion_client.Client(auth=notion_token, client=RetryingClient(http2=True))
-        self.anotion = notion_client.AsyncClient(auth=notion_token, client=AsyncRetryingClient(http2=True))
+        self.notion = notion_client.AsyncClient(auth=notion_token, client=AsyncRetryingClient(http2=True))
         self.project_key = project_key
         self.dry = dry
         self.synchronous = synchronous
@@ -51,8 +48,6 @@ class BoardSync:
 
         board_properties = [p.title("Name"), p.dates("Dates"), p.status("Status"), p.select("Team", team_options)]
         self.board_db = NotionDatabase(board_id, self.notion, board_properties, dry=dry)
-        if not self.board_db.validate_props():
-            raise Exception("Milestone schema failed to validate")
 
     def _get_date_prop(self, block_or_page, propinfo, default=None):
         if isinstance(propinfo, list):
@@ -87,7 +82,7 @@ class BoardSync:
         else:
             return default
 
-    def _update_timestamp(self, database, timestamp):
+    async def _update_timestamp(self, database, timestamp):
         if self.dry:
             return
 
@@ -96,17 +91,13 @@ class BoardSync:
         pattern = pattern.replace("REGEX_PLACEHOLDER", r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
 
         description, count = re.subn(
-            pattern, self.LAST_SYNC_MESSAGE.format(self.project_key, timestamp), database.description
+            pattern, self.LAST_SYNC_MESSAGE.format(self.project_key, timestamp), await database.get_description()
         )
 
         if count < 1:
             description = self.LAST_SYNC_MESSAGE.format(self.project_key, timestamp) + "\n\n" + description
 
-        database.description = description
-
-    @cached_property
-    def _all_board_pages(self):
-        return self.board_db.get_all_pages()
+        await database.set_description(description)
 
     async def _get_page_notion_data(self, page):
         earliest_start = unchanged_start = datetime.datetime.max.replace(tzinfo=datetime.timezone.utc)
@@ -120,7 +111,7 @@ class BoardSync:
             if not firstrel:
                 continue
 
-            relpage = await self.anotion.pages.retrieve(firstrel["id"])
+            relpage = await self.notion.pages.retrieve(firstrel["id"])
             relprops = relpage["properties"]
 
             parent_db = relpage["parent"]["database_id"]
@@ -132,7 +123,7 @@ class BoardSync:
             if not date_props:
                 from pprint import pprint
 
-                pprint(await self.anotion.databases.retrieve(parent_db))
+                pprint(await self.notion.databases.retrieve(parent_db))
                 raise Exception(f"Could not find date props for {parent_db}")
 
             start_date, end_date = self._get_date_prop(relpage, date_props)
@@ -185,26 +176,31 @@ class BoardSync:
         """Synchronize a single notion page."""
         notion_data = await self._get_page_notion_data(page)
 
-        if notion_data and await self.board_db.update_page_async(self.anotion, page, notion_data):
+        if notion_data and await self.board_db.update_page(page, notion_data):
             logger.info(f"Updated {page['url']} with {notion_data}")
         else:
             logger.info(f"Unchanged {page['url']}")
 
     async def synchronize(self):
         """Synchronize the milestones."""
+        if not await self.board_db.validate_props():
+            raise Exception("Board schema failed to validate")
+
         timestamp = datetime.datetime.now(datetime.UTC)
+        pages = await self.board_db.get_all_pages()
 
         if self.synchronous:
-            for page in self._all_board_pages:
+            for page in pages:
                 await self.synchronize_single_page(page)
         else:
             async with asyncio.TaskGroup() as tg:
-                for page in self._all_board_pages:
+                for page in pages:
                     tg.create_task(self.synchronize_single_page(page))
 
-        self._update_timestamp(self.board_db, timestamp)
+        await self._update_timestamp(self.board_db, timestamp)
+        await self.notion.aclose()
 
 
-def synchronize(**kwargs):
+async def synchronize(**kwargs):
     """Exported method to begin synchronization."""
-    asyncio.run(BoardSync(**kwargs).synchronize())
+    await BoardSync(**kwargs).synchronize()

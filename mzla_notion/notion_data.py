@@ -3,13 +3,14 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import logging
+import asyncio
 from dataclasses import dataclass, field
 import datetime
 from typing import Any, Callable, Dict, List
 
 from md2notionpage.core import parse_md
-from notion_client.helpers import collect_paginated_api
-from notion_to_md import NotionToMarkdown
+from notion_client.helpers import async_collect_paginated_api, async_iterate_paginated_api
+from notion_to_md import NotionToMarkdownAsync
 
 from .util import getnestedattr
 
@@ -70,37 +71,25 @@ class NotionDatabase:
         self.database_id = database_id
         self.dry = dry
 
-    @property
-    def description(self):
+    async def get_description(self):
         """Get the database description, what is shown at the top of the page."""
-        database_info = self.notion.databases.retrieve(self.database_id)
+        database_info = await self.notion.databases.retrieve(self.database_id)
         # Extract and return the description as plain text.
         return "".join([item["text"]["content"] for item in database_info.get("description", [])])
 
-    @description.setter
-    def description(self, new_desc):
+    async def set_description(self, new_desc):
+        """Set the database description, what is shown at the top of the page."""
         if self.dry:
             return
 
-        self.notion.databases.update(
+        await self.notion.databases.update(
             database_id=self.database_id,
             description=[{"type": "text", "text": {"content": new_desc}}],
         )
 
     def get_all_pages(self):
         """Gets all pages currently in the Notion database."""
-        pages = []
-        cursor = None
-
-        while True:
-            response = self.notion.databases.query(self.database_id, start_cursor=cursor, page_size=100)
-            pages.extend(response["results"])
-            cursor = response.get("next_cursor")
-
-            if cursor is None:
-                break
-
-        return pages
+        return async_collect_paginated_api(self.notion.databases.query, database_id=self.database_id, page_size=100)
 
     def dict_to_page(self, datadict: Dict[str, Any]):
         """Takes a `datadict` and returns a Notion database page formatted for the Notion API.
@@ -119,7 +108,7 @@ class NotionDatabase:
 
         return page
 
-    def create_page(self, datadict: Dict[str, Any]) -> bool:
+    async def create_page(self, datadict: Dict[str, Any]) -> bool:
         """Create a new page in the Notion database.
 
         `datadict` must be a dictionary containing {<property_name>: <data>}.
@@ -129,29 +118,20 @@ class NotionDatabase:
             if self.dry:
                 return {"id": "dry"}  # Fake page
             else:
-                return self.notion.pages.create(parent={"database_id": self.database_id}, properties=page_data)
+                return await self.notion.pages.create(parent={"database_id": self.database_id}, properties=page_data)
         return None
 
-    def delete_page(self, page_id):
+    async def delete_page(self, page_id):
         """Delete a page in the remote Notion database by `page_id`."""
         if not self.dry:
-            self.notion.pages.update(page_id, archived=True)
+            await self.notion.pages.update(page_id, archived=True)
 
-    def update_page(self, page: Dict[str, Any], datadict: Dict[str, Any]) -> bool:
+    async def update_page(self, page: Dict[str, Any], datadict: Dict[str, Any]) -> bool:
         """Update `page` with the data in `datadict`. Updates only occur if `page` and `datadict` are different."""
         if self.page_diff(datadict, page):
             data = self.dict_to_page(datadict)
             if not self.dry:
-                self.notion.pages.update(page["id"], properties=data)
-            return True
-        return False
-
-    async def update_page_async(self, tmp_notion, page: Dict[str, Any], datadict: Dict[str, Any]) -> bool:
-        """Update `page` with the data in `datadict`. Updates only occur if `page` and `datadict` are different."""
-        if self.page_diff(datadict, page):
-            data = self.dict_to_page(datadict)
-            if not self.dry:
-                await tmp_notion.pages.update(page["id"], properties=data)
+                await self.notion.pages.update(page["id"], properties=data)
             return True
         return False
 
@@ -180,9 +160,9 @@ class NotionDatabase:
 
     def get_page_contents(self, page_id):
         """Retrieves the blocks in a Notion page in this database."""
-        return collect_paginated_api(self.notion.blocks.children.list, block_id=page_id)
+        return async_collect_paginated_api(self.notion.blocks.children.list, block_id=page_id)
 
-    def replace_page_contents(self, page_id, markdown):
+    async def replace_page_contents(self, page_id, markdown):
         """Replace the contents of the notion page with the supplied markdown."""
         if self.dry:
             return
@@ -190,12 +170,11 @@ class NotionDatabase:
         blocks = parse_md(markdown)
         blocks = list(filter(lambda block: block["type"] != "image", blocks))
 
-        server_blocks = collect_paginated_api(self.notion.blocks.children.list, block_id=page_id)
+        server_blocks = async_iterate_paginated_api(self.notion.blocks.children.list, block_id=page_id)
+        delete_coros = [self.notion.blocks.delete(block_id=block["id"]) async for block in server_blocks]
+        await asyncio.gather(*delete_coros)
 
-        for block in server_blocks:
-            self.notion.blocks.delete(block_id=block["id"])
-
-        self.notion.blocks.children.append(block_id=page_id, children=blocks)
+        await self.notion.blocks.children.append(block_id=page_id, children=blocks)
 
     def add_property(self, prop: NotionProperty):
         """Adds a property to the local instance of the Notion database."""
@@ -205,17 +184,17 @@ class NotionDatabase:
         """Returns the property definition in the right format to modify a Notion database."""
         return {name: prop.to_dict() for name, prop in self.properties.items()}
 
-    def get_props(self):
+    async def get_props(self):
         """Returns the database information (e.g. properties)."""
         return self.notion.databases.retrieve(database_id=self.database_id)
 
-    def validate_props(self, delete=False, update=False):
+    async def validate_props(self, delete=False, update=False):
         """Updates the properties of the remote Notion database tied to the local instance."""
         # TODO: This method could use some error checking and verifying that it worked properly.
         desired_props = self.to_dict()
 
         # Fetch the current properties of the database.
-        current_db = self.notion.databases.retrieve(database_id=self.database_id)
+        current_db = await self.notion.databases.retrieve(database_id=self.database_id)
         current_props = current_db["properties"]
 
         # Process current properties: delete properties not in desired list, and add/update missing ones
@@ -229,12 +208,13 @@ class NotionDatabase:
                     if self.dry:
                         logger.info(f"Extra property {prop_name} on database {self.database_id} will be deleted")
                     else:
-                        self.notion.databases.update(
+                        await self.notion.databases.update(
                             database_id=self.database_id,
                             properties={prop_name: None},
                         )
 
         # Add or update missing properties
+        # TODO TaskGroup
         changes = False
         for prop_name, prop_schema in desired_props.items():
             if prop_schema["type"] == "title":
@@ -248,7 +228,7 @@ class NotionDatabase:
                 if not update or self.dry:
                     logger.warning(f"Missing property {prop_name} with {properties} on {self.database_id}")
                 else:
-                    self.notion.databases.update(database_id=self.database_id, properties=properties)
+                    await self.notion.databases.update(database_id=self.database_id, properties=properties)
 
             elif current_props[prop_name]["type"] != prop_schema["type"]:
                 changes = True
@@ -257,7 +237,7 @@ class NotionDatabase:
                         f"Property {prop_name} has mismatching type {current_props[prop_name]['type']} != {prop_schema['type']}"
                     )
                 else:
-                    self.notion.databases.update(database_id=self.database_id, properties=properties)
+                    await self.notion.databases.update(database_id=self.database_id, properties=properties)
             elif prop_schema["type"] == "select":
                 desired_options = {option["name"] for option in prop_schema["select"]["options"]}
                 current_options = {option["name"] for option in current_props[prop_name]["select"]["options"]}
@@ -269,7 +249,7 @@ class NotionDatabase:
                             f"Property {prop_name} has mismatching options {current_options} != {desired_options}"
                         )
                     else:
-                        self.notion.databases.update(database_id=self.database_id, properties=properties)
+                        await self.notion.databases.update(database_id=self.database_id, properties=properties)
 
         if not changes:
             logger.info(f"All properties on {self.database_id} are up to date")
@@ -277,7 +257,7 @@ class NotionDatabase:
         return not changes
 
 
-class CustomNotionToMarkdown(NotionToMarkdown):
+class CustomNotionToMarkdown(NotionToMarkdownAsync):
     """NotionToMarkdown converter that strips images and converts mentions from notion to the external issue tracker."""
 
     def __init__(self, notion_client, strip_images=False, tracker=None, config={}):
@@ -290,9 +270,9 @@ class CustomNotionToMarkdown(NotionToMarkdown):
         """Convert a notion id to an issue tracker mention."""
         return self.tracker.new_user(notion_user=notion_id).tracker_mention
 
-    def convert(self, blocks) -> str:
+    async def convert(self, blocks) -> str:
         """Convenience function to convert blocks directly to string."""
-        md_blocks = self.block_list_to_markdown(blocks)
+        md_blocks = await self.block_list_to_markdown(blocks)
         return self.to_markdown_string(md_blocks).get("parent")
 
     def block_to_markdown(self, block: Dict) -> str:

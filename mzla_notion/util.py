@@ -51,7 +51,7 @@ class RetryingClient(httpx.Client):
         return response
 
 
-class AsyncRetryingClient(httpx.Client):
+class AsyncRetryingClient(httpx.AsyncClient):
     """A replacement httpx.Client for Notion.
 
     Handles Notion's rate limiting and request timeouts.
@@ -65,7 +65,7 @@ class AsyncRetryingClient(httpx.Client):
     async def send(self, request, *args, recur=10, **kwargs):
         """httpx.Client send that retries."""
         try:
-            response = super().send(request, *args, **kwargs)
+            response = await super().send(request, *args, **kwargs)
             if self.autoraise:
                 response.raise_for_status()
         except (httpx.TransportError, httpx.HTTPStatusError, ConnectionError, http.client.HTTPException) as e:
@@ -79,13 +79,13 @@ class AsyncRetryingClient(httpx.Client):
 
             logger.info("Sleeping 10 seconds due to " + type(e).__name__)
             await asyncio.sleep(10)
-            return self.send(request, *args, recur=recur - 1, **kwargs)
+            return await self.send(request, *args, recur=recur - 1, **kwargs)
 
         if response.status_code == 429 and recur > 0:
             seconds = int(response.headers.get("Retry-After", 10))
             logger.info(f"Sleeping {seconds} seconds due to rate limiting")
             asyncio.sleep(seconds)
-            return self.send(request, *args, recur=recur - 1, **kwargs)
+            return await self.send(request, *args, recur=recur - 1, **kwargs)
 
         return response
 

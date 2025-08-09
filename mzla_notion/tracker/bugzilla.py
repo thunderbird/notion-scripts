@@ -7,7 +7,7 @@ import datetime
 
 from functools import cache
 
-from ..util import getnestedattr, RetryingClient
+from ..util import getnestedattr, AsyncRetryingClient, RetryingClient
 
 from .common import UserMap, IssueRef, Issue, User, IssueTracker
 
@@ -56,7 +56,7 @@ class Bugzilla(IssueTracker):
         self.base_url = base_url
         self.repo_name = res.netloc
 
-        self.client = RetryingClient(
+        self.client = AsyncRetryingClient(
             base_url=f"{base_url}/rest",
             limits=httpx.Limits(keepalive_expiry=30.0),
             http2=True,
@@ -65,7 +65,16 @@ class Bugzilla(IssueTracker):
             autoraise=True,
         )
 
-        self.user_map = BugzillaUserMap(self.client, user_map)
+        self.sync_client = RetryingClient(
+            base_url=f"{base_url}/rest",
+            limits=httpx.Limits(keepalive_expiry=30.0),
+            http2=True,
+            params={"api_key": token},
+            timeout=60.0,
+            autoraise=True,
+        )
+
+        self.user_map = BugzillaUserMap(self.sync_client, user_map)
 
     def parse_issueref(self, ref):
         """Parse an issue identifier (e.g. bugzilla url) to an IssueRef."""
@@ -91,7 +100,7 @@ class Bugzilla(IssueTracker):
         """The augmented notion tasks title (includes bug reference)."""
         return f"{tasks_notion_prefix}{issue.title} - bug {issue.id}"
 
-    def update_milestone_issue(self, old_issue, new_issue):
+    async def update_milestone_issue(self, old_issue, new_issue):
         """Update an issue on the tracker."""
 
         def _set_if(data, prop, bzname):
@@ -137,15 +146,15 @@ class Bugzilla(IssueTracker):
         # - sub_issues: These will be managed on bugzilla
 
         if data and not self.dry:
-            self.client.put(f"/bug/{new_issue.id}", json=data)
+            await self.client.put(f"/bug/{new_issue.id}", json=data)
 
-    def get_issues_by_number(self, bugrefs, sub_issues=False):
+    async def get_issues_by_number(self, bugrefs, sub_issues=False):
         """Retrieve issues by their id number."""
         res = {}
         bugids = map(lambda bug: urllib.parse.quote(str(bug.id), safe=""), bugrefs)
         fields = "id,summary,status,product,cf_user_story,assigned_to,priority,depends_on,blocks,attachments,comments,see_also,creation_time,cf_last_resolved"
 
-        response = self.client.get("/bug", params={"id": ",".join(bugids), "include_fields": fields})
+        response = await self.client.get("/bug", params={"id": ",".join(bugids), "include_fields": fields})
         response_json = response.json()
 
         for bug in response_json["bugs"]:

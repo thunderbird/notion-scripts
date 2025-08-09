@@ -32,17 +32,17 @@ class GitHubProjectTest(BaseTestCase):
         self.assertTrue(github.is_repo_allowed("kewisch/test"))
         self.assertEqual(github.get_all_repositories(), ["kewisch/test"])
 
-    def test_github_get_issues_basics(self):
-        issues = self.github.get_issues_by_number([], True)
+    async def test_github_get_issues_basics(self):
+        issues = await self.github.get_issues_by_number([], True)
         self.assertEqual(issues, {})
 
         with self.assertRaisesRegex(Exception, r"Can't yet query from different repositories"):
-            self.github.get_issues_by_number(
+            await self.github.get_issues_by_number(
                 [IssueRef(repo="kewisch/test", id="1"), IssueRef(repo="kewisch/test2", id="1")], True
             )
 
-    def test_github_get_issues_epics(self):
-        issues = self.github.get_issues_by_number(
+    async def test_github_get_issues_epics(self):
+        issues = await self.github.get_issues_by_number(
             [IssueRef(repo="kewisch/test", id="1"), IssueRef(repo="kewisch/test", id="2")], True
         )
 
@@ -103,8 +103,8 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(len(self.github_handler.calls), 1)
         self.assertEqual(len(self.github_handler.calls["get_issues_1_and_2"]), 1)
 
-    def test_github_get_issue_tasks(self):
-        issues = self.github.get_issues_by_number([], True)
+    async def test_github_get_issue_tasks(self):
+        issues = await self.github.get_issues_by_number([], True)
         self.assertEqual(issues, {})
 
         issue3 = GitHubIssue(
@@ -136,14 +136,14 @@ class GitHubProjectTest(BaseTestCase):
         )
 
         with freeze_time("2025-02-09"):
-            issues = self.github.get_issues_by_number([IssueRef(repo="kewisch/test", id="3")])
+            issues = await self.github.get_issues_by_number([IssueRef(repo="kewisch/test", id="3")])
             self.assertEqual(issues["3"].gql.id, "I_kwDOMwGgpM6oWELp")
 
             issues["3"].gql = None
             self.assertEqual(issues, {"3": issue3})
 
         with freeze_time("2025-02-05"):
-            issues = self.github.get_issues_by_number([IssueRef(repo="kewisch/test", id="3")])
+            issues = await self.github.get_issues_by_number([IssueRef(repo="kewisch/test", id="3")])
             self.assertEqual(issues["3"].gql.id, "I_kwDOMwGgpM6oWELp")
 
             issue3.sprint.status = "Current"
@@ -152,7 +152,7 @@ class GitHubProjectTest(BaseTestCase):
             self.assertEqual(issues, {"3": issue3})
 
         with freeze_time("2025-02-01"):
-            issues = self.github.get_issues_by_number([IssueRef(repo="kewisch/test", id="3")])
+            issues = await self.github.get_issues_by_number([IssueRef(repo="kewisch/test", id="3")])
             self.assertEqual(issues["3"].gql.id, "I_kwDOMwGgpM6oWELp")
 
             issue3.sprint.status = "Future"
@@ -160,37 +160,37 @@ class GitHubProjectTest(BaseTestCase):
             issues["3"].gql = None
             self.assertEqual(issues, {"3": issue3})
 
-    def test_github_get_issue_both_projects(self):
+    async def test_github_get_issue_both_projects(self):
         with self.assertRaisesRegex(
             Exception, r"Issue https://github.com/kewisch/test/issues/4 has both tasks and milestones project"
         ):
-            self.github.get_issues_by_number([IssueRef(repo="kewisch/test", id="4")])
+            await self.github.get_issues_by_number([IssueRef(repo="kewisch/test", id="4")])
 
-    def test_github_update_no_change(self):
+    async def test_github_update_no_change(self):
         self.github.user_map = GitHubUserMap(
             self.github.endpoint,
             {"kewisch": "3df71ec3-17c7-4eb4-80bc-a321af157be6", "notkewisch": "b5a819b4-e2b3-432c-8e5a-256dace1176f"},
         )
 
-        issues = self.github.get_issues_by_number(
+        issues = await self.github.get_issues_by_number(
             [IssueRef(repo="kewisch/test", id="1"), IssueRef(repo="kewisch/test", id="2")], True
         )
 
         old_issue = issues["1"]
 
         # A call without change shouldn't trigger anything
-        self.github.update_milestone_issue(old_issue, old_issue)
+        await self.github.update_milestone_issue(old_issue, old_issue)
         self.assertEqual(len(self.github_handler.calls), 2)
         self.assertEqual(len(self.github_handler.calls["get_users"]), 1)
         self.assertEqual(len(self.github_handler.calls["get_issues_1_and_2"]), 1)
 
-    def test_github_update_milestone_issue(self):
+    async def test_github_update_milestone_issue(self):
         self.github.user_map = GitHubUserMap(
             self.github.endpoint,
             {"kewisch": "3df71ec3-17c7-4eb4-80bc-a321af157be6", "notkewisch": "b5a819b4-e2b3-432c-8e5a-256dace1176f"},
         )
 
-        issues = self.github.get_issues_by_number(
+        issues = await self.github.get_issues_by_number(
             [IssueRef(repo="kewisch/test", id="1"), IssueRef(repo="kewisch/test", id="2")], True
         )
 
@@ -215,7 +215,7 @@ class GitHubProjectTest(BaseTestCase):
             sub_issues=[],
         )
 
-        self.github.update_milestone_issue(old_issue, new_issue)
+        await self.github.update_milestone_issue(old_issue, new_issue)
 
         self.assertEqual(len(self.github_handler.calls), 8)
 
@@ -228,13 +228,13 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(len(self.github_handler.calls["get_label_bug"]), 1)
         self.assertEqual(len(self.github_handler.calls["get_project_info"]), 1)
 
-    def test_github_update_issue_add_roadmap(self):
+    async def test_github_update_issue_add_roadmap(self):
         self.github.user_map = GitHubUserMap(
             self.github.endpoint,
             {"kewisch": "3df71ec3-17c7-4eb4-80bc-a321af157be6", "notkewisch": "b5a819b4-e2b3-432c-8e5a-256dace1176f"},
         )
 
-        issues = self.github.get_issues_by_number(
+        issues = await self.github.get_issues_by_number(
             [IssueRef(repo="kewisch/test", id="1"), IssueRef(repo="kewisch/test", id="2")], True
         )
 
@@ -257,7 +257,7 @@ class GitHubProjectTest(BaseTestCase):
             sub_issues=[],
         )
 
-        self.github.update_milestone_issue(old_issue, new_issue)
+        await self.github.update_milestone_issue(old_issue, new_issue)
 
         self.assertEqual(len(self.github_handler.calls), 9)
 
@@ -271,7 +271,7 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(len(self.github_handler.calls["update_issue_1_project"]), 1)
         self.assertEqual(len(self.github_handler.calls["add_issue_to_project"]), 1)
 
-    def test_github_update_issue_dry(self):
+    async def test_github_update_issue_dry(self):
         self.github.dry = True
 
         self.github.user_map = GitHubUserMap(
@@ -279,7 +279,7 @@ class GitHubProjectTest(BaseTestCase):
             {"kewisch": "3df71ec3-17c7-4eb4-80bc-a321af157be6", "notkewisch": "b5a819b4-e2b3-432c-8e5a-256dace1176f"},
         )
 
-        issues = self.github.get_issues_by_number(
+        issues = await self.github.get_issues_by_number(
             [IssueRef(repo="kewisch/test", id="1"), IssueRef(repo="kewisch/test", id="2")], True
         )
 
@@ -302,7 +302,7 @@ class GitHubProjectTest(BaseTestCase):
             sub_issues=[],
         )
 
-        self.github.update_milestone_issue(old_issue, new_issue)
+        await self.github.update_milestone_issue(old_issue, new_issue)
 
         self.assertEqual(len(self.github_handler.calls), 3)
 
@@ -438,7 +438,7 @@ class GitHubProjectTest(BaseTestCase):
             "GitHubUser(tracker=kewisch,notion=3df71ec3-17c7-4eb4-80bc-a321af157be6,dbid=MDQ6VXNlcjYwNzE5OA==)",
         )
 
-    def test_validate_timeout(self):
+    async def test_validate_timeout(self):
         issue_count_queried = []
 
         count = 0
@@ -459,7 +459,7 @@ class GitHubProjectTest(BaseTestCase):
         self.github_handler.handle = handler
 
         with self.subTest(msg="eventual success"):
-            issues = self.github.get_issues_by_number(
+            issues = await self.github.get_issues_by_number(
                 [IssueRef(repo="kewisch/test", id="1"), IssueRef(repo="kewisch/test", id="2")], True
             )
 
@@ -471,7 +471,7 @@ class GitHubProjectTest(BaseTestCase):
 
         with self.subTest(msg="eventual failure"):
             with self.assertRaisesRegex(sgqlc.operation.GraphQLErrors, r"Timeout on validation of query"):
-                self.github.get_issues_by_number(
+                await self.github.get_issues_by_number(
                     [IssueRef(repo="kewisch/test", id="1"), IssueRef(repo="kewisch/test", id="2")], True
                 )
 

@@ -44,10 +44,10 @@ class TestTracker(IssueTracker):
         else:
             return None
 
-    def get_issues_by_number(self, issues, sub_issues=False):
+    async def get_issues_by_number(self, issues, sub_issues=False):
         return {issue.id: self.issues[issue.id] for issue in issues if issue.id in self.issues}
 
-    def update_milestone_issue(self, old_issue, new_issue):
+    async def update_milestone_issue(self, old_issue, new_issue):
         pass
 
     def notion_tasks_title(self, prefix, issue):
@@ -154,7 +154,7 @@ class ProjectSyncTest(BaseTestCase):
         self.expect_call("db_update", 0 if self.project_sync.dry else db_count)
         self.expect_call("db_query", db_count)
 
-    def synchronize_project(self, tracker, **kwargs):
+    async def synchronize_project(self, tracker, **kwargs):
         sync_kwargs_defaults = {
             "project_key": "test",
             "tracker": tracker,
@@ -172,21 +172,21 @@ class ProjectSyncTest(BaseTestCase):
             "dry": False,
         }
         self.project_sync = ProjectSync(**{**sync_kwargs_defaults, **kwargs})
-        self.project_sync.synchronize()
+        await self.project_sync.synchronize()
 
     @freeze_time("2023-01-01 12:13:14")
-    def test_update_sync_stamp(self):
+    async def test_update_sync_stamp(self):
         self.notion_handler.milestones_handler.pages = []
         tracker = TestTracker(dry=True)
 
         # Dry run, no updates
-        self.synchronize_project(tracker, dry=True)
+        await self.synchronize_project(tracker, dry=True)
         self.expect_typical_db_update()
         self.expect_total_calls()
 
         # Not a dry run
         self.expect_reset()
-        self.synchronize_project(tracker, dry=False)
+        await self.synchronize_project(tracker, dry=False)
         self.expect_typical_db_update()
 
         last_update = {
@@ -204,14 +204,14 @@ class ProjectSyncTest(BaseTestCase):
 
         self.expect_total_calls()
 
-    def test_milestone_sync_single_no_children_no_updates(self):
+    async def test_milestone_sync_single_no_children_no_updates(self):
         # Only milestone issue
         issue = self.issues[0]
         issue.sub_issues = []
         tracker = TestTracker(issues=[issue], dry=False)
 
         with self.assertLogs("project_sync", level="INFO") as logs:
-            self.synchronize_project(tracker)
+            await self.synchronize_project(tracker)
 
         # There is a second milestone with an invalid url, it should not sync
         self.assertIn("INFO:project_sync:Synchronizing 1 milestones for repo", logs.output)
@@ -231,13 +231,13 @@ class ProjectSyncTest(BaseTestCase):
 
         self.expect_total_calls()
 
-    def test_milestone_sync_single_no_children_with_update(self):
+    async def test_milestone_sync_single_no_children_with_update(self):
         self.issues[0].title = "Title will be changed"
         tracker = TestTracker(
             issues=self.issues, dry=False, property_names={"notion_milestones_dates": ["Start", "End"]}
         )
 
-        self.synchronize_project(tracker)
+        await self.synchronize_project(tracker)
         self.assertEqual(tracker.update_milestone_issue.call_count, 1)
         self.assertEqual(tracker.update_milestone_issue.call_args[0][0].title, "Title will be changed")
         self.assertEqual(tracker.update_milestone_issue.call_args[0][1].title, "Rebuild the calendar Read Event dialog")
@@ -247,27 +247,27 @@ class ProjectSyncTest(BaseTestCase):
         # Description should not change, body sync is off
         self.assertEqual(tracker.update_milestone_issue.call_args[0][1].description, "description")
 
-    def test_milestone_sync_single_no_children_dry(self):
+    async def test_milestone_sync_single_no_children_dry(self):
         tracker = TestTracker(issues=self.issues, dry=True)
 
-        self.synchronize_project(tracker, dry=True)
+        await self.synchronize_project(tracker, dry=True)
         self.assertEqual(tracker.update_milestone_issue.call_count, 0)
 
-    def test_milestone_sync_apply_extra_label(self):
+    async def test_milestone_sync_apply_extra_label(self):
         # Only milestone issue
         issue = self.issues[0]
         issue.sub_issues = []
 
         tracker = TestTracker(issues=[issue])
 
-        self.synchronize_project(tracker, milestones_extra_label="extra-label")
+        await self.synchronize_project(tracker, milestones_extra_label="extra-label")
         self.assertEqual(tracker.update_milestone_issue.call_count, 1)
         self.assertEqual(tracker.update_milestone_issue.call_args[0][0].labels, set())
         self.assertEqual(tracker.update_milestone_issue.call_args[0][1].labels, {"extra-label"})
 
-    def test_milestone_sync_with_task(self):
+    async def test_milestone_sync_with_task(self):
         tracker = TestTracker(issues=self.issues)
-        self.synchronize_project(tracker)
+        await self.synchronize_project(tracker)
 
         self.expect_typical_db_update()
 
@@ -316,7 +316,7 @@ class ProjectSyncTest(BaseTestCase):
         # Update database info
         self.expect_total_calls()
 
-    def test_milestone_sync_with_task_no_updates(self):
+    async def test_milestone_sync_with_task_no_updates(self):
         tracker = TestTracker(
             issues=self.issues,
             property_names={
@@ -327,7 +327,7 @@ class ProjectSyncTest(BaseTestCase):
             },
         )
         tracker.notion_tasks_title = lambda prefix, issue: issue.title
-        self.synchronize_project(tracker)
+        await self.synchronize_project(tracker)
 
         # Create the task to synchronize
         self.expect_call("pages_create", 1)
@@ -351,13 +351,13 @@ class ProjectSyncTest(BaseTestCase):
         # No updates to the task
         self.expect_call("pages_update", 0)
 
-    def test_milestone_sync_with_task_sync_body(self):
+    async def test_milestone_sync_with_task_sync_body(self):
         # Remove 234
         del self.issues[1]
         del self.issues[0].sub_issues[0]
 
         tracker = TestTracker(issues=self.issues)
-        self.synchronize_project(tracker, tasks_body_sync=True)
+        await self.synchronize_project(tracker, tasks_body_sync=True)
 
         self.expect_call("pages_update", 1)
         self.expect_call("pages_child_get", 1)
@@ -376,13 +376,13 @@ class ProjectSyncTest(BaseTestCase):
         self.expect_typical_db_update()
         self.expect_total_calls()
 
-    def test_milestone_sync_single_with_body(self):
+    async def test_milestone_sync_single_with_body(self):
         """Tests the milestones_body_sync setting."""
         issue = self.issues[0]
         issue.sub_issues = []
         tracker = TestTracker(issues=[issue], dry=False)
 
-        self.synchronize_project(tracker, milestones_body_sync=True)
+        await self.synchronize_project(tracker, milestones_body_sync=True)
         self.expect_call("pages_child_get", 1)
 
         self.assertEqual(tracker.update_milestone_issue.call_count, 1)
@@ -393,7 +393,7 @@ class ProjectSyncTest(BaseTestCase):
         self.expect_typical_db_update()
         self.expect_total_calls()
 
-    def test_milestone_sync_single_with_body_if_empty(self):
+    async def test_milestone_sync_single_with_body_if_empty(self):
         """Tests the milestones_body_sync_if_empty setting."""
         self.issues[0].sub_issues = []
         issues = [self.issues[0]]
@@ -401,7 +401,7 @@ class ProjectSyncTest(BaseTestCase):
         tracker = TestTracker(issues=issues, dry=False)
 
         with self.subTest(msg="not empty"):
-            self.synchronize_project(tracker, milestones_body_sync_if_empty=True)
+            await self.synchronize_project(tracker, milestones_body_sync_if_empty=True)
             self.expect_call("pages_child_get", 0)
 
             self.assertEqual(tracker.update_milestone_issue.call_count, 0)
@@ -414,7 +414,7 @@ class ProjectSyncTest(BaseTestCase):
         with self.subTest(msg="empty"):
             issues[0].description = ""
 
-            self.synchronize_project(tracker, milestones_body_sync_if_empty=True)
+            await self.synchronize_project(tracker, milestones_body_sync_if_empty=True)
             self.expect_call("pages_child_get", 1)
 
             self.assertEqual(tracker.update_milestone_issue.call_count, 1)
@@ -425,13 +425,13 @@ class ProjectSyncTest(BaseTestCase):
             self.expect_typical_db_update()
             self.expect_total_calls()
 
-    def test_milestone_sync_with_sprint(self):
+    async def test_milestone_sync_with_sprint(self):
         tracker = TestTracker(issues=self.issues)
 
         self.issues[1].sprint = tracker.get_sprints()[1]
         self.issues[2].sprint = tracker.get_sprints()[2]
 
-        self.synchronize_project(tracker, sprint_id="sprints_id")
+        await self.synchronize_project(tracker, sprint_id="sprints_id")
 
         self.expect_typical_db_update()
 
@@ -524,13 +524,13 @@ class ProjectSyncTest(BaseTestCase):
         self.expect_call("pages_child_update", 1)
         self.expect_total_calls()
 
-    def test_milestone_sync_with_sprint_merge_by_title(self):
+    async def test_milestone_sync_with_sprint_merge_by_title(self):
         tracker = TestTracker(issues=self.issues)
 
         self.issues[1].sprint = tracker.get_sprints()[1]
         self.issues[2].sprint = tracker.get_sprints()[2]
 
-        self.synchronize_project(tracker, sprint_id="sprints_id", sprints_merge_by_name=True)
+        await self.synchronize_project(tracker, sprint_id="sprints_id", sprints_merge_by_name=True)
 
         self.expect_typical_db_update()
 
@@ -615,29 +615,29 @@ class ProjectSyncTest(BaseTestCase):
         self.expect_call("pages_child_update", 1)
         self.expect_total_calls()
 
-    def test_milestone_sync_with_sprint_merge_by_title_date_mismatch(self):
+    async def test_milestone_sync_with_sprint_merge_by_title_date_mismatch(self):
         tracker = TestTracker(issues=self.issues)
         self.issues[1].sprint = tracker.get_sprints()[1]
         self.issues[2].sprint = tracker.get_sprints()[2]
 
         with self.subTest(msg="end date"):
             self.notion_handler.sprints_handler.pages[1]["properties"]["Dates"]["date"]["end"] = "2025-01-24"
-            with self.assertRaisesRegex(
+            with self.assertRaisesInGroup(
                 Exception, r"Could not merge sprint Sprint 3, end dates mismatch! 2025-01-24 != 2025-01-23"
             ):
-                self.synchronize_project(tracker, sprint_id="sprints_id", sprints_merge_by_name=True)
+                await self.synchronize_project(tracker, sprint_id="sprints_id", sprints_merge_by_name=True)
 
             self.notion_handler.sprints_handler.pages[1]["properties"]["Dates"]["date"]["end"] = "2025-01-23"
 
         with self.subTest(msg="start date"):
             self.notion_handler.sprints_handler.pages[1]["properties"]["Dates"]["date"]["start"] = "2025-01-15"
 
-            with self.assertRaisesRegex(
+            with self.assertRaisesInGroup(
                 Exception, r"Could not merge sprint Sprint 3, start dates mismatch! 2025-01-15 != 2025-01-16"
             ):
-                self.synchronize_project(tracker, sprint_id="sprints_id", sprints_merge_by_name=True)
+                await self.synchronize_project(tracker, sprint_id="sprints_id", sprints_merge_by_name=True)
 
-    def test_task_with_dates(self):
+    async def test_task_with_dates(self):
         self.issues[2].start_date = datetime.date(2025, 4, 1)
         self.issues[2].end_date = datetime.date(2025, 4, 7)
 
@@ -651,7 +651,7 @@ class ProjectSyncTest(BaseTestCase):
         with self.subTest(msg="sprint date"):
             self.issues[2].sprint = tracker.get_sprints()[1]
 
-            self.synchronize_project(tracker, sprint_id="sprints_id")
+            await self.synchronize_project(tracker, sprint_id="sprints_id")
 
             # Uses augmented dates, but still associated with the original sprint
             self.assertEqual(
@@ -682,20 +682,20 @@ class ProjectSyncTest(BaseTestCase):
         with self.subTest(msg="explicit date"):
             self.issues[2].sprint = None
 
-            self.synchronize_project(tracker, sprint_id="sprints_id")
+            await self.synchronize_project(tracker, sprint_id="sprints_id")
 
             content = json.loads(self.respx.routes["pages_update"].calls[1].request.content)
 
             self.assertEqual(content["properties"]["Dates"]["date"]["start"], "2025-04-01")
             self.assertEqual(content["properties"]["Dates"]["date"]["end"], "2025-04-07")
 
-    def test_task_no_parent(self):
+    async def test_task_no_parent(self):
         self.issues[1].parents = []
 
         tracker = TestTracker(issues=self.issues)
         tracker.additional_tasks = [IssueRef(id="234", repo="repo")]
 
-        self.synchronize_project(tracker)
+        await self.synchronize_project(tracker)
 
         self.expect_call("pages_create", 1)
         self.assertEqual(
@@ -719,14 +719,14 @@ class ProjectSyncTest(BaseTestCase):
             },
         )
 
-    def test_task_wrong_title(self):
+    async def test_task_wrong_title(self):
         tracker = TestTracker(
             issues=self.issues,
             property_names={
                 "notion_milestones_title": "Headline",
             },
         )
-        self.synchronize_project(tracker)
+        await self.synchronize_project(tracker)
 
         self.assertEqual(tracker.update_milestone_issue.call_count, 1)
         self.assertEqual(tracker.update_milestone_issue.call_args[0][0].title, "Rebuild the calendar Read Event dialog")
@@ -788,24 +788,26 @@ class ProjectSyncTest(BaseTestCase):
                 [{"name": "bug"}, {"name": "enhancement"}],
             )
 
-    def test_validate_schema(self):
+    async def test_validate_schema(self):
         tracker = TestTracker(dry=True)
         logging.getLogger("notion_database").setLevel(logging.CRITICAL)
 
         del self.notion_handler.tasks_handler.database_info["properties"]["Issue Link"]
-        with self.assertRaisesRegex(Exception, r"Tasks schema failed to validate"):
-            ProjectSync(
+        with self.assertRaisesInGroup(Exception, r"Tasks schema failed to validate"):
+            sync = ProjectSync(
                 project_key="test",
                 notion_token="NOTION_TOKEN",
                 milestones_id="milestones_id",
                 tasks_id="tasks_id",
                 tracker=tracker,
             )
+
+            await sync._async_init()
 
         del self.notion_handler.milestones_handler.database_info["properties"]["Issue Link"]
 
-        with self.assertRaisesRegex(Exception, r"Milestone schema failed to validate"):
-            ProjectSync(
+        with self.assertRaisesInGroup(Exception, r"Milestone schema failed to validate"):
+            sync = ProjectSync(
                 project_key="test",
                 notion_token="NOTION_TOKEN",
                 milestones_id="milestones_id",
@@ -813,7 +815,9 @@ class ProjectSyncTest(BaseTestCase):
                 tracker=tracker,
             )
 
-    def test_null_state(self):
+            await sync._async_init()
+
+    async def test_null_state(self):
         self.issues[1].state = None
         self.issues[2].state = None
         tracker = TestTracker(
@@ -827,7 +831,7 @@ class ProjectSyncTest(BaseTestCase):
             tracker.property_names["notion_closed_states"] = ("Done",)
             self.issues[2].closed_date = datetime.datetime.now(datetime.UTC)
             self.issues[1].closed_date = datetime.datetime.now(datetime.UTC)
-            self.synchronize_project(tracker)
+            await self.synchronize_project(tracker)
 
             self.expect_call("pages_update", 1)
             self.assertEqual(
@@ -853,7 +857,7 @@ class ProjectSyncTest(BaseTestCase):
             self.issues[2].closed_date = None
             tracker.property_names["notion_closed_states"] = ("NEW",)
 
-            self.synchronize_project(tracker)
+            await self.synchronize_project(tracker)
             self.expect_call("pages_update", 1)
             self.assertEqual(
                 json.loads(self.respx.routes["pages_update"].calls.last.request.content)["properties"]["Status"][
@@ -877,7 +881,7 @@ class ProjectSyncTest(BaseTestCase):
             self.issues[2].closed_date = None
             tracker.property_names["notion_closed_states"] = ("Done",)
 
-            self.synchronize_project(tracker)
+            await self.synchronize_project(tracker)
             self.expect_call("pages_update", 1)
             self.assertEqual(
                 json.loads(self.respx.routes["pages_update"].calls.last.request.content)["properties"]["Status"][

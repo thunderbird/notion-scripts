@@ -170,7 +170,7 @@ class GitHub(IssueTracker):
 
         logger.info(f"Will sync {project_item_count} new sprint board tasks not associated with a milestone")
 
-    def update_milestone_issue(self, old_issue, new_issue):
+    async def update_milestone_issue(self, old_issue, new_issue):
         """Update an issue on GitHub."""
         self._update_issue_basic(old_issue, new_issue)
         self._update_issue_assignees(old_issue, new_issue)
@@ -346,7 +346,7 @@ class GitHub(IssueTracker):
             )
         return issue
 
-    def get_issues_by_number(self, issues, sub_issues=False, chunk_size=50):
+    async def get_issues_by_number(self, issues, sub_issues=False, chunk_size=50):
         """Get the indicated numbered issues."""
         res = {}
 

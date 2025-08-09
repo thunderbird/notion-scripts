@@ -5,17 +5,18 @@
 """Synchronizer for a project-based sync between Notion and Bugzilla."""
 
 import logging
+import asyncio
 import re
 import notion_client
 
 from collections import defaultdict
 from functools import cached_property
 
-from notion_client.helpers import iterate_paginated_api
+from notion_client.helpers import async_iterate_paginated_api
 
 from .. import notion_data as p
 from ..notion_data import NotionDatabase
-from ..util import getnestedattr, RetryingClient, strip_orgname
+from ..util import getnestedattr, AsyncRetryingClient, strip_orgname
 
 logger = logging.getLogger("project_sync")
 
@@ -73,7 +74,7 @@ class BaseSync:
                 the issue tracker and Notion.
             synchronous (bool): If true, run any async tasks sequentially.
         """
-        self.notion = notion_client.Client(auth=notion_token, client=RetryingClient())
+        self.notion = notion_client.AsyncClient(auth=notion_token, client=AsyncRetryingClient())
         self.tracker = tracker
 
         # Milestones Database
@@ -82,8 +83,6 @@ class BaseSync:
             p.link(self.propnames["notion_issue_field"]),
         ]
         self.milestones_db = NotionDatabase(milestones_id, self.notion, milestones_properties, dry=dry)
-        if not self.milestones_db.validate_props():
-            raise Exception("Milestone schema failed to validate")
         self.milestones_body_sync = milestones_body_sync
         self.milestones_body_sync_if_empty = milestones_body_sync_if_empty
         self.milestones_tracker_prefix = milestones_tracker_prefix
@@ -126,8 +125,6 @@ class BaseSync:
 
         # Tasks Database
         self.tasks_db = NotionDatabase(tasks_id, self.notion, tasks_properties, dry=dry)
-        if not self.tasks_db.validate_props():
-            raise Exception("Tasks schema failed to validate")
         self.tasks_body_sync = tasks_body_sync
         self.tasks_notion_prefix = tasks_notion_prefix
 
@@ -201,10 +198,10 @@ class BaseSync:
             else:
                 obj[propname] = {"start": start, "end": end} if start or end else None
 
-    def _discover_notion_issues(self, notion_db_id):
+    async def _discover_notion_issues(self, notion_db_id):
         repos = defaultdict(dict)
 
-        for block in iterate_paginated_api(
+        async for block in async_iterate_paginated_api(
             self.notion.databases.query,
             database_id=notion_db_id,
             filter={
@@ -220,10 +217,6 @@ class BaseSync:
                 repos[ref.repo][ref.id] = block
 
         return repos
-
-    @cached_property
-    def _all_sprint_pages(self):
-        return self.sprint_db.get_all_pages()
 
     @cached_property
     def _sprint_pages_by_id(self):
@@ -244,15 +237,7 @@ class BaseSync:
             if (content := self._get_richtext_prop(page, "notion_sprint_title"))
         }
 
-    @cached_property
-    def _notion_tasks_issues(self):
-        return self._discover_notion_issues(self.tasks_db.database_id)
-
-    @cached_property
-    def _notion_milestone_issues(self):
-        return self._discover_notion_issues(self.milestones_db.database_id)
-
-    def _get_task_notion_data(self, tracker_issue, parent_milestone_ids=[], old_page=None):
+    async def _get_task_notion_data(self, tracker_issue, parent_milestone_ids=[], old_page=None):
         # Base data
         title = self.tracker.notion_tasks_title(self.tasks_notion_prefix, tracker_issue)
         notion_data = {
@@ -324,7 +309,7 @@ class BaseSync:
 
         return notion_data
 
-    def _update_timestamp(self, database, timestamp):
+    async def _update_timestamp(self, database, timestamp):
         if self.dry:
             return
 
@@ -333,15 +318,15 @@ class BaseSync:
         pattern = pattern.replace("REGEX_PLACEHOLDER", r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
 
         description, count = re.subn(
-            pattern, self.LAST_SYNC_MESSAGE.format(self.project_key, timestamp), database.description
+            pattern, self.LAST_SYNC_MESSAGE.format(self.project_key, timestamp), await database.get_description()
         )
 
         if count < 1:
             description = self.LAST_SYNC_MESSAGE.format(self.project_key, timestamp) + "\n\n" + description
 
-        database.description = description
+        await database.set_description(description)
 
-    def synchronize_sprints(self):
+    async def synchronize_sprints(self):
         """Synchronize sprints from the tracker to Notion."""
         for sprint in self.tracker.get_sprints():
             idprop = self.propnames["notion_sprint_tracker_id"]
@@ -352,9 +337,9 @@ class BaseSync:
                 self.propnames["notion_sprint_status"]: sprint.status,
             }
 
-            if sprint.id in self._sprint_pages_by_id:
-                page = self._sprint_pages_by_id[sprint.id]
-                changed = self.sprint_db.update_page(page, notion_data)
+            page = self._sprint_pages_by_id.get(sprint.id, None)
+            if page:
+                changed = await self.sprint_db.update_page(page, notion_data)
                 if changed:
                     logger.info(
                         f"Updating Sprint {sprint.id} ({sprint.name}) - {sprint.start_date} to {sprint.end_date}"
@@ -380,15 +365,15 @@ class BaseSync:
                     )
 
                 page_tracker_ids.append(sprint.id)
-                self.sprint_db.update_page(page, {idprop: "\n".join(page_tracker_ids)})
+                await self.sprint_db.update_page(page, {idprop: "\n".join(page_tracker_ids)})
                 self._sprint_pages_by_id[sprint.id] = page
             else:
                 logger.info(f"Creating Sprint {sprint.name} - {sprint.start_date} to {sprint.end_date}")
                 notion_data[idprop] = sprint.id
-                page = self.sprint_db.create_page(notion_data)
+                page = await self.sprint_db.create_page(notion_data)
                 self._sprint_pages_by_id[sprint.id] = page
 
-    def synchronize_single_task(self, tracker_issue, page=None):
+    async def synchronize_single_task(self, tracker_issue, page=None):
         """Synchronize a single tracker issue to Notion.
 
         Args:
@@ -396,12 +381,13 @@ class BaseSync:
             page (dict): The Notion page object of the existing task in notion. Leave out to add
                 instead of update.
         """
-        notion_data = self._get_task_notion_data(
-            tracker_issue=tracker_issue, parent_milestone_ids=self._find_task_parents(tracker_issue), old_page=page
+        parents = self._find_task_parents(tracker_issue)
+        notion_data = await self._get_task_notion_data(
+            tracker_issue=tracker_issue, parent_milestone_ids=parents, old_page=page
         )
 
         if page:
-            changed = self.tasks_db.update_page(page, notion_data)
+            changed = await self.tasks_db.update_page(page, notion_data)
             if changed:
                 logger.info(f"Updating task {tracker_issue.repo}#{tracker_issue.id} - {tracker_issue.title}")
                 logger.info("\t" + str(notion_data))
@@ -410,15 +396,35 @@ class BaseSync:
         else:
             logger.info(f"Adding new task {tracker_issue.id} - {tracker_issue.title}")
             logger.debug("\t" + str(notion_data))
-            page = self.tasks_db.create_page(notion_data)
+            page = await self.tasks_db.create_page(notion_data)
 
             if not self.tasks_body_sync and self.TASK_BODY_WARNING:
                 # At least show the warning if not the full body
-                self.tasks_db.replace_page_contents(page["id"], self.TASK_BODY_WARNING.format(self.tracker.name))
+                await self.tasks_db.replace_page_contents(page["id"], self.TASK_BODY_WARNING.format(self.tracker.name))
 
         if self.tasks_body_sync:
             body = tracker_issue.description
             if self.TASK_BODY_WARNING:
                 body = self.TASK_BODY_WARNING.format(self.tracker.name) + "\n\n" + body
 
-            self.tasks_db.replace_page_contents(page["id"], body)
+            await self.tasks_db.replace_page_contents(page["id"], body)
+
+    async def _async_init(self):
+        async with asyncio.TaskGroup() as tg:
+            valid_milestones = tg.create_task(self.milestones_db.validate_props())
+            valid_tasks = tg.create_task(self.tasks_db.validate_props())
+
+            tasks_issues = tg.create_task(self._discover_notion_issues(self.tasks_db.database_id))
+
+            if self.sprint_db:
+                sprint_pages = tg.create_task(self.sprint_db.get_all_pages())
+
+        if not valid_milestones.result():
+            raise Exception("Milestone schema failed to validate")
+        if not valid_tasks.result():
+            raise Exception("Tasks schema failed to validate")
+
+        self._notion_tasks_issues = tasks_issues.result()
+
+        if self.sprint_db:
+            self._all_sprint_pages = sprint_pages.result()

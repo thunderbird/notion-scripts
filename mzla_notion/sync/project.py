@@ -1,13 +1,14 @@
 import logging
 import datetime
 import dataclasses
+import asyncio
 
 from copy import deepcopy
 
 from .base import BaseSync
 
 from ..tracker.common import IssueRef
-from ..util import getnestedattr, diff_dataclasses
+from ..util import diff_dataclasses
 
 from ..notion_data import CustomNotionToMarkdown
 
@@ -22,22 +23,25 @@ class ProjectSync(BaseSync):
     high level in Notion. See README.md for more info.
     """
 
+    async def _async_init(self):
+        async with asyncio.TaskGroup() as tg:
+            tg.create_task(super()._async_init())
+            milestones_issues = tg.create_task(self._discover_notion_issues(self.milestones_db.database_id))
+
+        self._notion_milestone_issues = milestones_issues.result()
+
     def _find_task_parents(self, tracker_issue):
+        milestone_issues = self._notion_milestone_issues
+
         found_milestone_parents = [
             milestone_parent["id"]
             for parent in tracker_issue.parents
-            if (
-                milestone_parent := getnestedattr(
-                    lambda: self._notion_milestone_issues[parent.repo][parent.id],
-                    None,
-                )
-            )
-            is not None
+            if (milestone_parent := milestone_issues.get(parent.repo, {}).get(parent.id, None)) is not None
         ]
 
         return found_milestone_parents
 
-    def synchronize_single_milestone(self, tracker_issue, page):
+    async def synchronize_single_milestone(self, tracker_issue, page):
         """Synchronize a single Notion milestone to the issue tracker.
 
         Args:
@@ -47,9 +51,9 @@ class ProjectSync(BaseSync):
         # Body
         body = tracker_issue.description
         if self.milestones_body_sync or (self.milestones_body_sync_if_empty and not len(tracker_issue.description)):
-            blocks = self.milestones_db.get_page_contents(page["id"])
+            blocks = await self.milestones_db.get_page_contents(page["id"])
             converter = CustomNotionToMarkdown(self.notion, strip_images=True, tracker=self.tracker)
-            body = converter.convert(blocks)
+            body = await converter.convert(blocks)
 
         # Assignees. Community assignees should be kept on the issue so a sync doesn't remove them.
         community_assignees = {assignee for assignee in tracker_issue.assignees if assignee.notion_user is None}
@@ -85,64 +89,67 @@ class ProjectSync(BaseSync):
             diff_dataclasses(tracker_issue, new_issue, log=logger.debug)
 
             if not self.dry:
-                self.tracker.update_milestone_issue(tracker_issue, new_issue)
+                await self.tracker.update_milestone_issue(tracker_issue, new_issue)
         else:
             logger.info(
                 f"Unchanged milestone {tracker_issue.id} - {tracker_issue.title} ({tracker_issue.url} / {new_issue.notion_url})"
             )
 
-    def synchronize(self):
+    async def synchronize(self):
         """Synchronize all the things!"""
+        await self._async_init()
+
         timestamp = datetime.datetime.now(datetime.UTC)
+        collected_tasks = deepcopy(self._notion_tasks_issues)
 
-        milestone_issues = self._notion_milestone_issues
-        tasks_issues = self._notion_tasks_issues
-        collected_tasks = deepcopy(tasks_issues)
+        async with asyncio.TaskGroup() as tg:
+            # Synchronize sprints (if enabled)
+            if self.sprint_db:
+                logger.info(f"Synchronizing sprints to {self.sprint_db}")
+                tg.create_task(self.synchronize_sprints())
 
-        # Synchronize sprints (if enabled)
-        if self.sprint_db:
-            logger.info(f"Synchronizing sprints to {self.sprint_db}")
-            self.synchronize_sprints()
+            # Synchronize issues found in milestones
+            for reporef, issues in self._notion_milestone_issues.items():
+                refs = [IssueRef(id=issue, repo=reporef) for issue in issues.keys()]
 
-        # Synchronize issues found in milestones
-        for reporef, issues in milestone_issues.items():
-            refs = [IssueRef(id=issue, repo=reporef) for issue in issues.keys()]
+                tracker_issues = await self.tracker.get_issues_by_number(refs, True)
+                logger.info(f"Synchronizing {len(issues)} milestones for {reporef}")
 
-            tracker_issues = self.tracker.get_issues_by_number(refs, True)
-            logger.info(f"Synchronizing {len(issues)} milestones for {reporef}")
+                # Update the tracker issue from milestone data
+                for issue in issues.keys():
+                    tracker_issue = tracker_issues[issue]
+                    notion_page = issues[issue]
 
-            # Update the tracker issue from milestone data
-            for issue in issues.keys():
-                tracker_issue = tracker_issues[issue]
-                notion_page = issues[issue]
+                    tg.create_task(self.synchronize_single_milestone(tracker_issue, notion_page))
 
-                self.synchronize_single_milestone(tracker_issue, notion_page)
+                    # For each sub-issue in the tracker milestone, make sure we have a notion task
+                    for subissue in tracker_issue.sub_issues:
+                        if subissue.id not in collected_tasks[subissue.repo]:
+                            collected_tasks[subissue.repo][subissue.id] = None
 
-                # For each sub-issue in the tracker milestone, make sure we have a notion task
-                for subissue in tracker_issue.sub_issues:
-                    if subissue.id not in collected_tasks[subissue.repo]:
-                        collected_tasks[subissue.repo][subissue.id] = None
+            # Any additional tasks the tracker might be interested in (e.g. sprint boards)
+            self.tracker.collect_additional_tasks(collected_tasks)
 
-        # Any additional tasks the tracker might be interested in (e.g. sprint boards)
-        self.tracker.collect_additional_tasks(collected_tasks)
+            # Synchronize individual and above collected tasks
+            for reporef, issue_pages in collected_tasks.items():
+                refs = [IssueRef(id=issue, repo=reporef) for issue in issue_pages.keys()]
 
-        # Synchronize individual and above collected tasks
-        for reporef, issue_pages in collected_tasks.items():
-            refs = [IssueRef(id=issue, repo=reporef) for issue in issue_pages.keys()]
+                tracker_issues = await self.tracker.get_issues_by_number(refs)
+                logger.info(f"Synchronizing {len(tracker_issues)} tasks for {reporef}")
 
-            tracker_issues = self.tracker.get_issues_by_number(refs)
-            logger.info(f"Synchronizing {len(tracker_issues)} tasks for {reporef}")
+                for issue_id, issue in tracker_issues.items():
+                    tg.create_task(self.synchronize_single_task(issue, issue_pages[issue_id]))
 
-            for issue_id, issue in tracker_issues.items():
-                self.synchronize_single_task(issue, issue_pages[issue_id])
+        async with asyncio.TaskGroup() as tg:
+            # Update the description with the last updated timestamp
+            tg.create_task(self._update_timestamp(self.milestones_db, timestamp))
+            tg.create_task(self._update_timestamp(self.tasks_db, timestamp))
+            if self.sprint_db:
+                tg.create_task(self._update_timestamp(self.sprint_db, timestamp))
 
-        # Update the description with the last updated timestamp
-        self._update_timestamp(self.milestones_db, timestamp)
-        self._update_timestamp(self.tasks_db, timestamp)
-        if self.sprint_db:
-            self._update_timestamp(self.sprint_db, timestamp)
+        await self.notion.aclose()
 
 
-def synchronize(**kwargs):  # pragma: no cover
+async def synchronize(**kwargs):  # pragma: no cover
     """Exported method to begin synchronization."""
-    ProjectSync(**kwargs).synchronize()
+    await ProjectSync(**kwargs).synchronize()

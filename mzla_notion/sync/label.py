@@ -4,6 +4,7 @@
 
 import logging
 import datetime
+import asyncio
 
 from functools import cached_property
 
@@ -25,9 +26,12 @@ class LabelSync(BaseSync):
         super().__init__(**kwargs)
         self.milestone_label_prefix = milestone_label_prefix
 
-    @cached_property
-    def _all_milestone_pages(self):
-        return self.milestones_db.get_all_pages()
+    async def _async_init(self):
+        async with asyncio.TaskGroup() as tg:
+            tg.create_task(super().async_init())
+            milestone_pages = tg.create_task(self.milestones_db.get_all_pages())
+
+        self._all_milestone_pages = milestone_pages.result()
 
     @cached_property
     def _milestone_pages_by_title(self):
@@ -39,32 +43,35 @@ class LabelSync(BaseSync):
 
     def _find_task_parents(self, issue):
         parent_ids = []
-        milestone_pages = self._milestone_pages_by_title
 
         for label in issue.labels:
             if label.startswith(self.milestone_label_prefix):
                 clean_label = label[len(self.milestone_label_prefix) :].strip()
-                if page := milestone_pages.get(clean_label):
+                if page := self._milestone_pages_by_title.get(clean_label):
                     parent_ids.append(page["id"])
 
         return parent_ids
 
-    def synchronize(self):
+    async def synchronize(self):
         """Synchronize all the issues!"""
+        await self.async_init()
+
         timestamp = datetime.datetime.now(datetime.UTC)
 
         tracker_issues = self.tracker.get_all_issues()
         tasks_issues = self._notion_tasks_issues
 
         # Synchronize all issues into the tasks db
-        for reporef, issues in tracker_issues.items():
-            for issue in issues:
-                self.synchronize_single_task(issue, tasks_issues.get(issue.repo, {}).get(issue.id))
+        async with asyncio.TaskGroup() as tg:
+            for reporef, issues in tracker_issues.items():
+                for issue in issues:
+                    tg.create_task(self.synchronize_single_task(issue, tasks_issues.get(issue.repo, {}).get(issue.id)))
 
         # Update the description with the last updated timestamp
-        self._update_timestamp(self.tasks_db, timestamp)
+        await self._update_timestamp(self.tasks_db, timestamp)
+        await self.notion.aclose()
 
 
-def synchronize(**kwargs):  # pragma: no cover
+async def synchronize(**kwargs):  # pragma: no cover
     """Exported method to begin synchronization."""
-    LabelSync(**kwargs).synchronize()
+    await LabelSync(**kwargs).synchronize()

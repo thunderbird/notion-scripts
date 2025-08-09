@@ -12,6 +12,7 @@ import uuid
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 from collections import defaultdict
+from contextlib import contextmanager
 
 
 def load_fixture(name):
@@ -27,7 +28,7 @@ def load_directory(path):
                 yield filename, json.load(fp)
 
 
-class BaseTestCase(unittest.TestCase):
+class BaseTestCase(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         if "-v" in sys.argv:
             sync_log_level = logging.DEBUG
@@ -60,6 +61,16 @@ class BaseTestCase(unittest.TestCase):
         if not_called and self.respx._assert_all_called:
             print("NOT CALLED", not_called)
         self.respx.stop()
+
+    @contextmanager
+    def assertRaisesInGroup(self, expected_type, msg_part):
+        with self.assertRaises(ExceptionGroup) as cm:
+            yield
+
+        subgroup = cm.exception.subgroup(expected_type)
+        self.assertIsNotNone(subgroup, f"{expected_type} not found in exception group")
+        matches = [e for e in subgroup.exceptions if msg_part in str(e)]
+        self.assertTrue(matches, f"No {expected_type.__name__} contained message '{msg_part}'")
 
     def _configure_mock_urlopen(self):
         def side_effect(request, *args, **kwargs):
@@ -141,7 +152,7 @@ class NotionDatabaseHandler:
         return next((page for page in self.pages if page["id"] == pageid), None)
 
     def query_handler(self, req):
-        return {"results": self.pages}
+        return {"results": self.pages, "has_more": False, "next_cursor": None}
 
     def update_handler(self, req):
         data = json.loads(req.content)
