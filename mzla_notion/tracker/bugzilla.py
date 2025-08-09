@@ -4,6 +4,7 @@ import httpx
 import base64
 import logging
 import datetime
+import asyncio
 
 from functools import cache
 
@@ -148,10 +149,8 @@ class Bugzilla(IssueTracker):
         if data and not self.dry:
             await self.client.put(f"/bug/{new_issue.id}", json=data)
 
-    async def get_issues_by_number(self, bugrefs, sub_issues=False):
-        """Retrieve issues by their id number."""
-        res = {}
-        bugids = map(lambda bug: urllib.parse.quote(str(bug.id), safe=""), bugrefs)
+    async def _get_bugzilla_bugs(self, bugids, sub_issues=False):
+        issues = []
         fields = "id,summary,status,product,cf_user_story,assigned_to,priority,depends_on,blocks,attachments,comments,see_also,creation_time,cf_last_resolved"
 
         response = await self.client.get("/bug", params={"id": ",".join(bugids), "include_fields": fields})
@@ -203,6 +202,20 @@ class Bugzilla(IssueTracker):
                 if self._is_allowed_product(bug)
             ]
 
-            res[issue.id] = issue
+            issues.append(issue)
+        return issues
 
-        return res
+    async def get_issues_by_number(self, bugrefs, sub_issues=False):
+        """Retrieve issues by their id number."""
+        bugids = [urllib.parse.quote(str(bug.id), safe="") for bug in bugrefs]
+
+        chunk_size = 100
+
+        tasks = [
+            asyncio.create_task(self._get_bugzilla_bugs(bugids[i : i + chunk_size], sub_issues))
+            for i in range(0, len(bugids), chunk_size)
+        ]
+
+        for got_bugs in asyncio.as_completed(tasks):
+            for issue in await got_bugs:
+                yield issue

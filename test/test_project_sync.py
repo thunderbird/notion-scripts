@@ -45,7 +45,9 @@ class TestTracker(IssueTracker):
             return None
 
     async def get_issues_by_number(self, issues, sub_issues=False):
-        return {issue.id: self.issues[issue.id] for issue in issues if issue.id in self.issues}
+        for issue in issues:
+            if issue.id in self.issues:
+                yield self.issues[issue.id]
 
     async def update_milestone_issue(self, old_issue, new_issue):
         pass

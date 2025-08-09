@@ -118,9 +118,11 @@ class BugzillaProjectTest(BaseTestCase):
         self.assertEqual(issue["assigned_to"], "staff2@example.com")
 
     async def test_bugzilla_get_issues_by_number(self):
-        issues = await self.bugzilla.get_issues_by_number(
+        got_issues = self.bugzilla.get_issues_by_number(
             [IssueRef(repo="bugzilla.dev", id="1944850"), IssueRef(repo="bugzilla.dev", id="1944885")], True
         )
+
+        issues = {issue.id: issue async for issue in got_issues}
 
         self.assertEqual(self.respx.routes["bugs_get"].calls.call_count, 1)
         self.assertEqual(self.respx.routes["bugs_get"].calls.last.request.url.params["id"], "1944850,1944885")
@@ -147,9 +149,11 @@ class BugzillaProjectTest(BaseTestCase):
         self.assertEqual(issue.notion_url, "https://www.notion.so/mzthunderbird/b183c949289f4282864cd373cb8b2cb7")
 
     async def test_bugzilla_resolved_state(self):
-        issues = await self.bugzilla.get_issues_by_number(
+        got_issues = self.bugzilla.get_issues_by_number(
             [IssueRef(repo="bugzilla.dev", id="1849476"), IssueRef(repo="bugzilla.dev", id="1944885")], True
         )
+
+        issues = {issue.id: issue async for issue in got_issues}
 
         issue = issues["1944885"]
 

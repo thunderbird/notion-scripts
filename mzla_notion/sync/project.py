@@ -112,13 +112,12 @@ class ProjectSync(BaseSync):
             for reporef, issues in self._notion_milestone_issues.items():
                 refs = [IssueRef(id=issue, repo=reporef) for issue in issues.keys()]
 
-                tracker_issues = await self.tracker.get_issues_by_number(refs, True)
+                tracker_issues = self.tracker.get_issues_by_number(refs, True)
                 logger.info(f"Synchronizing {len(issues)} milestones for {reporef}")
 
                 # Update the tracker issue from milestone data
-                for issue in issues.keys():
-                    tracker_issue = tracker_issues[issue]
-                    notion_page = issues[issue]
+                async for tracker_issue in tracker_issues:
+                    notion_page = issues[tracker_issue.id]
 
                     tg.create_task(self.synchronize_single_milestone(tracker_issue, notion_page))
 
@@ -134,11 +133,11 @@ class ProjectSync(BaseSync):
             for reporef, issue_pages in collected_tasks.items():
                 refs = [IssueRef(id=issue, repo=reporef) for issue in issue_pages.keys()]
 
-                tracker_issues = await self.tracker.get_issues_by_number(refs)
-                logger.info(f"Synchronizing {len(tracker_issues)} tasks for {reporef}")
+                tracker_issues = self.tracker.get_issues_by_number(refs)
+                logger.info(f"Synchronizing tasks for {reporef}")
 
-                for issue_id, issue in tracker_issues.items():
-                    tg.create_task(self.synchronize_single_task(issue, issue_pages[issue_id]))
+                async for issue in tracker_issues:
+                    tg.create_task(self.synchronize_single_task(issue, issue_pages[issue.id]))
 
         async with asyncio.TaskGroup() as tg:
             # Update the description with the last updated timestamp
