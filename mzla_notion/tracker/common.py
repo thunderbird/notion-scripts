@@ -121,7 +121,7 @@ class IssueTracker:
         """Determine the title for notion tasks."""
         return tasks_notion_prefix + issue.title
 
-    def collect_additional_tasks(self, collected_tasks):
+    async def collect_additional_tasks(self, collected_tasks):
         """Add additional tasks to the collected tasks for sync."""
         pass
 
@@ -133,7 +133,7 @@ class IssueTracker:
         """Get a list of all associated repositories."""
         return []
 
-    def get_sprints(self):
+    async def get_sprints(self):
         """Get the sprints associated with this tracker."""
         return []
 
@@ -142,11 +142,11 @@ class IssueTracker:
         issues = self.get_issues_by_number([issueref])
         return issues[issueref.id]
 
-    def get_all_issues(self):
+    async def get_all_issues(self):
         """Get all issues in all asscoiated repositories."""
         return []
 
-    def get_all_labels(self):
+    async def get_all_labels(self):
         """Get the names of all labels in all associated repositories."""
         return []
 

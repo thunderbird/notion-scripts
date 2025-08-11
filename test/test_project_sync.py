@@ -55,11 +55,11 @@ class TestTracker(IssueTracker):
     def notion_tasks_title(self, prefix, issue):
         return f"{prefix}- test - {issue.title}"
 
-    def collect_additional_tasks(self, collected_tasks):
+    async def collect_additional_tasks(self, collected_tasks):
         for task in self.additional_tasks:
             collected_tasks[task.repo][task.id] = None
 
-    def get_sprints(self):
+    async def get_sprints(self):
         return [
             Sprint(
                 id="1",
@@ -430,8 +430,8 @@ class ProjectSyncTest(BaseTestCase):
     async def test_milestone_sync_with_sprint(self):
         tracker = TestTracker(issues=self.issues)
 
-        self.issues[1].sprint = tracker.get_sprints()[1]
-        self.issues[2].sprint = tracker.get_sprints()[2]
+        self.issues[1].sprint = (await tracker.get_sprints())[1]
+        self.issues[2].sprint = (await tracker.get_sprints())[2]
 
         await self.synchronize_project(tracker, sprint_id="sprints_id")
 
@@ -529,8 +529,8 @@ class ProjectSyncTest(BaseTestCase):
     async def test_milestone_sync_with_sprint_merge_by_title(self):
         tracker = TestTracker(issues=self.issues)
 
-        self.issues[1].sprint = tracker.get_sprints()[1]
-        self.issues[2].sprint = tracker.get_sprints()[2]
+        self.issues[1].sprint = (await tracker.get_sprints())[1]
+        self.issues[2].sprint = (await tracker.get_sprints())[2]
 
         await self.synchronize_project(tracker, sprint_id="sprints_id", sprints_merge_by_name=True)
 
@@ -619,8 +619,8 @@ class ProjectSyncTest(BaseTestCase):
 
     async def test_milestone_sync_with_sprint_merge_by_title_date_mismatch(self):
         tracker = TestTracker(issues=self.issues)
-        self.issues[1].sprint = tracker.get_sprints()[1]
-        self.issues[2].sprint = tracker.get_sprints()[2]
+        self.issues[1].sprint = (await tracker.get_sprints())[1]
+        self.issues[2].sprint = (await tracker.get_sprints())[2]
 
         with self.subTest(msg="end date"):
             self.notion_handler.sprints_handler.pages[1]["properties"]["Dates"]["date"]["end"] = "2025-01-24"
@@ -651,7 +651,7 @@ class ProjectSyncTest(BaseTestCase):
         )
 
         with self.subTest(msg="sprint date"):
-            self.issues[2].sprint = tracker.get_sprints()[1]
+            self.issues[2].sprint = (await tracker.get_sprints())[1]
 
             await self.synchronize_project(tracker, sprint_id="sprints_id")
 
@@ -734,7 +734,7 @@ class ProjectSyncTest(BaseTestCase):
         self.assertEqual(tracker.update_milestone_issue.call_args[0][0].title, "Rebuild the calendar Read Event dialog")
         self.assertEqual(tracker.update_milestone_issue.call_args[0][1].title, "")
 
-    def test_dropdown_props(self):
+    async def test_dropdown_props(self):
         tracker = TestTracker(
             issues=self.issues,
             property_names={
@@ -777,7 +777,11 @@ class ProjectSyncTest(BaseTestCase):
             )
 
         with self.subTest(msg="all labels"):
-            tracker.get_all_labels = lambda: ["bug", "enhancement"]
+
+            async def get_all_labels():
+                return ["bug", "enhancement"]
+
+            tracker.get_all_labels = get_all_labels
             project_sync = ProjectSync(
                 project_key="test",
                 notion_token="NOTION_TOKEN",
@@ -785,6 +789,8 @@ class ProjectSyncTest(BaseTestCase):
                 tasks_id="tasks_id",
                 tracker=tracker,
             )
+            await project_sync._async_init()
+
             self.assertEqual(
                 project_sync.tasks_db.properties["Labels"].additional["multi_select"]["options"],
                 [{"name": "bug"}, {"name": "enhancement"}],

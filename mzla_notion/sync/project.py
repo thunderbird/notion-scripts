@@ -127,7 +127,7 @@ class ProjectSync(BaseSync):
                             collected_tasks[subissue.repo][subissue.id] = None
 
             # Any additional tasks the tracker might be interested in (e.g. sprint boards)
-            self.tracker.collect_additional_tasks(collected_tasks)
+            await self.tracker.collect_additional_tasks(collected_tasks)
 
             # Synchronize individual and above collected tasks
             for reporef, issue_pages in collected_tasks.items():

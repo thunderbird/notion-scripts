@@ -101,7 +101,6 @@ class BaseSync:
         self._setup_prop(tasks_properties, "notion_tasks_assignee", "people")
         self._setup_prop(tasks_properties, "notion_tasks_review_url", "link")
         self._setup_prop(tasks_properties, "notion_tasks_text_assignee", "rich_text_space_set")
-        self._setup_prop(tasks_properties, "notion_tasks_labels", "multi_select", self.tracker.get_all_labels())
         self._setup_prop(
             tasks_properties, "notion_tasks_repository", "select", strip_orgname(self.tracker.get_all_repositories())
         )
@@ -328,7 +327,7 @@ class BaseSync:
 
     async def synchronize_sprints(self):
         """Synchronize sprints from the tracker to Notion."""
-        for sprint in self.tracker.get_sprints():
+        for sprint in await self.tracker.get_sprints():
             idprop = self.propnames["notion_sprint_tracker_id"]
 
             notion_data = {
@@ -413,6 +412,7 @@ class BaseSync:
         async with asyncio.TaskGroup() as tg:
             valid_milestones = tg.create_task(self.milestones_db.validate_props())
             valid_tasks = tg.create_task(self.tasks_db.validate_props())
+            all_labels = tg.create_task(self.tracker.get_all_labels())
 
             tasks_issues = tg.create_task(self._discover_notion_issues(self.tasks_db.database_id))
 
@@ -423,6 +423,11 @@ class BaseSync:
             raise Exception("Milestone schema failed to validate")
         if not valid_tasks.result():
             raise Exception("Tasks schema failed to validate")
+
+        tasks_properties = []
+        self._setup_prop(tasks_properties, "notion_tasks_labels", "multi_select", all_labels.result())
+        for prop in tasks_properties:
+            self.tasks_db.add_property(prop)
 
         self._notion_tasks_issues = tasks_issues.result()
 

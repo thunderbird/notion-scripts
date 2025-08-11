@@ -2,6 +2,7 @@ import datetime
 import dataclasses
 import sgqlc.operation
 import json
+import httpx
 
 from freezegun import freeze_time
 
@@ -33,18 +34,20 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(github.get_all_repositories(), ["kewisch/test"])
 
     async def test_github_get_issues_basics(self):
-        issues = await self.github.get_issues_by_number([], True)
-        self.assertEqual(issues, {})
+        issues = [issue async for issue in self.github.get_issues_by_number([], True)]
+        self.assertEqual(issues, [])
 
         with self.assertRaisesRegex(Exception, r"Can't yet query from different repositories"):
-            await self.github.get_issues_by_number(
+            iterator = self.github.get_issues_by_number(
                 [IssueRef(repo="kewisch/test", id="1"), IssueRef(repo="kewisch/test2", id="1")], True
             )
+            issues = [issue async for issue in iterator]
 
     async def test_github_get_issues_epics(self):
-        issues = await self.github.get_issues_by_number(
+        iterator = self.github.get_issues_by_number(
             [IssueRef(repo="kewisch/test", id="1"), IssueRef(repo="kewisch/test", id="2")], True
         )
+        issues = {issue.id: issue async for issue in iterator}
 
         self.assertEqual(len(issues), 2)
         issue = issues["1"]
@@ -104,8 +107,9 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(len(self.github_handler.calls["get_issues_1_and_2"]), 1)
 
     async def test_github_get_issue_tasks(self):
-        issues = await self.github.get_issues_by_number([], True)
-        self.assertEqual(issues, {})
+        iterator = self.github.get_issues_by_number([], True)
+        issues = [issue async for issue in iterator]
+        self.assertEqual(issues, [])
 
         issue3 = GitHubIssue(
             repo="kewisch/test",
@@ -136,14 +140,16 @@ class GitHubProjectTest(BaseTestCase):
         )
 
         with freeze_time("2025-02-09"):
-            issues = await self.github.get_issues_by_number([IssueRef(repo="kewisch/test", id="3")])
+            iterator = self.github.get_issues_by_number([IssueRef(repo="kewisch/test", id="3")])
+            issues = {issue.id: issue async for issue in iterator}
             self.assertEqual(issues["3"].gql.id, "I_kwDOMwGgpM6oWELp")
 
             issues["3"].gql = None
             self.assertEqual(issues, {"3": issue3})
 
         with freeze_time("2025-02-05"):
-            issues = await self.github.get_issues_by_number([IssueRef(repo="kewisch/test", id="3")])
+            iterator = self.github.get_issues_by_number([IssueRef(repo="kewisch/test", id="3")])
+            issues = {issue.id: issue async for issue in iterator}
             self.assertEqual(issues["3"].gql.id, "I_kwDOMwGgpM6oWELp")
 
             issue3.sprint.status = "Current"
@@ -152,7 +158,8 @@ class GitHubProjectTest(BaseTestCase):
             self.assertEqual(issues, {"3": issue3})
 
         with freeze_time("2025-02-01"):
-            issues = await self.github.get_issues_by_number([IssueRef(repo="kewisch/test", id="3")])
+            iterator = self.github.get_issues_by_number([IssueRef(repo="kewisch/test", id="3")])
+            issues = {issue.id: issue async for issue in iterator}
             self.assertEqual(issues["3"].gql.id, "I_kwDOMwGgpM6oWELp")
 
             issue3.sprint.status = "Future"
@@ -164,17 +171,19 @@ class GitHubProjectTest(BaseTestCase):
         with self.assertRaisesRegex(
             Exception, r"Issue https://github.com/kewisch/test/issues/4 has both tasks and milestones project"
         ):
-            await self.github.get_issues_by_number([IssueRef(repo="kewisch/test", id="4")])
+            iterator = self.github.get_issues_by_number([IssueRef(repo="kewisch/test", id="4")])
+            [issue async for issue in iterator]
 
     async def test_github_update_no_change(self):
         self.github.user_map = GitHubUserMap(
-            self.github.endpoint,
+            self.github.sync_endpoint,
             {"kewisch": "3df71ec3-17c7-4eb4-80bc-a321af157be6", "notkewisch": "b5a819b4-e2b3-432c-8e5a-256dace1176f"},
         )
 
-        issues = await self.github.get_issues_by_number(
+        iterator = self.github.get_issues_by_number(
             [IssueRef(repo="kewisch/test", id="1"), IssueRef(repo="kewisch/test", id="2")], True
         )
+        issues = {issue.id: issue async for issue in iterator}
 
         old_issue = issues["1"]
 
@@ -186,13 +195,14 @@ class GitHubProjectTest(BaseTestCase):
 
     async def test_github_update_milestone_issue(self):
         self.github.user_map = GitHubUserMap(
-            self.github.endpoint,
+            self.github.sync_endpoint,
             {"kewisch": "3df71ec3-17c7-4eb4-80bc-a321af157be6", "notkewisch": "b5a819b4-e2b3-432c-8e5a-256dace1176f"},
         )
 
-        issues = await self.github.get_issues_by_number(
+        iterator = self.github.get_issues_by_number(
             [IssueRef(repo="kewisch/test", id="1"), IssueRef(repo="kewisch/test", id="2")], True
         )
+        issues = {issue.id: issue async for issue in iterator}
 
         old_issue = issues["1"]
 
@@ -230,13 +240,14 @@ class GitHubProjectTest(BaseTestCase):
 
     async def test_github_update_issue_add_roadmap(self):
         self.github.user_map = GitHubUserMap(
-            self.github.endpoint,
+            self.github.sync_endpoint,
             {"kewisch": "3df71ec3-17c7-4eb4-80bc-a321af157be6", "notkewisch": "b5a819b4-e2b3-432c-8e5a-256dace1176f"},
         )
 
-        issues = await self.github.get_issues_by_number(
+        iterator = self.github.get_issues_by_number(
             [IssueRef(repo="kewisch/test", id="1"), IssueRef(repo="kewisch/test", id="2")], True
         )
+        issues = {issue.id: issue async for issue in iterator}
 
         old_issue = issues["1"]
         old_issue.gql.project_items.nodes = []
@@ -275,13 +286,14 @@ class GitHubProjectTest(BaseTestCase):
         self.github.dry = True
 
         self.github.user_map = GitHubUserMap(
-            self.github.endpoint,
+            self.github.sync_endpoint,
             {"kewisch": "3df71ec3-17c7-4eb4-80bc-a321af157be6", "notkewisch": "b5a819b4-e2b3-432c-8e5a-256dace1176f"},
         )
 
-        issues = await self.github.get_issues_by_number(
+        iterator = self.github.get_issues_by_number(
             [IssueRef(repo="kewisch/test", id="1"), IssueRef(repo="kewisch/test", id="2")], True
         )
+        issues = {issue.id: issue async for issue in iterator}
 
         old_issue = issues["1"]
 
@@ -311,8 +323,8 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(len(self.github_handler.calls["get_label_bug"]), 1)
 
     @freeze_time("2025-02-24 12:13:14")
-    def test_get_sprints(self):
-        res = self.github.get_sprints()
+    async def test_get_sprints(self):
+        res = await self.github.get_sprints()
 
         self.assertCountEqual(
             res,
@@ -355,10 +367,10 @@ class GitHubProjectTest(BaseTestCase):
             ],
         )
 
-    def test_collect_additional_tasks(self):
+    async def test_collect_additional_tasks(self):
         collected_tasks = {"kewisch/test": {"4": None, "6": {"id": "mock_block"}}}
 
-        self.github.collect_additional_tasks(collected_tasks)
+        await self.github.collect_additional_tasks(collected_tasks)
 
         self.assertIn("3", collected_tasks["kewisch/test"])
         self.assertIn("4", collected_tasks["kewisch/test"])
@@ -382,14 +394,14 @@ class GitHubProjectTest(BaseTestCase):
 
         self.assertEqual(len(self.github_handler.calls), 0)
 
-    def test_get_all_issues(self):
-        issues = self.github.get_all_issues()
+    async def test_get_all_issues(self):
+        issues = await self.github.get_all_issues()
 
         self.assertEqual(len(issues), 1)
         self.assertEqual(len(issues["kewisch/test"]), 6)
 
-    def test_get_all_labels(self):
-        labels = self.github.get_all_labels()
+    async def test_get_all_labels(self):
+        labels = await self.github.get_all_labels()
         self.assertEqual(
             set(labels),
             {
@@ -405,11 +417,11 @@ class GitHubProjectTest(BaseTestCase):
             },
         )
 
-    def test_label_cache(self):
+    async def test_label_cache(self):
         cache = LabelCache(self.github.endpoint)
 
-        ab = cache.get_labels("org", "repo", ["a", "b"])
-        bc = cache.get_labels("org", "repo", ["b", "c"])
+        ab = await cache.get_labels("org", "repo", ["a", "b"])
+        bc = await cache.get_labels("org", "repo", ["b", "c"])
 
         self.assertEqual(ab, {"a": "LA_kwDOMwGgpM8AAAABvAun4g", "b": "LA_kwDOMwGgpM8AAAABvAun6Q"})
         self.assertEqual(bc, {"b": "LA_kwDOMwGgpM8AAAABvAun6Q", "c": "LA_kwDOMwGgpM8AAAABvAun9Q"})
@@ -420,7 +432,7 @@ class GitHubProjectTest(BaseTestCase):
 
     def test_usermap(self):
         user_map = self.github.user_map = GitHubUserMap(
-            self.github.endpoint,
+            self.github.sync_endpoint,
             {"kewisch": "3df71ec3-17c7-4eb4-80bc-a321af157be6", "notkewisch": "b5a819b4-e2b3-432c-8e5a-256dace1176f"},
         )
 
@@ -446,22 +458,24 @@ class GitHubProjectTest(BaseTestCase):
 
         def handler(request):
             nonlocal count
-            reqdata = json.loads(request.data)
+            reqdata = json.loads(request.content)
             issue_count_queried.append(reqdata["query"].count("issue(number:"))
 
             if count < max_count:
                 count += 1
-                return json.dumps({"errors": [{"message": "Timeout on validation of query"}]}).encode()
+                return httpx.Response(200, json={"errors": [{"message": "Timeout on validation of query"}]})
             else:
-                return real_handler(request)
+                return self.github_handler.handle(request)
 
-        real_handler = self.github_handler.handle
-        self.github_handler.handle = handler
+        self.respx.route(name="github_graphql", method="POST", url="https://api.github.com/graphql").mock(
+            side_effect=handler
+        )
 
         with self.subTest(msg="eventual success"):
-            issues = await self.github.get_issues_by_number(
+            iterator = self.github.get_issues_by_number(
                 [IssueRef(repo="kewisch/test", id="1"), IssueRef(repo="kewisch/test", id="2")], True
             )
+            issues = [issue async for issue in iterator]
 
             self.assertEqual(issue_count_queried, [2, 2, 2, 2, 2, 2, 1, 1])
             self.assertEqual(len(issues), 2)
@@ -471,24 +485,26 @@ class GitHubProjectTest(BaseTestCase):
 
         with self.subTest(msg="eventual failure"):
             with self.assertRaisesRegex(sgqlc.operation.GraphQLErrors, r"Timeout on validation of query"):
-                await self.github.get_issues_by_number(
+                iterator = self.github.get_issues_by_number(
                     [IssueRef(repo="kewisch/test", id="1"), IssueRef(repo="kewisch/test", id="2")], True
                 )
+                issues = [issue async for issue in iterator]
 
-    def test_issue_state(self):
+    async def test_issue_state(self):
         # Remove project items so we can go by issue state
         def handler(request):
-            res = real_handler(request)
-            data = json.loads(res)
+            res = self.github_handler.handle(request)
+            data = res.json()
             for node in data["data"]["repository"]["issues"]["nodes"]:
                 node["projectItems"]["nodes"] = []
 
-            return json.dumps(data).encode()
+            return httpx.Response(200, json=data)
 
-        real_handler = self.github_handler.handle
-        self.github_handler.handle = handler
+        self.respx.route(name="github_graphql", method="POST", url="https://api.github.com/graphql").mock(
+            side_effect=handler
+        )
 
-        repos = self.github.get_all_issues()
+        repos = await self.github.get_all_issues()
         issues = repos["kewisch/test"]
 
         self.assertEqual(issues[0].state, None)

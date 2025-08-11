@@ -10,7 +10,6 @@ import uuid
 
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 from collections import defaultdict
 from contextlib import contextmanager
 
@@ -42,8 +41,6 @@ class BaseTestCase(unittest.IsolatedAsyncioTestCase):
         else:
             logging.getLogger("sgqlc.endpoint.http").setLevel(logging.CRITICAL)
 
-        self._configure_mock_urlopen()
-
         self.respx = respx.mock(assert_all_called=False)
         self.maxDiff = None
         self.respx.start()
@@ -54,7 +51,7 @@ class BaseTestCase(unittest.IsolatedAsyncioTestCase):
         self.respx.reset()
         self.bugzilla_handler = BugzillaHandler(self.respx)
         self.notion_handler = NotionHandler(self.respx)
-        self.github_handler = GitHubHandler()
+        self.github_handler = GitHubHandler(self.respx)
 
     def tearDown(self):
         not_called = [route for route in self.respx.routes if not route.called]
@@ -71,30 +68,6 @@ class BaseTestCase(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(subgroup, f"{expected_type} not found in exception group")
         matches = [e for e in subgroup.exceptions if msg_part in str(e)]
         self.assertTrue(matches, f"No {expected_type.__name__} contained message '{msg_part}'")
-
-    def _configure_mock_urlopen(self):
-        def side_effect(request, *args, **kwargs):
-            url = request.full_url if hasattr(request, "full_url") else request
-
-            urldata = urllib.parse.urlparse(url)
-            if urldata.netloc == "api.github.com" and urldata.path == "/graphql":
-                result = self.github_handler.handle(request)
-
-            if isinstance(result, Exception):
-                raise result
-            elif result:
-                mock_response = MagicMock()
-                mock_response.__enter__.return_value = mock_response
-                mock_response.read.return_value = result
-                mock_response.headers = {}
-                return mock_response
-            else:
-                raise RuntimeError(f"Unhandled endpoint {url}")
-
-        patcher = patch("urllib.request.urlopen")
-        self.addCleanup(patcher.stop)
-        mock_urlopen = patcher.start()
-        mock_urlopen.side_effect = side_effect
 
 
 class BugzillaHandler:
@@ -281,8 +254,12 @@ class NotionHandler:
 
 
 class GitHubHandler:
-    def __init__(self):
+    def __init__(self, respx_mock):
         self.reset()
+
+        respx_mock.route(name="github_graphql", method="POST", url="https://api.github.com/graphql").mock(
+            side_effect=self.handle
+        )
 
         requests = {}
         responses = {}
@@ -303,12 +280,12 @@ class GitHubHandler:
         self.calls = defaultdict(list)
 
     def handle(self, request):
-        reqdata = json.loads(request.data)["query"]
+        reqdata = json.loads(request.content.decode("utf-8"))["query"]
 
         if reqdata in self.pages:
             request_name = self.pages[reqdata]
             self.calls[request_name].append(request)
-            return json.dumps(self.responses[request_name]).encode()
+            return httpx.Response(200, json=self.responses[request_name])
         else:
             print(reqdata)
             with open("lastreq.gql", "w") as fp:

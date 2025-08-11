@@ -3,6 +3,8 @@ import os
 import sgqlc.types
 import itertools
 import logging
+import httpx
+import asyncio
 
 from collections import defaultdict
 from dataclasses import dataclass
@@ -11,6 +13,7 @@ from sgqlc.operation import Operation, GraphQLErrors
 
 from ..github_schema import schema
 from ..util import getnestedattr
+from ..sgqlc_endpoint import HTTPXEndpoint
 
 from .common import UserMap, Sprint, IssueRef, Issue, User, IssueTracker
 
@@ -102,11 +105,20 @@ class GitHub(IssueTracker):
         """Initialize issue tracker."""
         super().__init__(**kwargs)
 
-        self.endpoint = HTTPEndpoint(
-            url="https://api.github.com/graphql", base_headers={"Authorization": f"Bearer {token}"}, timeout=120.0
+        self.endpoint = HTTPXEndpoint(
+            url="https://api.github.com/graphql",
+            base_headers={"Authorization": f"Bearer {token}"},
+            timeout=120.0,
+            client=httpx.AsyncClient(),
+        )
+        self.sync_endpoint = HTTPXEndpoint(
+            url="https://api.github.com/graphql",
+            base_headers={"Authorization": f"Bearer {token}"},
+            timeout=120.0,
+            client=httpx.Client(),
         )
 
-        self.user_map = GitHubUserMap(self.endpoint, user_map)
+        self.user_map = GitHubUserMap(self.sync_endpoint, user_map)
         self.label_cache = LabelCache(self.endpoint)
 
         self._init_repository_settings(repositories)
@@ -158,12 +170,12 @@ class GitHub(IssueTracker):
         """Get a list of all associated repositories."""
         return list(self.allowed_repositories)
 
-    def collect_additional_tasks(self, collected_tasks):
+    async def collect_additional_tasks(self, collected_tasks):
         """Add additional tasks to the collected tasks for sync."""
         # Collect issues from sprint board, there may be a few not associated with a milestone
         project_item_count = 0
         for project in self.all_tasks_projects:
-            for issue_ref in project.get_issue_numbers():
+            for issue_ref in await project.get_issue_numbers():
                 if self.is_repo_allowed(issue_ref.repo) and issue_ref.id not in collected_tasks[issue_ref.repo]:
                     collected_tasks[issue_ref.repo][issue_ref.id] = None
                     project_item_count += 1
@@ -172,12 +184,14 @@ class GitHub(IssueTracker):
 
     async def update_milestone_issue(self, old_issue, new_issue):
         """Update an issue on GitHub."""
-        self._update_issue_basic(old_issue, new_issue)
-        self._update_issue_assignees(old_issue, new_issue)
-        self._update_issue_labels(old_issue, new_issue)
-        self._update_issue_project(old_issue, new_issue)
+        await asyncio.gather(
+            self._update_issue_basic(old_issue, new_issue),
+            self._update_issue_assignees(old_issue, new_issue),
+            self._update_issue_labels(old_issue, new_issue),
+            self._update_issue_project(old_issue, new_issue),
+        )
 
-    def _update_issue_basic(self, old_issue, new_issue):
+    async def _update_issue_basic(self, old_issue, new_issue):
         matches = True
         for prop in ["title", "state", "description"]:
             if getattr(new_issue, prop) != getattr(old_issue, prop):
@@ -202,9 +216,9 @@ class GitHub(IssueTracker):
 
         if not self.dry:
             op.update_issue(input=issue_data)
-            self.endpoint(op)
+            await self.endpoint(op)
 
-    def _update_issue_assignees(self, old_issue, new_issue):
+    async def _update_issue_assignees(self, old_issue, new_issue):
         # Check if assignees have not changed
         old_assignees = {assignee.dbid_user for assignee in old_issue.assignees}
         new_assignees = {assignee.dbid_user for assignee in new_issue.assignees}
@@ -227,23 +241,23 @@ class GitHub(IssueTracker):
             op.add_assignees_to_assignable(input={"assignable_id": old_issue.gql.id, "assignee_ids": list(add)})
 
         if not self.dry:
-            self.endpoint(op)
+            await self.endpoint(op)
 
-    def _update_issue_labels(self, old_issue, new_issue):
+    async def _update_issue_labels(self, old_issue, new_issue):
         new_labels = new_issue.labels - old_issue.labels
         if not len(new_labels):
             return
 
         org, repo = old_issue.repo.split("/")
-        labels = self.label_cache.get_labels(org, repo, new_labels)
+        labels = await self.label_cache.get_labels(org, repo, new_labels)
         label_ids = [labelid for labelid in labels.values()]
 
         if not self.dry:
             op = Operation(schema.mutation_type)
             op.add_labels_to_labelable(input={"labelable_id": old_issue.gql.id, "label_ids": label_ids})
-            self.endpoint(op)
+            await self.endpoint(op)
 
-    def _update_issue_project(self, old_issue, new_issue):
+    async def _update_issue_project(self, old_issue, new_issue):
         if self.dry:
             return
 
@@ -263,7 +277,7 @@ class GitHub(IssueTracker):
             or old_end_date != new_issue.end_date
             or old_priority != new_issue.priority
         ):
-            self.github_milestones_projects[new_issue.repo].update_project_for_issue(
+            await self.github_milestones_projects[new_issue.repo].update_project_for_issue(
                 new_issue,
                 {
                     "start_date": new_issue.start_date,
@@ -348,10 +362,8 @@ class GitHub(IssueTracker):
 
     async def get_issues_by_number(self, issues, sub_issues=False, chunk_size=50):
         """Get the indicated numbered issues."""
-        res = {}
-
         if not len(issues):
-            return res
+            return
 
         i = 0
         chunk_size = 100
@@ -375,12 +387,12 @@ class GitHub(IssueTracker):
                     subissues.nodes.number()
 
             try:
-                data = self.endpoint(op)
+                data = await self.endpoint(op)
                 datarepo = (op + data).repository
 
                 for ref in itertools.islice(issues, i, i + chunk_size):
                     ghissue = getattr(datarepo, f"issue{ref.id}", None)
-                    res[ref.id] = self._parse_issue(ghissue, sub_issues)
+                    yield self._parse_issue(ghissue, sub_issues)
 
                 i += chunk_size
             except GraphQLErrors as e:
@@ -390,9 +402,7 @@ class GitHub(IssueTracker):
                     continue
                 raise e
 
-        return res
-
-    def get_sprints(self):
+    async def get_sprints(self):
         """Retrieve the sprints from the issue tracker."""
 
         def process_iteration(ghsprint, status):
@@ -409,7 +419,7 @@ class GitHub(IssueTracker):
         today = datetime.date.today()
 
         for project in self.all_tasks_projects:
-            sprint_field = project.field("sprint")
+            sprint_field = await project.field("sprint")
 
             for sprint in sprint_field.configuration.iterations:
                 sprints.append(process_iteration(sprint, "Future" if sprint.start_date > today else "Current"))
@@ -418,7 +428,7 @@ class GitHub(IssueTracker):
                 sprints.append(process_iteration(sprint, "Past"))
         return sprints
 
-    def _get_repo_issues(self, reporef, sub_issues=False):
+    async def _get_repo_issues(self, reporef, sub_issues=False):
         has_next_page = True
         cursor = None
 
@@ -436,7 +446,7 @@ class GitHub(IssueTracker):
             issues.page_info.__fields__(end_cursor=True)
             issue_field_ops(issues.nodes)
 
-            data = self.endpoint(op)
+            data = await self.endpoint(op)
             repo = (op + data).repository
 
             for ghissue in repo.issues.nodes:
@@ -448,21 +458,21 @@ class GitHub(IssueTracker):
 
         return all_issues
 
-    def get_all_issues(self, sub_issues=False):
+    async def get_all_issues(self, sub_issues=False):
         """Get all issues in all asscoiated repositories."""
         all_issues = {}
         for orgrepo in self.allowed_repositories:
             orgname, repo = orgrepo.split("/")
-            all_issues[orgrepo] = self._get_repo_issues(orgrepo, sub_issues)
+            all_issues[orgrepo] = await self._get_repo_issues(orgrepo, sub_issues)
         return all_issues
 
-    def get_all_labels(self):
+    async def get_all_labels(self):
         """Get the names of all labels in all associated repositories."""
         all_labels = set()
 
         for orgrepo in self.allowed_repositories:
             orgname, repo = orgrepo.split("/")
-            all_labels.update(self.label_cache.get_all(orgname, repo).keys())
+            all_labels.update((await self.label_cache.get_all(orgname, repo)).keys())
 
         return all_labels
 
@@ -475,7 +485,7 @@ class LabelCache:
         self._cache = defaultdict(dict)
         self.endpoint = endpoint
 
-    def get_all(self, org, repo):
+    async def get_all(self, org, repo):
         """Get all labels in the repository."""
         orgrepocache = self._cache[org + "/" + repo]
 
@@ -492,7 +502,7 @@ class LabelCache:
             labels.page_info.__fields__(has_next_page=True)
             labels.page_info.__fields__(end_cursor=True)
 
-            data = self.endpoint(op)
+            data = await self.endpoint(op)
             datarepo = (op + data).repository
 
             for label in datarepo.labels.nodes:
@@ -503,7 +513,7 @@ class LabelCache:
 
         return orgrepocache
 
-    def get_labels(self, org, repo, labels):
+    async def get_labels(self, org, repo, labels):
         """Get the list of labels from the org/repo."""
         res = {}
         remaining = []
@@ -523,7 +533,7 @@ class LabelCache:
             labelnode = repo.label(__alias__=f"label_{index}", name=label)
             labelnode.id()
 
-        data = self.endpoint(op)
+        data = await self.endpoint(op)
         repo = (op + data).repository
 
         for index, label in enumerate(remaining):
@@ -579,7 +589,7 @@ class GitHubProjectV2:
         self.field_names = field_names
         self.project = None
 
-    def get(self, force=False):
+    async def get(self, force=False):
         """Retrieve the cached project and its fields.
 
         Args:
@@ -625,12 +635,12 @@ class GitHubProjectV2:
                 optionField.options.id()
                 optionField.options.name()
 
-            data = self.endpoint(op)
+            data = await self.endpoint(op)
             self.project = (op + data).node
 
         return self.project
 
-    def get_issue_numbers(self):
+    async def get_issue_numbers(self):
         """Return a list of IssueRefs for each issue in the project."""
         has_next_page = True
         cursor = None
@@ -649,7 +659,7 @@ class GitHubProjectV2:
 
             project_items.page_info.__fields__(has_next_page=True)
             project_items.page_info.__fields__(end_cursor=True)
-            data = self.endpoint(op)
+            data = await self.endpoint(op)
 
             project_items = (op + data).node.items
             for item in project_items.nodes:
@@ -663,11 +673,12 @@ class GitHubProjectV2:
 
         return all_issue_numbers
 
-    def field(self, name, default=None):
+    async def field(self, name, default=None):
         """Get a specific field from the project."""
-        return getattr(self.get(), name, default)
+        info = await self.get()
+        return getattr(info, name, default)
 
-    def update_project_for_issue(self, issue, properties, add=False):
+    async def update_project_for_issue(self, issue, properties, add=False):
         """Update ProjectV2 properties for the given issue.
 
         Args:
@@ -675,14 +686,14 @@ class GitHubProjectV2:
             properties (dict): A dict with project fields to update
             add (bool): If true, the issue will be added to the project if not the case.
         """
-        project = self.get()
+        project = await self.get()
         item = self.find_project_item(issue.gql, self.database_id)
 
         # Check if the issue needs to be added to the project
         if not item and add:
             op = Operation(schema.mutation_type)
             op.add_project_v2_item_by_id(input={"project_id": project.id, "content_id": issue.gql.id})
-            data = self.endpoint(op)
+            data = await self.endpoint(op)
             item = (op + data).add_project_v2_item_by_id.item
 
         matches = True
@@ -690,7 +701,7 @@ class GitHubProjectV2:
         # Adjust each of the passed project fields. There are only a few different types
         op = Operation(schema.mutation_type)
         for key, value in properties.items():
-            field = self.field(key)
+            field = await self.field(key)
 
             input_item = {
                 "project_id": project.id,
@@ -723,7 +734,7 @@ class GitHubProjectV2:
 
         # Only actually update if there were changes
         if not matches:
-            self.endpoint(op)
+            await self.endpoint(op)
 
     def find_project_item(self, gh_issue, project_id):
         """Find the correct project item.

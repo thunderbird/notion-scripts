@@ -28,7 +28,7 @@ class LabelSync(BaseSync):
 
     async def _async_init(self):
         async with asyncio.TaskGroup() as tg:
-            tg.create_task(super().async_init())
+            tg.create_task(super()._async_init())
             milestone_pages = tg.create_task(self.milestones_db.get_all_pages())
 
         self._all_milestone_pages = milestone_pages.result()
@@ -54,11 +54,11 @@ class LabelSync(BaseSync):
 
     async def synchronize(self):
         """Synchronize all the issues!"""
-        await self.async_init()
+        await self._async_init()
 
         timestamp = datetime.datetime.now(datetime.UTC)
 
-        tracker_issues = self.tracker.get_all_issues()
+        tracker_issues = await self.tracker.get_all_issues()
         tasks_issues = self._notion_tasks_issues
 
         # Synchronize all issues into the tasks db
