@@ -111,7 +111,7 @@ async def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_r
 
         if project["method"].endswith("_project"):
             if project["method"] == "bugzilla_project":
-                tracker = Bugzilla(
+                tracker = await Bugzilla.create(
                     base_url=project["bugzilla_base"],
                     token=os.environ["BUGZILLA_TOKEN"],
                     dry=dry_run or project.get("tracker_dry_run", False),
@@ -119,7 +119,7 @@ async def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_r
                     property_names=project.get("properties", {}),
                 )
             elif project["method"] == "github_project":
-                tracker = GitHub(
+                tracker = await GitHub.create(
                     token=os.environ["GITHUB_TOKEN"],
                     repositories=project["repositories"],
                     dry=dry_run or project.get("tracker_dry_run", False),
@@ -148,7 +148,7 @@ async def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_r
                 synchronous=synchronous,
             )
         elif project["method"] == "github_labels":
-            tracker = GitHub(
+            tracker = await GitHub.create(
                 token=os.environ["GITHUB_TOKEN"],
                 repositories=project["repositories"],
                 dry=dry_run or project.get("tracker_dry_run", False),

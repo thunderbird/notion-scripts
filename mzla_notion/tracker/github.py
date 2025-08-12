@@ -33,11 +33,15 @@ GITHUB_PROJECT_MILESTONE_FIELDS = [
 class GitHubUserMap(UserMap):
     """User map for GitHub repositories."""
 
-    def __init__(self, endpoint, trk_to_notion):
-        """Initialize."""
-        super().__init__(trk_to_notion)
-        self._endpoint = endpoint
-        self._trk_to_dbid = self._get_userid_for_user_logins(trk_to_notion.keys())
+    @classmethod
+    async def create(cls, endpoint, trk_to_notion, **kwargs):
+        """Instanciate the user map and run async init."""
+        self = cls(trk_to_notion, **kwargs)
+        await self._init_userid_logins(endpoint, trk_to_notion)
+        return self
+
+    async def _init_userid_logins(self, endpoint, trk_to_notion):
+        self._trk_to_dbid = await self._get_userid_for_user_logins(endpoint, trk_to_notion.keys())
         self._dbid_to_trk = {dbid: trk for trk, dbid in self._trk_to_dbid.items()}
 
     def tracker_mention(self, tracker_username):
@@ -60,7 +64,7 @@ class GitHubUserMap(UserMap):
         """Convert a GitHub database id directly to a notion id."""
         return self._trk_to_notion.get(self._dbid_to_trk.get(dbid))
 
-    def _get_userid_for_user_logins(self, user_logins):
+    async def _get_userid_for_user_logins(self, endpoint, user_logins):
         if not len(user_logins):
             return {}
 
@@ -71,7 +75,7 @@ class GitHubUserMap(UserMap):
             usernode.id()
             usernode.database_id()
 
-        data = self._endpoint(op)
+        data = await endpoint(op)
         return {
             login: dbid for login in user_logins if (dbid := data.get("data", {}).get(f"user_{login}", {}).get("id"))
         }
@@ -112,17 +116,13 @@ class GitHub(IssueTracker):
             timeout=120.0,
             client=httpx.AsyncClient(),
         )
-        self.sync_endpoint = HTTPXEndpoint(
-            url="https://api.github.com/graphql",
-            base_headers={"Authorization": f"Bearer {token}"},
-            timeout=120.0,
-            client=httpx.Client(),
-        )
 
-        self.user_map = GitHubUserMap(self.sync_endpoint, user_map)
         self.label_cache = LabelCache(self.endpoint)
-
         self._init_repository_settings(repositories)
+        self._raw_user_map = user_map
+
+    async def _async_init(self):
+        self.user_map = await GitHubUserMap.create(self.endpoint, self._raw_user_map)
 
     def _init_repository_settings(self, repository_settings):
         self.allowed_repositories = set()
@@ -461,8 +461,9 @@ class GitHub(IssueTracker):
             *[self._get_repo_issues(orgrepo, sub_issues) for orgrepo in self.allowed_repositories]
         )
 
-        async for issue in merged:
-            yield issue
+        async with merged.stream() as streamer:
+            async for issue in streamer:
+                yield issue
 
     async def get_all_labels(self):
         """Get the names of all labels in all associated repositories."""

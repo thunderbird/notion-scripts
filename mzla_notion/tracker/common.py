@@ -108,10 +108,20 @@ class IssueTracker:
         "notion_inprogress_state": "In progress",
     }
 
+    @classmethod
+    async def create(cls, **kwargs):
+        """Instanciate the tracker and run async init."""
+        self = cls(**kwargs)
+        await self._async_init()
+        return self
+
     def __init__(self, property_names={}, dry=False):
         """Initialize the issue tracker."""
         self.dry = dry
         self.property_names = {**self.DEFAULT_PROPERTY_NAMES, **property_names}
+
+    async def _async_init(self):
+        pass
 
     def new_user(self, notion_user=None, tracker_user=None):
         """Create a new user instance based on notion user or tracker user."""
@@ -137,10 +147,13 @@ class IssueTracker:
         """Get the sprints associated with this tracker."""
         return []
 
-    def get_issue(self, issueref):
+    async def get_issue(self, issueref):
         """Get a single issue by issue ref."""
-        issues = self.get_issues_by_number([issueref])
-        return issues[issueref.id]
+        retissue = None
+        async for issue in self.get_issues_by_number([issueref]):
+            retissue = issue
+
+        return retissue
 
     async def get_all_issues(self):
         """Get all issues in all asscoiated repositories."""

@@ -21,15 +21,15 @@ REPO_SETTINGS = {
 
 
 class GitHubProjectTest(BaseTestCase):
-    def setUp(self):
-        super().setUp()
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
 
-        self.github = GitHub(token="GITHUB_TOKEN", repositories=REPO_SETTINGS, user_map={}, dry=False)
+        self.github = await GitHub.create(token="GITHUB_TOKEN", repositories=REPO_SETTINGS, user_map={}, dry=False)
 
-    def test_init_flat_repo(self):
+    async def test_init_flat_repo(self):
         flat_repo_settings = REPO_SETTINGS["reposetA"]
 
-        github = GitHub(token="GITHUB_TOKEN", repositories=flat_repo_settings, user_map={}, dry=False)
+        github = await GitHub.create(token="GITHUB_TOKEN", repositories=flat_repo_settings, user_map={}, dry=False)
         self.assertTrue(github.is_repo_allowed("kewisch/test"))
         self.assertEqual(github.get_all_repositories(), ["kewisch/test"])
 
@@ -175,8 +175,8 @@ class GitHubProjectTest(BaseTestCase):
             [issue async for issue in iterator]
 
     async def test_github_update_no_change(self):
-        self.github.user_map = GitHubUserMap(
-            self.github.sync_endpoint,
+        self.github.user_map = await GitHubUserMap.create(
+            self.github.endpoint,
             {"kewisch": "3df71ec3-17c7-4eb4-80bc-a321af157be6", "notkewisch": "b5a819b4-e2b3-432c-8e5a-256dace1176f"},
         )
 
@@ -194,8 +194,8 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(len(self.github_handler.calls["get_issues_1_and_2"]), 1)
 
     async def test_github_update_milestone_issue(self):
-        self.github.user_map = GitHubUserMap(
-            self.github.sync_endpoint,
+        self.github.user_map = await GitHubUserMap.create(
+            self.github.endpoint,
             {"kewisch": "3df71ec3-17c7-4eb4-80bc-a321af157be6", "notkewisch": "b5a819b4-e2b3-432c-8e5a-256dace1176f"},
         )
 
@@ -239,8 +239,8 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(len(self.github_handler.calls["get_project_info"]), 1)
 
     async def test_github_update_issue_add_roadmap(self):
-        self.github.user_map = GitHubUserMap(
-            self.github.sync_endpoint,
+        self.github.user_map = await GitHubUserMap.create(
+            self.github.endpoint,
             {"kewisch": "3df71ec3-17c7-4eb4-80bc-a321af157be6", "notkewisch": "b5a819b4-e2b3-432c-8e5a-256dace1176f"},
         )
 
@@ -285,8 +285,8 @@ class GitHubProjectTest(BaseTestCase):
     async def test_github_update_issue_dry(self):
         self.github.dry = True
 
-        self.github.user_map = GitHubUserMap(
-            self.github.sync_endpoint,
+        self.github.user_map = await GitHubUserMap.create(
+            self.github.endpoint,
             {"kewisch": "3df71ec3-17c7-4eb4-80bc-a321af157be6", "notkewisch": "b5a819b4-e2b3-432c-8e5a-256dace1176f"},
         )
 
@@ -395,10 +395,8 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(len(self.github_handler.calls), 0)
 
     async def test_get_all_issues(self):
-        issues = await self.github.get_all_issues()
-
-        self.assertEqual(len(issues), 1)
-        self.assertEqual(len(issues["kewisch/test"]), 6)
+        issues = [issue async for issue in self.github.get_all_issues()]
+        self.assertEqual(len(issues), 6)
 
     async def test_get_all_labels(self):
         labels = await self.github.get_all_labels()
@@ -430,9 +428,9 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(len(self.github_handler.calls["get_labels_ab"]), 1)
         self.assertEqual(len(self.github_handler.calls["get_labels_c"]), 1)
 
-    def test_usermap(self):
-        user_map = self.github.user_map = GitHubUserMap(
-            self.github.sync_endpoint,
+    async def test_usermap(self):
+        user_map = self.github.user_map = await GitHubUserMap.create(
+            self.github.endpoint,
             {"kewisch": "3df71ec3-17c7-4eb4-80bc-a321af157be6", "notkewisch": "b5a819b4-e2b3-432c-8e5a-256dace1176f"},
         )
 
@@ -504,7 +502,5 @@ class GitHubProjectTest(BaseTestCase):
             side_effect=handler
         )
 
-        repos = await self.github.get_all_issues()
-        issues = repos["kewisch/test"]
-
+        issues = [issue async for issue in self.github.get_all_issues()]
         self.assertEqual(issues[0].state, None)
