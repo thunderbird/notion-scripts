@@ -144,7 +144,8 @@ class IssueTracker:
 
     async def get_all_issues(self):
         """Get all issues in all asscoiated repositories."""
-        return []
+        if False:
+            yield "hack"
 
     async def get_all_labels(self):
         """Get the names of all labels in all associated repositories."""

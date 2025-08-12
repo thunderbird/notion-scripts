@@ -5,6 +5,7 @@ import itertools
 import logging
 import httpx
 import asyncio
+import aiostream
 
 from collections import defaultdict
 from dataclasses import dataclass
@@ -434,7 +435,6 @@ class GitHub(IssueTracker):
 
         orgname, reponame = reporef.split("/")
 
-        all_issues = []
         while has_next_page:
             op = Operation(schema.query_type)
             issues = op.repository(owner=orgname, name=reponame).issues(
@@ -450,21 +450,19 @@ class GitHub(IssueTracker):
             repo = (op + data).repository
 
             for ghissue in repo.issues.nodes:
-                issue = self._parse_issue(ghissue, sub_issues)
-                all_issues.append(issue)
+                yield self._parse_issue(ghissue, sub_issues)
 
             has_next_page = repo.issues.page_info.has_next_page
             cursor = repo.issues.page_info.end_cursor
 
-        return all_issues
-
     async def get_all_issues(self, sub_issues=False):
         """Get all issues in all asscoiated repositories."""
-        all_issues = {}
-        for orgrepo in self.allowed_repositories:
-            orgname, repo = orgrepo.split("/")
-            all_issues[orgrepo] = await self._get_repo_issues(orgrepo, sub_issues)
-        return all_issues
+        merged = aiostream.stream.merge(
+            *[self._get_repo_issues(orgrepo, sub_issues) for orgrepo in self.allowed_repositories]
+        )
+
+        async for issue in merged:
+            yield issue
 
     async def get_all_labels(self):
         """Get the names of all labels in all associated repositories."""

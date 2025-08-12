@@ -58,14 +58,13 @@ class LabelSync(BaseSync):
 
         timestamp = datetime.datetime.now(datetime.UTC)
 
-        tracker_issues = await self.tracker.get_all_issues()
+        tracker_issues = self.tracker.get_all_issues()
         tasks_issues = self._notion_tasks_issues
 
         # Synchronize all issues into the tasks db
         async with asyncio.TaskGroup() as tg:
-            for reporef, issues in tracker_issues.items():
-                for issue in issues:
-                    tg.create_task(self.synchronize_single_task(issue, tasks_issues.get(issue.repo, {}).get(issue.id)))
+            async for issue in tracker_issues:
+                tg.create_task(self.synchronize_single_task(issue, tasks_issues.get(issue.repo, {}).get(issue.id)))
 
         # Update the description with the last updated timestamp
         await self._update_timestamp(self.tasks_db, timestamp)

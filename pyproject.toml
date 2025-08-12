@@ -16,6 +16,7 @@ dependencies = [
     "md2notionpage==0.1.5",
     "notion-to-md-py==0.1.0",
     "h2>=4.2.0",
+    "aiostream>=0.7.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.12"
