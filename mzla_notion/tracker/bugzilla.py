@@ -5,6 +5,7 @@ import base64
 import logging
 import datetime
 import asyncio
+import json
 
 from functools import cache
 
@@ -57,7 +58,7 @@ class Bugzilla(IssueTracker):
         self.base_url = base_url
         self.repo_name = res.netloc
 
-        self.client = AsyncRetryingClient(
+        self.client = BugzillaAsyncRetryingClient(
             base_url=f"{base_url}/rest",
             limits=httpx.Limits(keepalive_expiry=30.0),
             http2=True,
@@ -219,3 +220,34 @@ class Bugzilla(IssueTracker):
         for got_bugs in asyncio.as_completed(tasks):
             for issue in await got_bugs:
                 yield issue
+
+
+class BugzillaAsyncRetryingClient(AsyncRetryingClient):
+    """A retrying client that will additionally retry on bugzilla errors."""
+
+    async def send(self, request, *args, recur=None, **kwargs):
+        """AsyncRetryingClient send that retries."""
+        response = await super().send(request, *args, recur=recur, **kwargs)
+
+        if recur is None:
+            recur = self.MAX_RETRY
+
+        try:
+            response_json = response.json()
+        except json.JSONDecodeError as e:
+            if recur <= 0:
+                raise
+
+            logger.info(f"Sleeping {self.RETRY_TIMEOUT} seconds due to {type(e).__name__}")
+            await asyncio.sleep(self.RETRY_TIMEOUT)
+            return await self.send(request, *args, recur=recur - 1, **kwargs)
+
+        if response_json.get("error", False):
+            if recur <= 0:
+                raise Exception("Bugzilla Error: " + str(response_json))
+
+            logger.info(f"Sleeping {self.RETRY_TIMEOUT} seconds due to {response_json}")
+            await asyncio.sleep(self.RETRY_TIMEOUT)
+            return await self.send(request, *args, recur=recur - 1, **kwargs)
+
+        return response

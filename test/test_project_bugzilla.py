@@ -2,8 +2,9 @@ import unittest
 import json
 import datetime
 import dataclasses
+import httpx
 
-from mzla_notion.tracker.bugzilla import Bugzilla, BugzillaUserMap
+from mzla_notion.tracker.bugzilla import Bugzilla, BugzillaUserMap, BugzillaAsyncRetryingClient
 from mzla_notion.tracker.common import IssueRef, Issue, User
 
 from .handlers import BaseTestCase
@@ -186,6 +187,41 @@ class BugzillaProjectTest(BaseTestCase):
         self.assertEqual(user_map.tracker_mention("staff@example.com"), "Staff user")
         self.assertEqual(user_map.tracker_to_notion("staff@example.com"), "3f92ed7d-9ca8-4266-98d7-4604ea623c46")
         self.assertEqual(user_map.notion_to_tracker("3f92ed7d-9ca8-4266-98d7-4604ea623c46"), "staff@example.com")
+
+    async def test_retrying_client(self):
+        client = BugzillaAsyncRetryingClient()
+        client.MAX_RETRY = 2
+        client.RETRY_TIMEOUT = 0
+
+        with self.subTest(msg="decode error"):
+
+            def handler(request):
+                nonlocal calls
+                calls += 1
+                return httpx.Response(200, text="DECODE ERROR")
+
+            calls = 0
+            self.respx.route(name="test_retry", url="https://example.test").mock(side_effect=handler)
+
+            with self.assertRaises(json.decoder.JSONDecodeError):
+                await client.post("https://example.test", json={})
+
+            self.assertEqual(calls, 3)
+
+        with self.subTest(msg="bugzilla error"):
+
+            def handler(request):
+                nonlocal calls
+                calls += 1
+                return httpx.Response(200, json={"error": True, "message": "message"})
+
+            calls = 0
+            self.respx.route(name="test_retry", url="https://example.test").mock(side_effect=handler)
+
+            with self.assertRaisesRegex(Exception, r"^Bugzilla Error:"):
+                await client.post("https://example.test", json={})
+
+            self.assertEqual(calls, 3)
 
 
 if __name__ == "__main__":
