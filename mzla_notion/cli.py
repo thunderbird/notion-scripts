@@ -48,25 +48,12 @@ def cmd_list_synchronizers(config):
     print("\n".join(enabled))
 
 
-async def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_run=False, synchronous=False):
-    """This is the main cli. Please use --help on how to use it."""
+def setup_logging(verbose):
+    """Set up debugging based on verbosity level."""
     logging.basicConfig(
         format="%(levelname)s [%(asctime)s] %(name)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
-
-    with open(config, "rb") as fp:
-        settings = tomllib.load(fp)
-
-    if user_map_file and os.path.isfile(user_map_file):
-        with open(user_map_file, "rb") as fp:
-            user_map = tomllib.load(fp)
-    else:
-        user_map = {
-            "bugzilla": tomllib.loads(os.environ.get("NOTION_SYNC_BUGZILLA_USERMAP", "")),
-            "github": tomllib.loads(os.environ.get("NOTION_SYNC_GITHUB_USERMAP", "")),
-        }
-
     httpx_log_level = (
         [logging.WARNING, logging.INFO, logging.INFO, logging.DEBUG][verbose] if verbose <= 3 else logging.DEBUG
     )
@@ -82,6 +69,21 @@ async def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_r
     logging.getLogger("bugzilla_sync").setLevel(sync_log_level)
     logging.getLogger("notion_sync").setLevel(sync_log_level)
     logging.getLogger("notion_database").setLevel(sync_log_level)
+
+
+async def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_run=False, synchronous=False):
+    """This is the main cli. Please use --help on how to use it."""
+    with open(config, "rb") as fp:
+        settings = tomllib.load(fp)
+
+    if user_map_file and os.path.isfile(user_map_file):
+        with open(user_map_file, "rb") as fp:
+            user_map = tomllib.load(fp)
+    else:
+        user_map = {
+            "bugzilla": tomllib.loads(os.environ.get("NOTION_SYNC_BUGZILLA_USERMAP", "")),
+            "github": tomllib.loads(os.environ.get("NOTION_SYNC_GITHUB_USERMAP", "")),
+        }
 
     # This will list the GitHub project ids for you
     # import libs.ghhelper
@@ -248,6 +250,7 @@ async def async_main():
     parser.add_argument("--debug-users", action="store_true", help="Show users with their id")
 
     args = parser.parse_args()
+    setup_logging(args.verbose)
 
     if args.debug_db:
         cmd_debug_db(dbid=args.debug_db)
