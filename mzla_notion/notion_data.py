@@ -87,9 +87,14 @@ class NotionDatabase:
             description=[{"type": "text", "text": {"content": new_desc}}],
         )
 
-    def get_all_pages(self):
+    def get_all_pages(self, query_filter=None):
         """Gets all pages currently in the Notion database."""
-        return async_collect_paginated_api(self.notion.databases.query, database_id=self.database_id, page_size=100)
+        if query_filter:
+            return async_collect_paginated_api(
+                self.notion.databases.query, database_id=self.database_id, page_size=100, filter=query_filter
+            )
+        else:
+            return async_collect_paginated_api(self.notion.databases.query, database_id=self.database_id, page_size=100)
 
     def dict_to_page(self, datadict: Dict[str, Any]):
         """Takes a `datadict` and returns a Notion database page formatted for the Notion API.
@@ -161,6 +166,19 @@ class NotionDatabase:
     def get_page_contents(self, page_id):
         """Retrieves the blocks in a Notion page in this database."""
         return async_collect_paginated_api(self.notion.blocks.children.list, block_id=page_id)
+
+    async def copy_page_contents(self, src_id, target_id, exclude=[]):
+        """Copy the blocks from one page to the next, excluding any indicated types."""
+        if self.dry:
+            return
+
+        server_blocks = async_iterate_paginated_api(self.notion.blocks.children.list, block_id=target_id)
+        delete_coros = [self.notion.blocks.delete(block_id=block["id"]) async for block in server_blocks]
+        await asyncio.gather(*delete_coros)
+
+        blocks = await async_collect_paginated_api(self.notion.blocks.children.list, block_id=src_id)
+        unexcluded = [block for block in blocks if block["type"] not in exclude]
+        await self.notion.blocks.children.append(block_id=target_id, children=unexcluded)
 
     async def replace_page_contents(self, page_id, markdown):
         """Replace the contents of the notion page with the supplied markdown."""
@@ -275,7 +293,7 @@ class CustomNotionToMarkdown(NotionToMarkdownAsync):
         md_blocks = await self.block_list_to_markdown(blocks)
         return self.to_markdown_string(md_blocks).get("parent")
 
-    def block_to_markdown(self, block: Dict) -> str:
+    async def block_to_markdown(self, block: Dict) -> str:
         """Super class class this for processing each block."""
         if block["type"] == "image" and self.strip_images:
             return ""
@@ -293,7 +311,7 @@ class CustomNotionToMarkdown(NotionToMarkdownAsync):
                         # Strip the @ to avoid mentioning random people on github
                         rich_text["plain_text"] = rich_text["plain_text"].replace("@", "")
 
-        return super().block_to_markdown(block)
+        return await super().block_to_markdown(block)
 
 
 # Property creation functions
