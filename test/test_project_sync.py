@@ -284,7 +284,7 @@ class ProjectSyncTest(BaseTestCase):
                     "Issue Link": {"url": "https://example.com/repo/234"},
                     "Owner": {"type": "people", "people": []},
                     "Priority": {"select": None},
-                    "Project": {"relation": [{"id": "726fac28-6b63-48ca-90ec-0066be1a2755"}]},
+                    "Project": {"relation": [{"id": "726fac286b6348ca90ec0066be1a2755"}]},
                     "Status": {"status": {"name": "NEW"}},
                     "Title": {
                         "title": [{"text": {"content": "[tasks_notion_prefix] - test - Subissue 1"}}],
@@ -340,7 +340,7 @@ class ProjectSyncTest(BaseTestCase):
                 "properties": {
                     "Dates": {"date": None},
                     "Issue Link": {"url": "https://example.com/repo/234"},
-                    "Project": {"relation": [{"id": "726fac28-6b63-48ca-90ec-0066be1a2755"}]},
+                    "Project": {"relation": [{"id": "726fac286b6348ca90ec0066be1a2755"}]},
                     "Status": {"status": {"name": "NEW"}},
                     "Title": {
                         "title": [{"text": {"content": "Subissue 1"}}],
@@ -494,7 +494,7 @@ class ProjectSyncTest(BaseTestCase):
                     "Review URL": {"url": None},
                     "Dates": {"date": {"start": "2025-01-16", "end": "2025-01-23"}},
                     "Sprint": {"relation": [{"id": sprint_3_id}]},
-                    "Project": {"relation": [{"id": "726fac28-6b63-48ca-90ec-0066be1a2755"}]},
+                    "Project": {"relation": [{"id": "726fac286b6348ca90ec0066be1a2755"}]},
                 }
             },
         )
@@ -508,9 +508,9 @@ class ProjectSyncTest(BaseTestCase):
                     "Issue Link": {"url": "https://example.com/repo/234"},
                     "Owner": {"type": "people", "people": []},
                     "Priority": {"select": None},
-                    "Project": {"relation": [{"id": "726fac28-6b63-48ca-90ec-0066be1a2755"}]},
+                    "Project": {"relation": [{"id": "726fac286b6348ca90ec0066be1a2755"}]},
                     "Status": {"status": {"name": "NEW"}},
-                    "Sprint": {"relation": [{"id": "1c5dea4a-dcdf-8159-948b-f193a527ef1a"}]},
+                    "Sprint": {"relation": [{"id": "1c5dea4adcdf8159948bf193a527ef1a"}]},
                     "Title": {
                         "title": [{"text": {"content": "[tasks_notion_prefix] - test - Subissue 1"}}],
                         "type": "title",
@@ -580,9 +580,9 @@ class ProjectSyncTest(BaseTestCase):
                     "Issue Link": {"url": "https://example.com/repo/234"},
                     "Owner": {"type": "people", "people": []},
                     "Priority": {"select": None},
-                    "Project": {"relation": [{"id": "726fac28-6b63-48ca-90ec-0066be1a2755"}]},
+                    "Project": {"relation": [{"id": "726fac286b6348ca90ec0066be1a2755"}]},
                     "Status": {"status": {"name": "NEW"}},
-                    "Sprint": {"relation": [{"id": "1c5dea4a-dcdf-8159-948b-f193a527ef1a"}]},
+                    "Sprint": {"relation": [{"id": "1c5dea4adcdf8159948bf193a527ef1a"}]},
                     "Title": {
                         "title": [{"text": {"content": "[tasks_notion_prefix] - test - Subissue 1"}}],
                         "type": "title",
@@ -600,9 +600,9 @@ class ProjectSyncTest(BaseTestCase):
                     "Issue Link": {"url": "https://example.com/repo/345"},
                     "Owner": {"type": "people", "people": []},
                     "Priority": {"select": None},
-                    "Project": {"relation": [{"id": "726fac28-6b63-48ca-90ec-0066be1a2755"}]},
+                    "Project": {"relation": [{"id": "726fac286b6348ca90ec0066be1a2755"}]},
                     "Status": {"status": {"name": "NEW"}},
-                    "Sprint": {"relation": [{"id": "89cc4fa2-f788-430d-a337-64a9aa6cb0ab"}]},
+                    "Sprint": {"relation": [{"id": "89cc4fa2f788430da33764a9aa6cb0ab"}]},
                     "Title": {
                         "title": [{"text": {"content": "[tasks_notion_prefix] - test - Subissue 2"}}],
                         "type": "title",
@@ -666,9 +666,9 @@ class ProjectSyncTest(BaseTestCase):
                         "Issue Link": {"url": "https://example.com/repo/345"},
                         "Owner": {"type": "people", "people": []},
                         "Priority": {"select": None},
-                        "Project": {"relation": [{"id": "726fac28-6b63-48ca-90ec-0066be1a2755"}]},
+                        "Project": {"relation": [{"id": "726fac286b6348ca90ec0066be1a2755"}]},
                         "Status": {"status": {"name": "NEW"}},
-                        "Sprint": {"relation": [{"id": "1c5dea4a-dcdf-8159-948b-f193a527ef1a"}]},
+                        "Sprint": {"relation": [{"id": "1c5dea4adcdf8159948bf193a527ef1a"}]},
                         "Title": {
                             "title": [{"text": {"content": "[tasks_notion_prefix] - test - Subissue 2"}}],
                             "type": "title",

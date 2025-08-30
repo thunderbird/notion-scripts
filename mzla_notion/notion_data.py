@@ -566,10 +566,10 @@ def relation(name: str, related_db: str, dual: bool = False) -> NotionProperty:
     relation_type = "dual_property" if dual else "single_property"
 
     def _update(page_ids: List[str]) -> Dict[str, Any]:
-        return {name: {"relation": [{"id": page_id} for page_id in page_ids]}}
+        return {name: {"relation": [{"id": page_id.replace("-", "")} for page_id in page_ids]}}
 
     def _diff(property_data: Dict[str, Any], related_page_ids: List[str]) -> bool:
-        existing_ids = {relation["id"] for relation in property_data.get("relation", [])}
+        existing_ids = {relation["id"].replace("-", "") for relation in property_data.get("relation", [])}
         return existing_ids != set(related_page_ids)
 
     return NotionProperty(
