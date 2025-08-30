@@ -8,6 +8,9 @@ import os
 import sys
 import asyncio
 import tomllib
+import notion_client
+
+from pprint import pprint
 
 from .sync.label import synchronize as synchronize_gh_label
 from .sync.project import synchronize as synchronize_project
@@ -16,6 +19,24 @@ from .tracker.github import GitHub
 from .tracker.bugzilla import Bugzilla
 
 logger = logging.getLogger("notion_sync")
+
+
+def cmd_debug_users():
+    """Show a list of users."""
+    notion = notion_client.Client(auth=os.environ["NOTION_TOKEN"])
+    users = notion.users.list()
+    for user in users["results"]:
+        print(f'{user["person"]["email"]} = "{user["id"]}" # {user["name"]}')
+
+
+def cmd_debug_db(dbid=None):
+    """Show a debug view of a page or database."""
+    notion = notion_client.Client(auth=os.environ["NOTION_TOKEN"])
+
+    try:
+        pprint(notion.databases.retrieve(database_id=dbid))
+    except notion_client.errors.APIResponseError:
+        pprint(notion.pages.retrieve(dbid))
 
 
 def cmd_list_synchronizers(config):
@@ -65,21 +86,6 @@ async def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_r
     # This will list the GitHub project ids for you
     # import libs.ghhelper
     # libs.ghhelper.GitHubProjectV2.list("thunderbird", "thunderbird-android")
-    # sys.exit()
-
-    # This will give you a list of users and their ids
-    # from notion_client import Client
-    # from pprint import pprint
-    # notion = Client(auth=os.environ["NOTION_TOKEN"])
-    # pprint(notion.users.list())
-    # sys.exit()
-
-    # This will give you the properties
-    # from pprint import pprint
-    # from notion_client import Client
-    # notion = Client(auth=os.environ["NOTION_TOKEN"])
-    # pprint(notion.databases.retrieve(database_id="DB_ID_HERE"))
-    # pprint(notion.pages.retrieve("PAGE_ID_HERE"))
     # sys.exit()
 
     if settings.get("dry", False):
@@ -238,9 +244,16 @@ async def async_main():
         help="The keys of the projects to synchronize. Defaults to all projects.",
     )
 
+    parser.add_argument("--debug-db", help="Show debug database view")
+    parser.add_argument("--debug-users", action="store_true", help="Show users with their id")
+
     args = parser.parse_args()
 
-    if args.list:
+    if args.debug_db:
+        cmd_debug_db(dbid=args.debug_db)
+    elif args.debug_users:
+        cmd_debug_users()
+    elif args.list:
         cmd_list_synchronizers(args.config)
     else:
         sys.exit(
