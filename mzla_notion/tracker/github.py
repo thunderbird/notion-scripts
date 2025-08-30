@@ -71,13 +71,15 @@ class GitHubUserMap(UserMap):
         op = Operation(schema.query_type)
 
         for login in user_logins:
-            usernode = op.user(__alias__=f"user_{login}", login=login)
+            usernode = op.user(__alias__=f"user_{login.replace('-', '_')}", login=login)
             usernode.id()
             usernode.database_id()
 
         data = await endpoint(op)
         return {
-            login: dbid for login in user_logins if (dbid := data.get("data", {}).get(f"user_{login}", {}).get("id"))
+            login: dbid
+            for login in user_logins
+            if (dbid := data.get("data", {}).get(f"user_{login.replace('-','_')}", {}).get("id"))
         }
 
 
