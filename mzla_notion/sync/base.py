@@ -74,7 +74,7 @@ class BaseSync:
                 the issue tracker and Notion.
             synchronous (bool): If true, run any async tasks sequentially.
         """
-        self.notion = notion_client.AsyncClient(auth=notion_token, client=AsyncRetryingClient())
+        self.notion = notion_client.AsyncClient(auth=notion_token, client=AsyncRetryingClient(http2=True))
         self.tracker = tracker
 
         # Milestones Database

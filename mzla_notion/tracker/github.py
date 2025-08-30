@@ -116,7 +116,7 @@ class GitHub(IssueTracker):
             url="https://api.github.com/graphql",
             base_headers={"Authorization": f"Bearer {token}"},
             timeout=120.0,
-            client=httpx.AsyncClient(),
+            client=httpx.AsyncClient(http2=True),
         )
 
         self.label_cache = LabelCache(self.endpoint)
