@@ -6,7 +6,6 @@ import argparse
 import logging
 import os
 import sys
-import asyncio
 import tomllib
 import notion_client
 
@@ -198,18 +197,13 @@ async def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_r
     return 0
 
 
-def main():
-    """Main mzla-notion program entry point."""
-    asyncio.run(async_main())
-
-
 async def async_main():
     """Main mzla-notion program."""
     parser = argparse.ArgumentParser(description="Notion Synchronization for MZLA")
     parser.add_argument(
         "-c",
         "--config",
-        default="sync_settings.toml",
+        default="config/sync_settings.toml",
         help="Use a different config file, defaults to sync_settings.toml.",
     )
     parser.add_argument(

@@ -21,24 +21,33 @@ dependencies = [
 readme = "README.md"
 requires-python = ">= 3.12"
 
-[project.scripts]
-mzla-notion = "mzla_notion.cli:main"
-
-[tool.rye]
-managed = true
-virtual = true
-dev-dependencies = [
-    "respx>=0.22.0",
-    "freezegun>=1.5.2",
+[dependency-groups]
+dev = [
     "coverage>=7.9.2",
+    "freezegun>=1.5.2",
+    "pytest>=8.4.1",
+    "respx>=0.22.0",
+    "ruff>=0.12.11",
+    "taskipy>=1.14.1",
 ]
 
-[tool.rye.scripts]
-sync = { call = "mzla_notion.cli:main" }
-test = "python -m unittest"
-"test:coverage" = "python -m coverage run -m unittest"
-"test:coverage-report" = "python -m coverage html"
-cover = { chain = ["test:coverage", "test:coverage-report"] }
+
+[project.scripts]
+mzla-notion = "mzla_notion:__main__"
+
+[tool.uv]
+managed = true
+package = true
+
+[tool.setuptools]
+packages = ["mzla_notion"]
+
+# Example: uv run task lint
+[tool.taskipy.tasks]
+test = "uv run -m unittest"
+cover = "uv run -m coverage run -m unittest && uv run -m coverage html"
+lint = "ruff check"
+format = "ruff format"
 
 [tool.ruff]
 line-length = 120

@@ -32,16 +32,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Rye
-        id: setup-rye
-        uses: eifinger/setup-rye@6dc1fff0a98becbcc0cf542a05ae144c9f32b100  # v4.2.8
+      - name: Setup python
+        uses: actions/setup-python@v5
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@4959332f0f014c5280e7eac8b70c90cb574c9f9b  # v6.6.0
         with:
           enable-cache: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          ignore-nothing-to-cache: true
 
-      - name: Rye Sync
-        if: steps.setup-rye.outputs.cache-hit != 'true'
-        run: rye sync
+      - name: uv sync
+        run: uv sync --locked --all-extras --dev
 
       - name: Generate
         id: generate
@@ -51,7 +53,7 @@ jobs:
         run: |
           if [ -z "${PROJECTS}" ]
           then
-            echo "synchronizers=$(rye run sync -l -c config/sync_settings.${ENVIRONMENT}.toml | jq -R . | jq -sc .)" | tee -a $GITHUB_OUTPUT
+            echo "synchronizers=$(uv run -m mzla_notion -l -c config/sync_settings.${ENVIRONMENT}.toml | jq -R . | jq -sc .)" | tee -a $GITHUB_OUTPUT
           else
             echo "synchronizers=$(echo ${PROJECTS} | jq -R . | jq -sc .)" | tee -a $GITHUB_OUTPUT
           fi
@@ -68,16 +70,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Rye
-        id: setup-rye
-        uses: eifinger/setup-rye@6dc1fff0a98becbcc0cf542a05ae144c9f32b100  # v4.2.8
+      - name: Setup python
+        uses: actions/setup-python@v5
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@4959332f0f014c5280e7eac8b70c90cb574c9f9b  # v6.6.0
         with:
           enable-cache: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          ignore-nothing-to-cache: true
 
-      - name: Rye Sync
-        if: steps.setup-rye.outputs.cache-hit != 'true'
-        run: rye sync
+      - name: uv sync
+        run: uv sync --locked --all-extras --dev
 
       - name: Synchronize
         env:
@@ -91,4 +95,4 @@ jobs:
           NOTION_SYNC_GITHUB_USERMAP: ${{ vars.NOTION_SYNC_GITHUB_USERMAP }}
           NOTION_SYNC_BUGZILLA_USERMAP: ${{ vars.NOTION_SYNC_BUGZILLA_USERMAP }}
         run: |
-          rye run sync ${DRY} ${VERBOSE} -c config/sync_settings.${ENVIRONMENT}.toml ${PROJECT}
+          uv run -m mzla_notion ${DRY} ${VERBOSE} -c config/sync_settings.${ENVIRONMENT}.toml ${PROJECT}

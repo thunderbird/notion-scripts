@@ -3,6 +3,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.egg-info/
-sync_settings.toml
-sync_usermap*.toml
+config/sync_settings*.toml
+config/sync_usermap*.toml
 /.coverage

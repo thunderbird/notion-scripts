@@ -79,7 +79,7 @@ class GitHubUserMap(UserMap):
         return {
             login: dbid
             for login in user_logins
-            if (dbid := data.get("data", {}).get(f"user_{login.replace('-','_')}", {}).get("id"))
+            if (dbid := data.get("data", {}).get(f"user_{login.replace('-', '_')}", {}).get("id"))
         }
 
 
@@ -376,7 +376,7 @@ class GitHub(IssueTracker):
             op = Operation(schema.query_type)
             org, repo = issues[0].repo.split("/")
             oprepo = op.repository(owner=org, name=repo)
-            logger.debug(f"Get issues {i} through {i+chunk_size}")
+            logger.debug(f"Get issues {i} through {i + chunk_size}")
 
             for ref in itertools.islice(issues, i, i + chunk_size):
                 if ref.repo != issues[0].repo:
@@ -559,7 +559,7 @@ class GitHubProjectV2:
         """
         endpoint = HTTPEndpoint(
             "https://api.github.com/graphql",
-            {"Authorization": f'Bearer {os.getenv("GITHUB_TOKEN")}'},
+            {"Authorization": f"Bearer {os.getenv('GITHUB_TOKEN')}"},
         )
 
         op = Operation(schema.query_type)

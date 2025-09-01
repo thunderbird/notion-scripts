@@ -13,29 +13,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Rye
-        uses: eifinger/setup-rye@6dc1fff0a98becbcc0cf542a05ae144c9f32b100  # v4.2.8
+      - name: Setup uv
+        uses: astral-sh/setup-uv@4959332f0f014c5280e7eac8b70c90cb574c9f9b  # v6.6.0
         with:
           enable-cache: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          ignore-nothing-to-cache: true
 
-      - name: Rye Sync
-        run: rye sync
+      - name: uv sync
+        run: uv sync
 
-      - name: Rye Lint
+      - name: lint
         env:
           VERBOSE: ${{ runner.debug && '-v' || '' }}
         run:
-          rye lint ${VERBOSE}
+          uv run task lint ${VERBOSE}
 
-      - name: Rye Format
+      - name: format
         env:
           VERBOSE: ${{ runner.debug && '-v' || '' }}
         run:
-          rye fmt --check ${VERBOSE}
+          uv run task format --check ${VERBOSE}
 
-      - name: Rye Test
+      - name: test
         env:
           VERBOSE: ${{ runner.debug && '-v' || '' }}
         run:
-          rye run test ${VERBOSE}
+          uv run task test ${VERBOSE}
