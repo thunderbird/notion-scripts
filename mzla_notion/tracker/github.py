@@ -155,8 +155,9 @@ class GitHub(IssueTracker):
 
     def parse_issueref(self, ref):
         """Parse an issue identifier (e.g. github url) to an IssueRef."""
+        # https://github.com/thunderbird/repo/issues/1234
         parts = ref.split("/")
-        if parts[2] == "github.com" and parts[5] == "issues":
+        if len(parts) == 7 and parts[2] == "github.com" and parts[5] == "issues":
             return IssueRef(repo=parts[3] + "/" + parts[4], id=parts[6])
         else:
             return None
