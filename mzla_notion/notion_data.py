@@ -565,12 +565,21 @@ def relation(name: str, related_db: str, dual: bool = False) -> NotionProperty:
     """A relation between two databases. dual indicates a bi-directional relation."""
     relation_type = "dual_property" if dual else "single_property"
 
+    def _normalize_relid(relid):
+        if isinstance(relid, str):
+            return relid.replace("-", "")
+        elif isinstance(relid, dict):
+            return relid["id"].replace("-", "")
+        else:
+            return relid
+
     def _update(page_ids: List[str]) -> Dict[str, Any]:
-        return {name: {"relation": [{"id": page_id.replace("-", "")} for page_id in page_ids]}}
+        return {name: {"relation": [{"id": _normalize_relid(page_id)} for page_id in page_ids]}}
 
     def _diff(property_data: Dict[str, Any], related_page_ids: List[str]) -> bool:
-        existing_ids = {relation["id"].replace("-", "") for relation in property_data.get("relation", [])}
-        return existing_ids != set(related_page_ids)
+        existing_ids = {_normalize_relid(relation) for relation in property_data.get("relation", [])}
+        normalized_related = {_normalize_relid(relation) for relation in related_page_ids}
+        return existing_ids != normalized_related
 
     return NotionProperty(
         name=name,
