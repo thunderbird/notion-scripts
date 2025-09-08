@@ -33,7 +33,8 @@ repos = [
     "tbpro-knowledgebase-issues",
     "zendesk-config",
     "private-issue-tracking",
-    "tbpro-add-on"
+    "tbpro-add-on",
+    "observability-strategy"
 ]
 
 # Properties of the "All GitHub Issues" database in Notion.
