@@ -137,7 +137,7 @@ class AsyncRetryingClient(httpx.AsyncClient):
                 if recur <= 0:
                     raise
 
-                if await self._engage_retry(response, e):
+                if await self._engage_retry(exception=e):
                     # We've engaged the rate limit and need to retry
                     recur -= 1
                     continue
@@ -153,20 +153,23 @@ class AsyncRetryingClient(httpx.AsyncClient):
 
             return response
 
-    async def _engage_retry(self, response, exception=None):
-        if response.status_code == 409:
+    async def _engage_retry(self, response=None, exception=None):
+        if not response and exception:
+            response = getattr(exception, "response", None)
+
+        if response and response.status_code == 409:
             seconds = random.randint(10, 20)
             logger.info(f"Sleeping {seconds} seconds due to 409 conflict")
             await rate_limit_gate.engage(seconds)
             return True
 
-        if response.status_code == 429:
+        if response and response.status_code == 429:
             seconds = int(response.headers.get("Retry-After", 10))
             logger.info(f"Sleeping {seconds} seconds due to rate limiting")
             await rate_limit_gate.engage(seconds)
             return True
 
-        if response.status_code // 100 == 5:
+        if response and response.status_code // 100 == 5:
             logger.info(f"Sleeping {self.RETRY_TIMEOUT} due to {response.status_code} response")
             await rate_limit_gate.engage(self.RETRY_TIMEOUT)
             return True
