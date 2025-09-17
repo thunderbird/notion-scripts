@@ -14,7 +14,7 @@ from pprint import pprint
 from .sync.label import synchronize as synchronize_gh_label
 from .sync.project import synchronize as synchronize_project
 from .sync.board import synchronize as synchronize_board
-from .tracker.github import GitHub
+from .tracker.github import GitHub, GitHubProjectV2
 from .tracker.bugzilla import Bugzilla
 
 logger = logging.getLogger("notion_sync")
@@ -26,6 +26,12 @@ def cmd_debug_users():
     users = notion.users.list()
     for user in users["results"]:
         print(f'{user["person"]["email"]} = "{user["id"]}" # {user["name"]}')
+
+
+def cmd_debug_project(orgrepo):
+    org, repo = orgrepo.split("/")
+
+    GitHubProjectV2.list(org, repo)
 
 
 def cmd_debug_db(dbid=None):
@@ -241,12 +247,15 @@ async def async_main():
     )
 
     parser.add_argument("--debug-db", help="Show debug database view")
+    parser.add_argument("--debug-project", help="Show debug project")
     parser.add_argument("--debug-users", action="store_true", help="Show users with their id")
 
     args = parser.parse_args()
     setup_logging(args.verbose)
 
-    if args.debug_db:
+    if args.debug_project:
+        cmd_debug_project(args.debug_project)
+    elif args.debug_db:
         cmd_debug_db(dbid=args.debug_db)
     elif args.debug_users:
         cmd_debug_users()
