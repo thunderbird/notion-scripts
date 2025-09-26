@@ -4,49 +4,51 @@
 [sync]
 
 [sync.services]
-method = "github_labels"
-enabled = false # TODO Services needs to check if the new code works
-
-# This is the ID of the All GitHub Issues database.
-notion_tasks_id = "3ca7ed3fe75b4a6d805953156a603540"
-
-# This is the ID of the Milestones database.
+method = "github_project"
+notion_tasks_id = "26b2df5d45ae809ea92acf0edff83e6b"
 notion_milestones_id = "1352df5d45ae8068a42dc799f13ea87a"
 
 [sync.services.repositories]
 
+[sync.services.repositories.pro]
+
 repositories = [
-    "thunderbird/addons-server",
+    #"thunderbird/addons-server",
     "thunderbird/appointment",
-    "thunderbird/assist",
-    "thunderbird/cloudops",
-    "thunderbird/code-coverage",
+    "thunderbird/tbpro-add-on",
     "thunderbird/mailstrom",
-    "thunderbird/notion-scripts",
-    "thunderbird/pulumi",
-    "thunderbird/send-suite",
-    "thunderbird/services-ui",
-    "thunderbird/services-utils",
-    "thunderbird/stats",
     "thunderbird/thunderbird-accounts",
-    "thunderbird/thunderbird-notifications",
+    "thunderbird/pulumi",
+    "thunderbird/services-ui",
     "thunderbird/thunderbird-website",
-    "thunderbird/thunderblog",
-    "thunderbird/thundernest-ansible"
+    #"thunderbird/assist",
+    #"thunderbird/cloudops",
+    #"thunderbird/code-coverage",
+    #"thunderbird/mailstrom",
+    #"thunderbird/notion-scripts",
+    #"thunderbird/pulumi",
+    #"thunderbird/send-suite",
+    #"thunderbird/services-ui",
+    #"thunderbird/services-utils",
+    #"thunderbird/stats",
+    #"thunderbird/thunderbird-notifications",
+    #"thunderbird/thunderblog",
+    #"thunderbird/thundernest-ansible"
     #"thunderbird/zendesk-config"
 ]
+github_milestones_project_id = "PVT_kwDOAOe9Jc4BC48i"
+github_tasks_project_id = "PVT_kwDOAOe9Jc4BC4_0"
 
 [sync.services.properties]
-notion_tasks_title = "Title"
-#notion_tasks_assignee = "Owner"
-notion_tasks_assignee = ""
-notion_tasks_dates = ""
-notion_tasks_openclose = ["Opened", "Closed"]
-notion_tasks_priority = ""
-notion_tasks_milestone_relation = "Milestones"
-notion_tasks_text_assignee = "Assignee"
-notion_tasks_labels = "Labels"
-notion_tasks_repository = "Repository"
+notion_tasks_title = "Name"
+notion_tasks_assignee = "Assignee"
+notion_tasks_dates = "Date"
+#notion_tasks_openclose = ["Opened", "Closed"]
+notion_tasks_priority = "Priority"
+notion_tasks_milestone_relation = "Test Milestones"
+#notion_tasks_text_assignee = "Assignee"
+#notion_tasks_labels = "Labels"
+#notion_tasks_repository = "Repository"
 notion_milestones_title = "Project name"
 notion_milestones_assignee = "Owner"
 notion_milestones_priority = ""
