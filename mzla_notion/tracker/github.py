@@ -224,8 +224,8 @@ class GitHub(IssueTracker):
 
     async def _update_issue_assignees(self, old_issue, new_issue):
         # Check if assignees have not changed
-        old_assignees = {assignee.dbid_user for assignee in old_issue.assignees}
-        new_assignees = {assignee.dbid_user for assignee in new_issue.assignees}
+        old_assignees = {assignee.dbid_user for assignee in old_issue.assignees if assignee.dbid_user}
+        new_assignees = {assignee.dbid_user for assignee in new_issue.assignees if assignee.dbid_user}
 
         # Check who to add or remove
         remove = old_assignees - new_assignees
