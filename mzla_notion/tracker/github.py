@@ -9,12 +9,11 @@ import aiostream
 
 from collections import defaultdict
 from dataclasses import dataclass
-from sgqlc.endpoint.http import HTTPEndpoint
+from sgqlc.endpoint.httpx import HTTPXEndpoint
 from sgqlc.operation import Operation, GraphQLErrors
 
 from ..github_schema import schema
 from ..util import getnestedattr
-from ..sgqlc_endpoint import HTTPXEndpoint
 
 from .common import UserMap, Sprint, IssueRef, Issue, User, IssueTracker
 
@@ -548,7 +547,7 @@ class GitHubProjectV2:
     """A container for GitHub's ProjectV2."""
 
     @staticmethod
-    def list(org, repo):  # pragma: no cover
+    async def list(org, repo):  # pragma: no cover
         """List all projects with theirs ids.
 
         Helpful to find out the node id from the number.
@@ -557,9 +556,10 @@ class GitHubProjectV2:
             org (str): The organization/team name
             repo (str): The repository name this project is on
         """
-        endpoint = HTTPEndpoint(
+        endpoint = HTTPXEndpoint(
             "https://api.github.com/graphql",
             {"Authorization": f"Bearer {os.getenv('GITHUB_TOKEN')}"},
+            client=httpx.AsyncClient(http2=True),
         )
 
         op = Operation(schema.query_type)
@@ -572,7 +572,7 @@ class GitHubProjectV2:
         projects.nodes.number()
         projects.nodes.title()
 
-        data = endpoint(op)
+        data = await endpoint(op)
         res_projects = (op + data).repository.projects_v2
 
         for project in res_projects.nodes:
