@@ -61,7 +61,11 @@ class User:
     def __eq__(self, other):
         """Check if two users are equal."""
         if type(other) is type(self):
-            return self.tracker_user == other.tracker_user
+            if self.tracker_user is None or other.tracker_user is None:
+                return self.tracker_user == other.tracker_user
+            else:
+                return self.tracker_user.casefold() == other.tracker_user.casefold()
+
         return False
 
     def __repr__(self):
@@ -70,7 +74,7 @@ class User:
 
     def __hash__(self):
         """Hash of the user, which is just the tracker_user."""
-        return hash(self.tracker_user)
+        return hash(self.tracker_user.casefold() if self.tracker_user is not None else None)
 
 
 class IssueTracker:
