@@ -13,27 +13,25 @@ notion_milestones_id = "1352df5d45ae8068a42dc799f13ea87a"
 [sync.services.repositories.pro]
 
 repositories = [
-    #"thunderbird/addons-server",
+    "thunderbird/addons-server",
     "thunderbird/appointment",
-    "thunderbird/tbpro-add-on",
+    "thunderbird/cloudops",
     "thunderbird/mailstrom",
-    "thunderbird/thunderbird-accounts",
+    "thunderbird/observability-strategy",
     "thunderbird/pulumi",
+    "thunderbird/send-suite",
     "thunderbird/services-ui",
+    "thunderbird/services-utils",
+    "thunderbird/tbpro-add-on",
+    "thunderbird/thunderbird-accounts",
+    "thunderbird/thunderbird-notifications",
     "thunderbird/thunderbird-website",
+    "thunderbird/thundernest-ansible",
     #"thunderbird/assist",
-    #"thunderbird/cloudops",
     #"thunderbird/code-coverage",
-    #"thunderbird/mailstrom",
     #"thunderbird/notion-scripts",
-    #"thunderbird/pulumi",
-    #"thunderbird/send-suite",
-    #"thunderbird/services-ui",
-    #"thunderbird/services-utils",
     #"thunderbird/stats",
-    #"thunderbird/thunderbird-notifications",
     #"thunderbird/thunderblog",
-    #"thunderbird/thundernest-ansible"
     #"thunderbird/zendesk-config"
 ]
 github_milestones_project_id = "PVT_kwDOAOe9Jc4BC48i"
