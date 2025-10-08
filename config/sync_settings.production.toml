@@ -135,7 +135,7 @@ notion_milestones_title = "Project name"
 notion_milestones_assignee = "Assignee"
 notion_issue_field = "GitHub Issue"
 notion_default_open_state = "Backlog"
-notion_closed_states = ["Done"]
+notion_closed_states = ["Done / Published in ZD"]
 #notion_tasks_labels = "Labels"
 #notion_tasks_repository = "Repository"
 
