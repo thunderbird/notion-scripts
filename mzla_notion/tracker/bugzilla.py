@@ -45,6 +45,7 @@ class Bugzilla(IssueTracker):
         "notion_tasks_dates": None,  # We don't support dates
         "notion_default_closed_states": ["RESOLVED"],
         "bugzilla_allowed_products": None,  # Default to all is allowed
+        "bugzilla_map_state": {},
     }
 
     name = "Bugzilla"
@@ -118,7 +119,11 @@ class Bugzilla(IssueTracker):
             _set_if(data, "description", "cf_user_story")
 
         # Status
-        _set_if(data, "state", "status")
+
+        if old_issue.state != new_issue.state:
+            statemap = self.property_names.get("bugzilla_map_state")
+            data["status"] = statemap.get(new_issue.state) or new_issue.state
+
         if old_issue.state != "RESOLVED" and new_issue.state == "RESOLVED":
             data["resolution"] = "FIXED"
         elif old_issue.state == "RESOLVED" and new_issue.state != "RESOLVED":
@@ -165,12 +170,15 @@ class Bugzilla(IssueTracker):
             if bug["cf_last_resolved"] and bug["status"] == "RESOLVED":
                 closed_date = datetime.datetime.fromisoformat(bug["cf_last_resolved"])
 
+            statemap = self.property_names.get("bugzilla_map_state")
+            status = statemap.get(bug["status"]) or bug["status"]
+
             issue = Issue(
                 id=str(bug["id"]),
                 repo=self.repo_name,
                 url=f"{self.base_url}/show_bug.cgi?id={bug['id']}",
                 title=bug["summary"],
-                state=bug["status"],
+                state=status,
                 labels=set(),
                 description=bug["cf_user_story"] or getnestedattr(lambda: bug["comments"][0]["text"], ""),
                 assignees={User(self.user_map, tracker_user=assignee)} if assignee else set(),
@@ -189,7 +197,8 @@ class Bugzilla(IssueTracker):
             )
             if phab:
                 if issue.state in ("ASSIGNED", "REOPENED"):
-                    issue.state = "IN REVIEW"  # TODO hack
+                    issue.state = statemap.get("IN REVIEW") or "IN REVIEW"  # TODO hack
+
                 issue.review_url = base64.b64decode(phab["data"]).decode("utf-8")
 
             for url in bug["see_also"]:

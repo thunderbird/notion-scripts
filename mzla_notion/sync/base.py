@@ -299,6 +299,7 @@ class BaseSync:
                     final_status = self.propnames["notion_closed_states"][0]
                 else:
                     final_status = self.propnames["notion_default_open_state"]
+
         self._set_if_prop(notion_data, "notion_tasks_status", final_status)
 
         # Review URL
