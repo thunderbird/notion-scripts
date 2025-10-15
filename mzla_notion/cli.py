@@ -157,6 +157,8 @@ async def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_r
                 milestones_extra_label=project.get("milestones_extra_label", ""),
                 tasks_notion_prefix=project.get("tasks_notion_prefix", ""),
                 sprints_merge_by_name=project.get("sprints_merge_by_name", False),
+                team_id=project.get("notion_team_id"),
+                team_association=project.get("notion_associated_team"),
                 dry=dry_run,
                 synchronous=synchronous,
             )
@@ -183,6 +185,8 @@ async def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_r
                 tasks_notion_prefix=project.get("tasks_notion_prefix", ""),
                 sprints_merge_by_name=project.get("sprints_merge_by_name", False),
                 milestone_label_prefix=project.get("milestone_label_prefix", "M: "),
+                team_id=project.get("notion_team_id"),
+                team_association=project.get("notion_associated_team"),
                 dry=dry_run,
                 synchronous=synchronous,
             )

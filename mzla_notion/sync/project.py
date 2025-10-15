@@ -26,7 +26,9 @@ class ProjectSync(BaseSync):
     async def _async_init(self):
         async with asyncio.TaskGroup() as tg:
             tg.create_task(super()._async_init())
-            milestones_issues = tg.create_task(self._discover_notion_issues(self.milestones_db.database_id))
+            milestones_issues = tg.create_task(
+                self._discover_notion_issues(self.milestones_db.database_id, self.propnames["notion_milestone_team"])
+            )
 
         self._notion_milestone_issues = milestones_issues.result()
 

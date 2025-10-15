@@ -42,6 +42,8 @@ class BaseSync:
         milestones_extra_label="",
         tasks_notion_prefix="",
         sprints_merge_by_name=False,
+        team_id=None,
+        team_association=None,
         dry=False,
         synchronous=False,
     ):
@@ -70,6 +72,8 @@ class BaseSync:
                 tracker.
             sprints_merge_by_name (bool): If a sprint does not exist, find an existing one by name
                 and merge it
+            team_id (str): The Notion database id for the "Teams" database. Optional, used with the team property.
+            team_association (str): The id of the team for this sync. Optional, used with notion_tasks_team property.
             dry (bool): If true, only query operations are done. Mutations are disabled for both
                 the issue tracker and Notion.
             synchronous (bool): If true, run any async tasks sequentially.
@@ -94,6 +98,10 @@ class BaseSync:
             p.title(self.propnames["notion_tasks_title"]),
             p.link(self.propnames["notion_issue_field"]),
         ]
+
+        if team_id:
+            self._setup_prop(tasks_properties, "notion_tasks_team", "relation", team_id, False)
+            self._setup_prop(milestones_properties, "notion_milestones_team", "relation", team_id, False)
 
         self._setup_prop(
             tasks_properties, "notion_tasks_priority", "select", self.propnames["notion_tasks_priority_values"]
@@ -128,6 +136,7 @@ class BaseSync:
         self.tasks_notion_prefix = tasks_notion_prefix
 
         # Other settings
+        self.team = team_association
         self.dry = dry
         self.synchronous = synchronous
         self.sprints_merge_by_name = sprints_merge_by_name
@@ -197,16 +206,26 @@ class BaseSync:
             else:
                 obj[propname] = {"start": start, "end": end} if start or end else None
 
-    async def _discover_notion_issues(self, notion_db_id):
+    async def _discover_notion_issues(self, notion_db_id, filter_team=None):
         repos = defaultdict(dict)
+
+        query_filter = {
+            "property": self.propnames["notion_issue_field"],
+            "rich_text": {"is_not_empty": True},
+        }
+
+        if filter_team and self.team:
+            query_filter = {
+                "and": [
+                    {"property": filter_team, "relation": {"contains": self.team}},
+                    query_filter,
+                ]
+            }
 
         async for block in async_iterate_paginated_api(
             self.notion.databases.query,
             database_id=notion_db_id,
-            filter={
-                "property": self.propnames["notion_issue_field"],
-                "rich_text": {"is_not_empty": True},
-            },
+            filter=query_filter,
         ):
             url = self._get_prop(block, "notion_issue_field")
 
@@ -250,6 +269,12 @@ class BaseSync:
 
         self._set_if_prop(notion_data, "notion_tasks_assignee", assignees or None)
         self._set_if_prop(notion_data, "notion_tasks_text_assignee", " ".join(text_assignees))
+
+        if self.team and self.propnames.get("notion_tasks_team"):
+            teams = getnestedattr(lambda: self._get_prop(old_page, "notion_tasks_team"), None)
+            teams = {team["id"].replace("-", "") for team in (teams or [])}
+            teams.add(self.team)
+            self._set_if_prop(notion_data, "notion_tasks_team", list(teams))
 
         # Status and Priority
         self._set_if_prop(notion_data, "notion_tasks_priority", tracker_issue.priority)
@@ -414,7 +439,9 @@ class BaseSync:
             valid_tasks = tg.create_task(self.tasks_db.validate_props())
             all_labels = tg.create_task(self.tracker.get_all_labels())
 
-            tasks_issues = tg.create_task(self._discover_notion_issues(self.tasks_db.database_id))
+            tasks_issues = tg.create_task(
+                self._discover_notion_issues(self.tasks_db.database_id, self.propnames["notion_tasks_team"])
+            )
 
             if self.sprint_db:
                 sprint_pages = tg.create_task(self.sprint_db.get_all_pages())
