@@ -113,7 +113,7 @@ class NotionDatabase:
 
         return page
 
-    async def create_page(self, datadict: Dict[str, Any]) -> bool:
+    async def create_page(self, datadict: Dict[str, Any], **kwargs) -> bool:
         """Create a new page in the Notion database.
 
         `datadict` must be a dictionary containing {<property_name>: <data>}.
@@ -123,7 +123,9 @@ class NotionDatabase:
             if self.dry:
                 return {"id": "dry"}  # Fake page
             else:
-                return await self.notion.pages.create(parent={"database_id": self.database_id}, properties=page_data)
+                return await self.notion.pages.create(
+                    parent={"database_id": self.database_id}, properties=page_data, **kwargs
+                )
         return None
 
     async def delete_page(self, page_id):
@@ -131,14 +133,23 @@ class NotionDatabase:
         if not self.dry:
             await self.notion.pages.update(page_id, archived=True)
 
-    async def update_page(self, page: Dict[str, Any], datadict: Dict[str, Any]) -> bool:
+    async def update_page(self, page: Dict[str, Any], datadict: Dict[str, Any], **kwargs) -> bool:
         """Update `page` with the data in `datadict`. Updates only occur if `page` and `datadict` are different."""
+        icon_differs = "icon" in kwargs and kwargs["icon"] != page["icon"] and kwargs["icon"]["type"] != "file"
+        update_kwargs = {}
+
+        if icon_differs:
+            update_kwargs["icon"] = kwargs["icon"]
+
         if self.page_diff(datadict, page):
             data = self.dict_to_page(datadict)
-            if not self.dry:
-                await self.notion.pages.update(page["id"], properties=data)
-            return True
-        return False
+            update_kwargs["properties"] = data
+
+        if not self.dry and update_kwargs:
+            await self.notion.pages.update(page["id"], **update_kwargs)
+
+        # Change was made if there was some form of update
+        return len(update_kwargs) > 0
 
     def page_diff(self, datadict: Dict[str, Any], page: Dict[str, Any]) -> bool:
         """Return true or false based on whether the Notion `datadict` matches `page` or not."""
