@@ -156,7 +156,12 @@ class GitHub(IssueTracker):
         """Parse an issue identifier (e.g. github url) to an IssueRef."""
         # https://github.com/thunderbird/repo/issues/1234
         parts = ref.split("/")
-        if len(parts) == 7 and parts[2] == "github.com" and parts[5] == "issues":
+        if (
+            len(parts) == 7
+            and parts[2] == "github.com"
+            and parts[5] == "issues"
+            and self.is_repo_allowed(parts[3] + "/" + parts[4])
+        ):
             return IssueRef(repo=parts[3] + "/" + parts[4], id=parts[6])
         else:
             return None
@@ -379,7 +384,7 @@ class GitHub(IssueTracker):
 
             for ref in itertools.islice(issues, i, i + chunk_size):
                 if ref.repo != issues[0].repo:
-                    raise Exception("Can't yet query from different repositories")
+                    raise Exception(f"Can't yet query from different repositories ({ref.repo} vs {issues[0].repo})")
 
                 issue = oprepo.issue(__alias__=f"issue{ref.id}", number=int(ref.id))
                 issue_field_ops(issue)
