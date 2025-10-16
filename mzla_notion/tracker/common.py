@@ -108,7 +108,7 @@ class IssueTracker:
         "notion_sprint_status": "Sprint status",
         "notion_sprint_dates": "Dates",
         # Some default states and values
-        "notion_tasks_priority_values": ["P1", "P2", "P3"],
+        "notion_tasks_priority_values": ["P1", "P2", "P3", "P4", "P5"],
         "notion_default_open_state": "Backlog",
         "notion_closed_states": ["Done", "Canceled"],
         "notion_inprogress_state": "In progress",
