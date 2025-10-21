@@ -179,3 +179,60 @@ title = "Project name"
 database = "23a2df5d45ae801ab440cda2b98c3e34"
 dates = ["Start date", "End date"]
 title = "Project name"
+
+
+### VAULT ###
+
+
+[sync.vault_desktop]
+method = "bugzilla_project"
+tracker_dry_run = true
+notion_tasks_id = "2332df5d45ae8072aa7aededaf161252"
+notion_milestones_id = "2332df5d45ae80909305fe2278a14629"
+
+notion_team_id = "2332df5d45ae80bc8839d089f5c7f608"
+notion_associated_team = "2332df5d45ae80ff92fbddd8eccb9060"
+
+bugzilla_base = "https://bugzilla.mozilla.org"
+milestones_tracker_prefix = "[meta] "
+
+[sync.vault_desktop.properties]
+bugzilla_allowed_products = ["Thunderbird", "MailNews Core", "Calendar"]
+
+notion_tasks_title = "Name"
+notion_tasks_assignee = "Assignee"
+notion_tasks_dates = "Date"
+#notion_tasks_openclose = ["Opened", "Closed"]
+notion_tasks_priority = "Priority"
+notion_tasks_team = "Team"
+notion_tasks_milestone_relation = "Milestones"
+notion_tasks_text_assignee = ""
+notion_tasks_labels = ""
+notion_tasks_repository = ""
+notion_tasks_review_url = "Patch Review URL"
+notion_milestones_title = "Name"
+notion_milestones_team = "Team"
+notion_milestones_assignee = "Assignee"
+notion_milestones_priority = "Priority"
+notion_milestones_dates = "Original Due Date"
+notion_issue_field = "Bug Tracker"
+notion_default_open_state = "Not started"
+notion_inprogress_state = "In progress"
+notion_closed_states = ["Done"]
+
+[sync.vault_desktop.properties.bugzilla_map_state]
+NEW = "Backlog"
+UNCONFIRMED = "Backlog"
+ASSIGNED = "In progress"
+"IN REVIEW" = "In review"
+REOPENED = "In progress"
+RESOLVED = "Done"
+VERIFIED = "Done"
+
+"Backlog" = "NEW"
+"Planning" = "NEW"
+"In progress" = "ASSIGNED"
+"In review" = "ASSIGNED"
+"Approved" = "ASSIGNED"
+"Done" = "RESOLVED"
+"Canceled" = "RESOLVED"

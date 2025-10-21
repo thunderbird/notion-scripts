@@ -196,7 +196,7 @@ class Bugzilla(IssueTracker):
                 None,
             )
             if phab:
-                if issue.state in ("ASSIGNED", "REOPENED"):
+                if bug["status"] in ("ASSIGNED", "REOPENED"):
                     issue.state = statemap.get("IN REVIEW") or "IN REVIEW"  # TODO hack
 
                 issue.review_url = base64.b64decode(phab["data"]).decode("utf-8")
