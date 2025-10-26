@@ -490,62 +490,77 @@ class LabelCache:
         """Initialize the label cache with an endpoint."""
         self._cache = defaultdict(dict)
         self.endpoint = endpoint
+        self.locks = defaultdict(asyncio.Lock)
 
     async def get_all(self, org, repo):
         """Get all labels in the repository."""
-        orgrepocache = self._cache[org + "/" + repo]
+        orgrepocache = {}
+        orgrepo = org + "/" + repo
 
-        has_next_page = True
-        cursor = None
+        async with self.locks[orgrepo]:
+            has_next_page = True
+            cursor = None
 
-        while has_next_page:
-            op = Operation(schema.query_type)
-            repo = op.repository(owner=org, name=repo)
-            labels = repo.labels(first=100, after=cursor)
-            labels.nodes.name()
-            labels.nodes.id()
+            if orgrepo in self._cache:
+                return self._cache[orgrepo]
 
-            labels.page_info.__fields__(has_next_page=True)
-            labels.page_info.__fields__(end_cursor=True)
+            while has_next_page:
+                op = Operation(schema.query_type)
+                repo = op.repository(owner=org, name=repo)
+                labels = repo.labels(first=100, after=cursor)
+                labels.nodes.name()
+                labels.nodes.id()
 
-            data = await self.endpoint(op)
-            datarepo = (op + data).repository
+                labels.page_info.__fields__(has_next_page=True)
+                labels.page_info.__fields__(end_cursor=True)
 
-            for label in datarepo.labels.nodes:
-                orgrepocache[label.name] = label
+                data = await self.endpoint(op)
+                datarepo = (op + data).repository
 
-            has_next_page = datarepo.labels.page_info.has_next_page
-            cursor = datarepo.labels.page_info.end_cursor
+                for label in datarepo.labels.nodes:
+                    orgrepocache[label.name] = label
+
+                has_next_page = datarepo.labels.page_info.has_next_page
+                cursor = datarepo.labels.page_info.end_cursor
+
+            self._cache[orgrepo] = orgrepocache
 
         return orgrepocache
 
     async def get_labels(self, org, repo, labels):
         """Get the list of labels from the org/repo."""
-        res = {}
         remaining = []
 
-        orgrepocache = self._cache[org + "/" + repo]
+        orgrepo = org + "/" + repo
+        if orgrepo in self._cache:
+            orgrepocache = self._cache[orgrepo]
+        else:
+            orgrepocache = {}
 
         for label in labels:
-            if label in orgrepocache:
-                res[label] = orgrepocache[label]
-            else:
+            if label not in orgrepocache:
                 remaining.append(label)
 
-        op = Operation(schema.query_type)
-        repo = op.repository(owner=org, name=repo)
+        if len(remaining) == 0:
+            return orgrepocache
 
-        for index, label in enumerate(remaining):
-            labelnode = repo.label(__alias__=f"label_{index}", name=label)
-            labelnode.id()
+        async with self.locks[orgrepo]:
+            op = Operation(schema.query_type)
+            repo = op.repository(owner=org, name=repo)
 
-        data = await self.endpoint(op)
-        repo = (op + data).repository
+            for index, label in enumerate(remaining):
+                labelnode = repo.label(__alias__=f"label_{index}", name=label)
+                labelnode.id()
 
-        for index, label in enumerate(remaining):
-            orgrepocache[label] = res[label] = getattr(repo, f"label_{index}").id
+            data = await self.endpoint(op)
+            repo = (op + data).repository
 
-        return res
+            for index, label in enumerate(remaining):
+                orgrepocache[label] = getattr(repo, f"label_{index}").id
+
+            self._cache[orgrepo] = orgrepocache
+
+        return orgrepocache
 
 
 class GitHubProjectV2:
