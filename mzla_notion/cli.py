@@ -53,6 +53,35 @@ def cmd_list_synchronizers(config):
     print("\n".join(enabled))
 
 
+def cmd_list_repositories(projects, config):
+    """Just list repositories."""
+    with open(config, "rb") as fp:
+        settings = tomllib.load(fp)
+
+    if not projects:
+        projects = settings["sync"].keys()
+
+    repos = set()
+
+    for key in projects:
+        project = settings["sync"][key]
+
+        if not project.get("enabled", True):
+            continue
+
+        repository_settings = project.get("repositories")
+        if not repository_settings:
+            continue
+
+        if "repositories" in repository_settings:
+            repository_settings = {"default": repository_settings}
+
+        for settings in repository_settings.values():
+            repos.update(settings["repositories"])
+
+    print("\n".join(repos))
+
+
 def setup_logging(verbose):
     """Set up debugging based on verbosity level."""
     logging.basicConfig(
@@ -244,6 +273,7 @@ async def async_main():
         help="Run the script without making changes",
     )
     parser.add_argument("-l", "--list", action="store_true", help="List synchronizers and exit")
+    parser.add_argument("--repositories", action="store_true", help="List repositories and exit")
     parser.add_argument(
         "projects",
         nargs="*",
@@ -264,6 +294,8 @@ async def async_main():
         cmd_debug_db(dbid=args.debug_db)
     elif args.debug_users:
         cmd_debug_users()
+    elif args.repositories:
+        cmd_list_repositories(args.projects, args.config)
     elif args.list:
         cmd_list_synchronizers(args.config)
     else:

@@ -314,6 +314,7 @@ class GitHub(IssueTracker):
         if not self.dry:
             op = Operation(schema.mutation_type)
             op.update_issue_issue_type(input={"issue_id": old_issue.gql.id, "issue_type_id": issue_type_id})
+            await self.endpoint(op)
 
     def _parse_issue(self, ghissue, sub_issues=False):
         repo = ghissue.repository.name_with_owner

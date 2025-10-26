@@ -80,6 +80,24 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           ignore-nothing-to-cache: true
 
+      - name: uv sync
+        run: uv sync --locked --all-extras --dev
+
+      - name: Get repositories
+        id: get-repos
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          PROJECT: ${{ matrix.synchronizer }}
+          VERBOSE: ${{ runner.debug && '-vv' || '' }}
+          DRY: ${{ inputs.dry && '-n' || '' }}
+        run: |
+          # Note: create-app-token only works with one owner, we need to cut it here
+          echo 'repositories<<EOF' >> $GITHUB_OUTPUT
+          uv run -m mzla_notion ${DRY} ${VERBOSE} \
+            -c config/sync_settings.${ENVIRONMENT}.toml \
+            --repositories ${PROJECT} | cut -d / -f 2 | tee -a $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
+
       - name: Get app token
         id: apptoken
         if: ${{ vars.GH_APP_ID }}
@@ -87,9 +105,8 @@ jobs:
         with:
           app-id: ${{ vars.GH_APP_ID }}
           private-key: ${{ secrets.GH_APP_KEY }}
-
-      - name: uv sync
-        run: uv sync --locked --all-extras --dev
+          owner: thunderbird
+          repositories: ${{ steps.get-repos.outputs.repositories }}
 
       - name: Synchronize
         env:
