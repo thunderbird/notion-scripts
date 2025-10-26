@@ -3,6 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import asyncio
+import sys
 from .cli import async_main
 
-asyncio.run(async_main())
+sys.exit(asyncio.run(async_main()))
