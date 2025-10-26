@@ -80,6 +80,14 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           ignore-nothing-to-cache: true
 
+      - name: Get app token
+        id: apptoken
+        if: ${{ vars.GH_APP_ID }}
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.GH_APP_ID }}
+          private-key: ${{ secrets.GH_APP_KEY }}
+
       - name: uv sync
         run: uv sync --locked --all-extras --dev
 
@@ -90,7 +98,7 @@ jobs:
           VERBOSE: ${{ runner.debug && '-vv' || '' }}
           DRY: ${{ inputs.dry && '-n' || '' }}
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          GITHUB_TOKEN: ${{ steps.apptoken.outputs.token || secrets.GH_PAT }}
           BUGZILLA_TOKEN: ${{ secrets.BUGZILLA_TOKEN }}
           NOTION_SYNC_GITHUB_USERMAP: ${{ vars.NOTION_SYNC_GITHUB_USERMAP }}
           NOTION_SYNC_BUGZILLA_USERMAP: ${{ vars.NOTION_SYNC_BUGZILLA_USERMAP }}
