@@ -33,6 +33,7 @@ class Issue(IssueRef):
     priority: str
     assignees: set = field(default_factory=set)
     labels: set = field(default_factory=set)
+    issue_type: str = None
     url: str
     review_url: str = ""
     notion_url: str = ""

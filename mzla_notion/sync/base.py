@@ -40,6 +40,7 @@ class BaseSync:
         tasks_body_sync=False,
         milestones_tracker_prefix="",
         milestones_extra_label="",
+        milestones_issue_type=None,
         tasks_notion_prefix="",
         sprints_merge_by_name=False,
         team_id=None,
@@ -68,6 +69,8 @@ class BaseSync:
                 from milestones.
             milestones_extra_label (str): Optional label for GitHub issues synchronized from
                 milestones.
+            milestones_issue_type (str): Optional issue type for GitHub issues synchronized from
+                milestones.
             tasks_notion_prefix (str): Optional prefix for Notion tasks synchronized from the issue
                 tracker.
             sprints_merge_by_name (bool): If a sprint does not exist, find an existing one by name
@@ -91,6 +94,7 @@ class BaseSync:
         self.milestones_body_sync_if_empty = milestones_body_sync_if_empty
         self.milestones_tracker_prefix = milestones_tracker_prefix
         self.milestones_extra_label = milestones_extra_label
+        self.milestones_issue_type = milestones_issue_type
 
         # Tasks Properties
         tasks_properties = [

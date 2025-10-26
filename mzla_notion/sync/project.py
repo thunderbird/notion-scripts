@@ -84,6 +84,9 @@ class ProjectSync(BaseSync):
             end_date=datetime.date.fromisoformat(end_date_str) if end_date_str else None,
         )
 
+        if self.milestones_issue_type:
+            new_issue.issue_type = self.milestones_issue_type
+
         if tracker_issue != new_issue:
             logger.info(
                 f"Updating milestone {tracker_issue.id} - {tracker_issue.title} ({tracker_issue.url} / {new_issue.notion_url})"

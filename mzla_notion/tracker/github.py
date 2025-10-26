@@ -119,6 +119,8 @@ class GitHub(IssueTracker):
         )
 
         self.label_cache = LabelCache(self.endpoint)
+        self.issue_type_cache = IssueTypeCache(self.endpoint)
+
         self._init_repository_settings(repositories)
         self._raw_user_map = user_map
 
@@ -197,6 +199,7 @@ class GitHub(IssueTracker):
             self._update_issue_assignees(old_issue, new_issue),
             self._update_issue_labels(old_issue, new_issue),
             self._update_issue_project(old_issue, new_issue),
+            self._update_issue_type(old_issue, new_issue),
         )
 
     async def _update_issue_basic(self, old_issue, new_issue):
@@ -297,6 +300,21 @@ class GitHub(IssueTracker):
                 add=True,
             )
 
+    async def _update_issue_type(self, old_issue, new_issue):
+        if old_issue.issue_type == new_issue.issue_type:
+            return
+
+        org, repo = old_issue.repo.split("/")
+        issue_type_id = await self.issue_type_cache.get(org, repo, new_issue.issue_type)
+
+        if not issue_type_id:
+            print(await self.issue_type_cache.get_all(org, repo))
+            raise Exception(f"Could not find issue type {new_issue.issue_type}")
+
+        if not self.dry:
+            op = Operation(schema.mutation_type)
+            op.update_issue_issue_type(input={"issue_id": old_issue.gql.id, "issue_type_id": issue_type_id})
+
     def _parse_issue(self, ghissue, sub_issues=False):
         repo = ghissue.repository.name_with_owner
 
@@ -329,6 +347,7 @@ class GitHub(IssueTracker):
                 GitHubUser(user_map=self.user_map, tracker_user=a.login, dbid_user=a.id)
                 for a in ghissue.assignees.nodes
             },
+            issue_type=getnestedattr(lambda: ghissue.issue_type.name, None),
             state=getnestedattr(lambda: gh_project_item.status.name, None),
             created_date=ghissue.created_at,
             closed_date=ghissue.closed_at,
@@ -481,6 +500,62 @@ class GitHub(IssueTracker):
             all_labels.update((await self.label_cache.get_all(orgname, repo)).keys())
 
         return all_labels
+
+
+class IssueTypeCache:
+    """A cache for retrieving the issue type ids from GitHub."""
+
+    def __init__(self, endpoint):
+        """Initialize the label cache with an endpoint."""
+        self._cache = defaultdict(dict)
+        self.endpoint = endpoint
+        self.lock = asyncio.Lock()
+
+    async def get(self, org, repo, name):
+        """Retrieve the issue type id for a specific issue type name."""
+        orgrepo = org + "/" + repo
+        if orgrepo in self._cache:
+            orgcache = self._cache[orgrepo]
+        else:
+            orgcache = await self.get_all(org, repo)
+
+        return orgcache.get(name)
+
+    async def get_all(self, org, repo):
+        """Get all issue types in the repository."""
+        orgrepocache = {}
+        orgrepo = org + "/" + repo
+
+        async with self.lock:
+            has_next_page = True
+            cursor = None
+
+            if orgrepo in self._cache:
+                return self._cache[orgrepo]
+
+            while has_next_page:
+                op = Operation(schema.query_type)
+                repo = op.repository(owner=org, name=repo)
+
+                issue_types = repo.issue_types(first=100, after=cursor)
+                issue_types.nodes.id()
+                issue_types.nodes.name()
+
+                issue_types.page_info.__fields__(has_next_page=True)
+                issue_types.page_info.__fields__(end_cursor=True)
+
+                data = await self.endpoint(op)
+                datarepo = (op + data).repository
+
+                for issue_type in datarepo.issue_types.nodes:
+                    orgrepocache[issue_type.name] = issue_type.id
+
+                has_next_page = datarepo.issue_types.page_info.has_next_page
+                cursor = datarepo.issue_types.page_info.end_cursor
+
+            self._cache[orgrepo] = orgrepocache
+
+        return orgrepocache
 
 
 class LabelCache:
@@ -803,6 +878,8 @@ def issue_field_ops(issue):
     issue.repository.name()
     issue.repository.is_private()
     issue.labels(first=100).nodes.name()
+    issue.issue_type.id()
+    issue.issue_type.name()
 
     assignees = issue.assignees(first=10)
     assignees.nodes.id()

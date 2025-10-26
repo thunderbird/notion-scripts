@@ -155,6 +155,7 @@ async def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_r
                 tasks_body_sync=project.get("tasks_body_sync", False),
                 milestones_tracker_prefix=project.get("milestones_tracker_prefix", ""),
                 milestones_extra_label=project.get("milestones_extra_label", ""),
+                milestones_issue_type=project.get("milestones_issue_type", None),
                 tasks_notion_prefix=project.get("tasks_notion_prefix", ""),
                 sprints_merge_by_name=project.get("sprints_merge_by_name", False),
                 team_id=project.get("notion_team_id"),
