@@ -280,6 +280,7 @@ class GitHub(IssueTracker):
         old_start_date = getnestedattr(lambda: gh_project_item.start_date.date, None)
         old_end_date = getnestedattr(lambda: gh_project_item.target_date.date, None)
         old_priority = getnestedattr(lambda: gh_project_item.priority.name, None)
+        old_link = getnestedattr(lambda: gh_project_item.link.text, None)
 
         if (
             not gh_project_item
@@ -287,6 +288,7 @@ class GitHub(IssueTracker):
             or old_start_date != new_issue.start_date
             or old_end_date != new_issue.end_date
             or old_priority != new_issue.priority
+            or old_link != new_issue.notion_url
         ):
             await self.github_milestones_projects[new_issue.repo].update_project_for_issue(
                 new_issue,
