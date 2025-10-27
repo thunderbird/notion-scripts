@@ -178,18 +178,46 @@ class NotionDatabase:
         """Retrieves the blocks in a Notion page in this database."""
         return async_collect_paginated_api(self.notion.blocks.children.list, block_id=page_id)
 
-    async def copy_page_contents(self, src_id, target_id, exclude=[]):
+    async def copy_page_contents(self, src_id, target_id, exclude=[], clear=True):
         """Copy the blocks from one page to the next, excluding any indicated types."""
         if self.dry:
             return
 
-        server_blocks = async_iterate_paginated_api(self.notion.blocks.children.list, block_id=target_id)
-        delete_coros = [self.notion.blocks.delete(block_id=block["id"]) async for block in server_blocks]
-        await asyncio.gather(*delete_coros)
+        if clear:
+            server_blocks = async_iterate_paginated_api(self.notion.blocks.children.list, block_id=target_id)
+            delete_coros = [self.notion.blocks.delete(block_id=block["id"]) async for block in server_blocks]
+            await asyncio.gather(*delete_coros)
 
-        blocks = await async_collect_paginated_api(self.notion.blocks.children.list, block_id=src_id)
-        unexcluded = [block for block in blocks if block["type"] not in exclude]
-        await self.notion.blocks.children.append(block_id=target_id, children=unexcluded)
+        src_blocks = await async_collect_paginated_api(self.notion.blocks.children.list, block_id=src_id)
+
+        for block in src_blocks:
+            block_type = block["type"]
+            if block_type in exclude:
+                continue
+
+            if block_type == "column_list" and not block[block_type]:
+                continue
+
+            new_block = {
+                "object": "block",
+                "type": block_type,
+                block_type: block[block_type],
+            }
+            print("FROM", block)
+            print("TO", new_block)
+
+            try:
+                response = await self.notion.blocks.children.append(
+                    block_id=target_id,
+                    children=[new_block],
+                )
+            except:
+                continue
+
+            created_block_id = response["results"][0]["id"]
+
+            if block.get("has_children"):
+                await self.copy_page_contents(block["id"], created_block_id, exclude, clear=False)
 
     async def replace_page_contents(self, page_id, markdown):
         """Replace the contents of the notion page with the supplied markdown."""
