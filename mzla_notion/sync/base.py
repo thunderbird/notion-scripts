@@ -116,6 +116,8 @@ class BaseSync:
         self._setup_prop(
             tasks_properties, "notion_tasks_repository", "select", strip_orgname(self.tracker.get_all_repositories())
         )
+        self._setup_prop(tasks_properties, "notion_tasks_labels_text", "rich_text_space_set")
+        self._setup_prop(tasks_properties, "notion_tasks_whiteboard", "rich_text")
         self._setup_date_prop(tasks_properties, "notion_tasks_dates")
         self._setup_date_prop(tasks_properties, "notion_tasks_openclose")
 
@@ -309,6 +311,11 @@ class BaseSync:
         # Review URL
         self._set_if_prop(notion_data, "notion_tasks_review_url", tracker_issue.review_url or None)
 
+        # Labels and Whiteboard
+        self._set_if_prop(notion_data, "notion_tasks_labels", tracker_issue.labels or [])
+        self._set_if_prop(notion_data, "notion_tasks_labels_text", tracker_issue.labels or [])
+        self._set_if_prop(notion_data, "notion_tasks_whiteboard", tracker_issue.whiteboard)
+
         # Start/end dates
         if tracker_issue.sprint:
             self._set_if_date_prop(
@@ -442,7 +449,9 @@ class BaseSync:
         async with asyncio.TaskGroup() as tg:
             valid_milestones = tg.create_task(self.milestones_db.validate_props())
             valid_tasks = tg.create_task(self.tasks_db.validate_props())
-            all_labels = tg.create_task(self.tracker.get_all_labels())
+
+            if self.propnames["notion_tasks_labels"]:
+                all_labels = tg.create_task(self.tracker.get_all_labels())
 
             tasks_issues = tg.create_task(
                 self._discover_notion_issues(self.tasks_db.database_id, self.propnames["notion_tasks_team"])
@@ -457,7 +466,9 @@ class BaseSync:
             raise Exception("Tasks schema failed to validate")
 
         tasks_properties = []
-        self._setup_prop(tasks_properties, "notion_tasks_labels", "multi_select", all_labels.result())
+        if self.propnames["notion_tasks_labels"]:
+            self._setup_prop(tasks_properties, "notion_tasks_labels", "multi_select", all_labels.result())
+
         for prop in tasks_properties:
             self.tasks_db.add_property(prop)
 

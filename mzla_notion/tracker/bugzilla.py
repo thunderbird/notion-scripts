@@ -157,7 +157,7 @@ class Bugzilla(IssueTracker):
 
     async def _get_bugzilla_bugs(self, bugids, sub_issues=False):
         issues = []
-        fields = "id,summary,status,product,cf_user_story,assigned_to,priority,depends_on,blocks,attachments,comments,see_also,creation_time,cf_last_resolved"
+        fields = "id,summary,status,product,cf_user_story,assigned_to,priority,depends_on,blocks,attachments,comments,see_also,creation_time,cf_last_resolved,keywords,whiteboard"
 
         response = await self.client.get("/bug", params={"id": ",".join(bugids), "include_fields": fields})
         response_json = response.json()
@@ -179,7 +179,8 @@ class Bugzilla(IssueTracker):
                 url=f"{self.base_url}/show_bug.cgi?id={bug['id']}",
                 title=bug["summary"],
                 state=status,
-                labels=set(),
+                labels=set(bug["keywords"]),
+                whiteboard=bug["whiteboard"] or "",
                 description=bug["cf_user_story"] or getnestedattr(lambda: bug["comments"][0]["text"], ""),
                 assignees={User(self.user_map, tracker_user=assignee)} if assignee else set(),
                 priority=bug["priority"] if bug["priority"] != "--" else None,

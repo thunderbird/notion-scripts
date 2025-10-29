@@ -479,10 +479,11 @@ def rich_text(name: str) -> NotionProperty:
     def _diff(property_data: Dict[str, Any], content: str) -> bool:
         if "rich_text" not in property_data:
             return True
-        if len(property_data["rich_text"]) == 0:
+        if len(property_data["rich_text"]) == 0 and content:
             return True
-        if property_data["rich_text"][0]["plain_text"] != content:
+        if len(property_data["rich_text"]) > 0 and property_data["rich_text"][0]["plain_text"] != content:
             return True
+
         return False
 
     return NotionProperty(
@@ -498,16 +499,26 @@ def rich_text_space_set(name: str) -> NotionProperty:
     """A rich text property with a set() of words delimited by spaces."""
 
     def _update(content: str) -> Dict[str, Any]:
+        if isinstance(content, set) or isinstance(content, list):
+            content = " ".join(content)
+
         return {name: {"rich_text": [{"text": {"content": content}}]}}
 
     def _diff(property_data: Dict[str, Any], content: str) -> bool:
-        if "rich_text" not in property_data:
-            return True
-        if len(property_data["rich_text"]) == 0:
-            return True
+        plain_text = getnestedattr(lambda: property_data["rich_text"][0]["plain_text"], None) or ""
+        if plain_text:
+            prop_data_set = set(plain_text.split(" "))
+        else:
+            prop_data_set = set()
 
-        prop_data_set = set(property_data["rich_text"][0]["plain_text"].split(" "))
-        content_set = set(content.split(" "))
+        if isinstance(content, set):
+            content_set = content
+        elif isinstance(content, list):
+            content_set = set(content)
+        elif not content:
+            content_set = set()
+        else:
+            content_set = set((content or "").split(" "))
 
         return prop_data_set != content_set
 

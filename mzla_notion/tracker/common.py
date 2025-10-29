@@ -43,6 +43,7 @@ class Issue(IssueRef):
     end_date: datetime.date = None
     sprint: Sprint = None
     sub_issues: list = field(default_factory=list)
+    whiteboard: str = None
 
 
 class User:
@@ -95,6 +96,8 @@ class IssueTracker:
         "notion_tasks_text_assignee": "",  # Default is disabled
         "notion_tasks_review_url": "",  # Default is disabled
         "notion_tasks_labels": "",  # Default is disabled
+        "notion_tasks_labels_text": "",  # Default is disabled
+        "notion_tasks_whiteboard": "",  # Default is disabled
         "notion_tasks_repository": "",  # Default is disabled
         "notion_tasks_openclose": "",  # Default is disabled
         "notion_milestone_team": "",  # Default is disabled
