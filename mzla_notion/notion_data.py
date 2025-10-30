@@ -135,7 +135,11 @@ class NotionDatabase:
 
     async def update_page(self, page: Dict[str, Any], datadict: Dict[str, Any], **kwargs) -> bool:
         """Update `page` with the data in `datadict`. Updates only occur if `page` and `datadict` are different."""
-        icon_differs = "icon" in kwargs and kwargs["icon"] != page["icon"] and kwargs["icon"]["type"] != "file"
+        icon_differs = (
+            "icon" in kwargs
+            and kwargs["icon"] != page["icon"]
+            and (not kwargs["icon"] or kwargs["icon"]["type"] != "file")
+        )
         update_kwargs = {}
 
         if icon_differs:
