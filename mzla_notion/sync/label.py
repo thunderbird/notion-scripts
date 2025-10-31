@@ -30,7 +30,7 @@ class LabelSync(BaseSync):
         async with asyncio.TaskGroup() as tg:
             tg.create_task(super()._async_init())
 
-            query_filter = {"property": self.propnames["notion_milestone_team"], "relation": {"contains": self.team}}
+            query_filter = {"property": self.propnames["notion_milestones_team"], "relation": {"contains": self.team}}
 
             milestone_pages = tg.create_task(
                 self.milestones_db.get_all_pages(query_filter=query_filter if self.team else None)

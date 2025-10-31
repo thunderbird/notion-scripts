@@ -100,7 +100,7 @@ class IssueTracker:
         "notion_tasks_whiteboard": "",  # Default is disabled
         "notion_tasks_repository": "",  # Default is disabled
         "notion_tasks_openclose": "",  # Default is disabled
-        "notion_milestone_team": "",  # Default is disabled
+        "notion_milestones_team": "",  # Default is disabled
         "notion_milestones_title": "Project",
         "notion_milestones_assignee": "Owner",
         "notion_milestones_priority": "Priority",
