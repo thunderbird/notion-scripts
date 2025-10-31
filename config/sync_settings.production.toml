@@ -1,60 +1,5 @@
 # MZLA Notion Scripts Configuration
 # See README for more information on the setup
-
-# [sync.services]
-# method = "github_project"
-# notion_tasks_id = "26b2df5d45ae809ea92acf0edff83e6b"
-# notion_milestones_id = "1352df5d45ae8068a42dc799f13ea87a"
-# milestones_issue_type = "Milestone"
-# 
-# [sync.services.repositories]
-# 
-# [sync.services.repositories.pro]
-# 
-# repositories = [
-#     "thunderbird/addons-server",
-#     "thunderbird/appointment",
-#     "thunderbird/cloudops",
-#     "thunderbird/mailstrom",
-#     "thunderbird/observability-strategy",
-#     "thunderbird/pulumi",
-#     "thunderbird/send-suite",
-#     "thunderbird/services-ui",
-#     "thunderbird/services-utils",
-#     "thunderbird/tbpro-add-on",
-#     "thunderbird/thunderbird-accounts",
-#     "thunderbird/thunderbird-notifications",
-#     "thunderbird/thunderbird-website",
-#     "thunderbird/thundernest-ansible",
-#     #"thunderbird/assist",
-#     #"thunderbird/code-coverage",
-#     #"thunderbird/notion-scripts",
-#     #"thunderbird/stats",
-#     #"thunderbird/thunderblog",
-#     #"thunderbird/zendesk-config"
-# ]
-# github_milestones_project_id = "PVT_kwDOAOe9Jc4BC48i"
-# github_tasks_project_id = "PVT_kwDOAOe9Jc4BC4_0"
-# 
-# [sync.services.properties]
-# notion_tasks_title = "Name"
-# notion_tasks_assignee = "Assignee"
-# notion_tasks_dates = "Date"
-# #notion_tasks_openclose = ["Opened", "Closed"]
-# notion_tasks_priority = "Priority"
-# notion_tasks_milestone_relation = "Test Milestones"
-# #notion_tasks_text_assignee = "Assignee"
-# #notion_tasks_labels = "Labels"
-# #notion_tasks_repository = "Repository"
-# notion_milestones_title = "Project name"
-# notion_milestones_assignee = "Owner"
-# notion_milestones_priority = ""
-# notion_milestones_dates = ["Start Date", "Wanted End Date"]
-# notion_issue_field = "Link"
-# notion_default_open_state = "Not started"
-# notion_inprogress_state = "In progress"
-# notion_closed_states = ["Done"]
-
 [sync.mobile]
 method = "github_project"
 notion_tasks_id = "94ca27a3d7374a4fae6ad6d5c7a70a76"
@@ -110,80 +55,46 @@ notion_tasks_priority_values = ["P1", "P2", "P3", "P4", "P5"]
 
 bugzilla_allowed_products = ["Thunderbird", "MailNews Core", "Calendar"]
 
+### VAULT ###
+
 [sync.support]
 method = "github_labels"
 
-notion_milestones_id = "2312df5d45ae80aab24bec2ebaff37b5"
-notion_tasks_id = "22b2df5d45ae80f1a07af6b252e6bc65"
+notion_milestones_id = "2332df5d45ae80909305fe2278a14629"
+notion_tasks_id = "2332df5d45ae8072aa7aededaf161252"
+
+notion_team_id = "2332df5d45ae80bc8839d089f5c7f608"
+notion_associated_team = "2332df5d45ae809696b3f0e6e6b1eead"
 
 [sync.support.repositories]
 repositories = [
     "thunderbird/knowledgebase-issues",
     "thunderbird/android-knowledgebase-issues",
+    "thunderbird/ios-knowledgebase-issues",
     "thunderbird/tbpro-knowledgebase-issues",
 ]
 
 [sync.support.properties]
-notion_tasks_title = "Task name"
+notion_tasks_title = "Name"
 notion_tasks_assignee = "Assignee"
 notion_tasks_dates = ""
-notion_tasks_openclose = "GitHub Dates"
+#notion_tasks_openclose = "GitHub Dates"
 notion_tasks_priority = ""
-notion_tasks_milestone_relation = "🎧 Support Milestones"
-notion_milestones_title = "Project name"
+notion_task_team = "Team"
+notion_tasks_milestone_relation = "Milestones"
+notion_tasks_text_assignee = ""
+notion_tasks_labels = ""
+notion_tasks_repository = ""
+notion_milestones_title = "Name"
+notion_milestones_team = "Team"
 notion_milestones_assignee = "Assignee"
-notion_issue_field = "GitHub Issue"
-notion_default_open_state = "Backlog"
-notion_closed_states = ["Done / Published in ZD"]
-#notion_tasks_labels = "Labels"
-#notion_tasks_repository = "Repository"
+notion_milestones_priority = ""
+notion_milestones_dates = ""
+notion_issue_field = "Bug Tracker"
+notion_inprogress_state = "In progress"
+notion_closed_states = ["Done"]
 
-[sync.pro]
-method = "project_board"
-notion_board_id = "2402df5d45ae807998f1cb8965707084"
-
-[sync.pro.properties]
-
-[sync.pro.properties.desktop]
-database = "b0343817fb69424e85722e5d5fc8077b"
-dates = ["Start Date", "Wanted End Date"]
-title = "Name"
-
-[sync.pro.properties.mobile]
-database = "637245a2c53b4d86a99c6e97006153df"
-dates = "Dates"
-title = "Project"
-
-[sync.pro.properties.services]
-database = "1352df5d45ae8068a42dc799f13ea87a"
-dates = ["Start Date", "Wanted End Date"]
-title = "Project name"
-
-[sync.pro.properties.design]
-database = "9fbbc92a85eb49499a568f2fd9a7ab65"
-dates = "dates"
-title = "Name"
-
-[sync.pro.properties.marketing]
-database = "cd8ade702e36485eab435c1fa669d63e"
-dates = ["Start Date", "Wanted End Date"]
-title = "Project name"
-
-[sync.pro.properties.support]
-database = "2312df5d45ae80aab24bec2ebaff37b5"
-dates = ["Start date", "End date"]
-title = "Project name"
-
-[sync.pro.properties.community]
-database = "23a2df5d45ae801ab440cda2b98c3e34"
-dates = ["Start date", "End date"]
-title = "Project name"
-
-
-### VAULT ###
-
-
-[sync.vault_desktop]
+[sync.desktop]
 method = "bugzilla_project"
 tracker_dry_run = true
 notion_tasks_id = "2332df5d45ae8072aa7aededaf161252"
@@ -195,7 +106,7 @@ notion_associated_team = "2332df5d45ae80ff92fbddd8eccb9060"
 bugzilla_base = "https://bugzilla.mozilla.org"
 milestones_tracker_prefix = "[meta] "
 
-[sync.vault_desktop.properties]
+[sync.desktop.properties]
 bugzilla_allowed_products = ["Thunderbird", "MailNews Core", "Calendar"]
 
 notion_tasks_title = "Name"
@@ -221,7 +132,7 @@ notion_default_open_state = "Not started"
 notion_inprogress_state = "In progress"
 notion_closed_states = ["Done"]
 
-[sync.vault_desktop.properties.bugzilla_map_state]
+[sync.desktop.properties.bugzilla_map_state]
 NEW = "Backlog"
 UNCONFIRMED = "Backlog"
 ASSIGNED = "In progress"
@@ -238,7 +149,7 @@ VERIFIED = "Done"
 "Done" = "RESOLVED"
 "Canceled" = "RESOLVED"
 
-[sync.vault_services]
+[sync.services]
 method = "github_project"
 notion_tasks_id = "2332df5d45ae8072aa7aededaf161252"
 notion_milestones_id = "2332df5d45ae80909305fe2278a14629"
@@ -247,7 +158,7 @@ notion_team_id = "2332df5d45ae80bc8839d089f5c7f608"
 notion_associated_team = "2332df5d45ae8083af1dcda07b5c1eca"
 milestones_issue_type = "Milestone"
 
-[sync.vault_services.repositories.pro]
+[sync.services.repositories.pro]
 repositories = [
     "thunderbird/addons-server",
     "thunderbird/appointment",
@@ -273,7 +184,7 @@ repositories = [
 github_milestones_project_id = "PVT_kwDOAOe9Jc4BC48i"
 github_tasks_project_id = "PVT_kwDOAOe9Jc4BC4_0"
 
-[sync.vault_services.properties]
+[sync.services.properties]
 notion_tasks_title = "Name"
 notion_tasks_assignee = "Assignee"
 notion_tasks_dates = "Date"
