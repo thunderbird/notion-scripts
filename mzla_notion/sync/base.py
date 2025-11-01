@@ -116,7 +116,7 @@ class BaseSync:
         self._setup_prop(
             tasks_properties, "notion_tasks_repository", "select", strip_orgname(self.tracker.get_all_repositories())
         )
-        self._setup_prop(tasks_properties, "notion_tasks_labels_text", "rich_text_space_set")
+
         self._setup_prop(tasks_properties, "notion_tasks_whiteboard", "rich_text")
         self._setup_date_prop(tasks_properties, "notion_tasks_dates")
         self._setup_date_prop(tasks_properties, "notion_tasks_openclose")
@@ -169,10 +169,10 @@ class BaseSync:
             else:
                 properties.append(p.dates(prop))
 
-    def _setup_prop(self, properties, key_name, type_name, *extra_args):
+    def _setup_prop(self, properties, key_name, type_name, *extra_args, **extra_kwargs):
         if prop := self.propnames[key_name]:
             typefunc = getattr(p, type_name)
-            properties.append(typefunc(prop, *extra_args))
+            properties.append(typefunc(prop, *extra_args, **extra_kwargs))
 
     def _get_date_prop(self, block_or_page, key_name, default=None):
         propinfo = self.propnames[key_name]
@@ -313,7 +313,6 @@ class BaseSync:
 
         # Labels and Whiteboard
         self._set_if_prop(notion_data, "notion_tasks_labels", tracker_issue.labels or [])
-        self._set_if_prop(notion_data, "notion_tasks_labels_text", tracker_issue.labels or [])
         self._set_if_prop(notion_data, "notion_tasks_whiteboard", tracker_issue.whiteboard)
 
         # Start/end dates
@@ -446,11 +445,12 @@ class BaseSync:
             await self.tasks_db.replace_page_contents(page["id"], body)
 
     async def _async_init(self):
+        needs_labels = self.propnames["notion_tasks_labels"] and isinstance(self.propnames["notion_tasks_labels"], str)
         async with asyncio.TaskGroup() as tg:
             valid_milestones = tg.create_task(self.milestones_db.validate_props())
             valid_tasks = tg.create_task(self.tasks_db.validate_props())
 
-            if self.propnames["notion_tasks_labels"]:
+            if needs_labels:
                 all_labels = tg.create_task(self.tracker.get_all_labels())
 
             tasks_issues = tg.create_task(
@@ -467,7 +467,22 @@ class BaseSync:
 
         tasks_properties = []
         if self.propnames["notion_tasks_labels"]:
-            self._setup_prop(tasks_properties, "notion_tasks_labels", "multi_select", all_labels.result())
+            allowed_tasks_labels = None
+            fieldname = None
+            if isinstance(self.propnames["notion_tasks_labels"], list):
+                # List is [fieldname, [field_value1, field_value2]] for pre-determined values
+                fieldname, allowed_tasks_labels = self.propnames["notion_tasks_labels"]
+            elif needs_labels:
+                # Otherwise we take the labels result from the tracker
+                allowed_tasks_labels = all_labels.result()
+                fieldname = self.propnames["notion_tasks_labels"]
+            else:
+                raise Exception("Invalid value for notion_tasks_labels: " + self.propnames["notion_tasks_labels"])
+
+            self.propnames["notion_tasks_labels"] = fieldname
+            self._setup_prop(
+                tasks_properties, "notion_tasks_labels", "multi_select", set(allowed_tasks_labels), unknown="skip"
+            )
 
         for prop in tasks_properties:
             self.tasks_db.add_property(prop)

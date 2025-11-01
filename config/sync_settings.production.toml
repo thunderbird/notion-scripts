@@ -117,8 +117,35 @@ notion_tasks_priority = "Priority"
 notion_tasks_team = "Team"
 notion_tasks_milestone_relation = "Milestones"
 notion_tasks_text_assignee = ""
-notion_tasks_labels = ""
-notion_tasks_labels_text = "Keywords (Desktop)"
+notion_tasks_labels = ["Keywords (Desktop)", [
+    "attach:approval-comm-beta?",
+    "attach:approval-comm-beta-",
+    "attach:approval-comm-beta+",
+    "attach:approval-comm-release?",
+    "attach:approval-comm-release-",
+    "attach:approval-comm-release+",
+    "attach:approval-comm-esr140?",
+    "attach:approval-comm-esr140-",
+    "attach:approval-comm-esr140+",
+    "attach:approval-comm-esr128?",
+    "attach:approval-comm-esr128-",
+    "attach:approval-comm-esr128+",
+    "checkin-needed-tb",
+    "crash",
+    "dataloss",
+    "design-needed",
+    "dev-doc-needed",
+    "devrel-needed",
+    "good-first-bug",
+    "good-next-bug",
+    "helpwanted",
+    "regression",
+    "regressionwindow-wanted",
+    "steps-wanted",
+    "topcrash-thunderbird",
+    "reproducible",
+    "triaged",
+  ]]
 notion_tasks_whiteboard = "Whiteboard (Desktop)"
 notion_tasks_repository = ""
 notion_tasks_review_url = "Patch Review URL"

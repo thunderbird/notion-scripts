@@ -585,26 +585,36 @@ def select(name: str, options: List[str]) -> NotionProperty:
     )
 
 
-def multi_select(name: str, options: List[str]) -> NotionProperty:
+def multi_select(name: str, options: List[str], unknown="error") -> NotionProperty:
     """A multi-select with a list of options."""
 
-    def _update(content: List[str]) -> Dict[str, Any]:
-        vals = []
+    def get_vals(content):
+        vals = set()
         for val in content:
             if val not in options:
-                raise ValueError(f"Invalid option: {val}. Must be one of {options}.")
-            vals.append({"name": val})
+                if unknown == "error":
+                    raise ValueError(f"Invalid option {val} for multi_select {name}. Must be one of {options}.")
+                elif unknown == "skip":
+                    continue
+                elif unknown == "allow":
+                    pass
+                else:
+                    raise TypeError(f"Invalid unknown value {unknown} for multi_select {name}")
+            vals.add(val)
+        return vals
+
+    def _update(content: List[str]) -> Dict[str, Any]:
+        vals = [{"name": val} for val in get_vals(content)]
         return {name: {"multi_select": vals}}
 
     def _diff(property_data: Dict[str, Any], content: List[str]) -> bool:
         if "multi_select" not in property_data:
             return True
-        vals = [v["name"] for v in property_data["multi_select"]]
-        if set(vals) == set(content):
-            return False
-        if {s.lower() for s in vals} == {s.lower() for s in content}:
-            logger.warn(f"Case Warning!\n{vals} | {content}\n")
-        return True
+
+        prop_vals = {v["name"] for v in property_data["multi_select"]}
+        content_vals = get_vals(content)
+
+        return prop_vals != content_vals
 
     return NotionProperty(
         name=name,

@@ -157,7 +157,7 @@ class Bugzilla(IssueTracker):
 
     async def _get_bugzilla_bugs(self, bugids, sub_issues=False):
         issues = []
-        fields = "id,summary,status,product,cf_user_story,assigned_to,priority,depends_on,blocks,attachments,comments,see_also,creation_time,cf_last_resolved,keywords,whiteboard"
+        fields = "id,summary,status,product,cf_user_story,assigned_to,priority,depends_on,blocks,attachments,comments,see_also,creation_time,cf_last_resolved,keywords,whiteboard,attachments"
 
         response = await self.client.get("/bug", params={"id": ",".join(bugids), "include_fields": fields})
         response_json = response.json()
@@ -173,13 +173,18 @@ class Bugzilla(IssueTracker):
             statemap = self.property_names.get("bugzilla_map_state")
             status = statemap.get(bug["status"]) or bug["status"]
 
+            labels = set(bug["keywords"])
+            for attachment in bug["attachments"]:
+                for flag in attachment["flags"]:
+                    labels.add("attach:" + flag["name"] + flag["status"])
+
             issue = Issue(
                 id=str(bug["id"]),
                 repo=self.repo_name,
                 url=f"{self.base_url}/show_bug.cgi?id={bug['id']}",
                 title=bug["summary"],
                 state=status,
-                labels=set(bug["keywords"]),
+                labels=labels,
                 whiteboard=bug["whiteboard"] or "",
                 description=bug["cf_user_story"] or getnestedattr(lambda: bug["comments"][0]["text"], ""),
                 assignees={User(self.user_map, tracker_user=assignee)} if assignee else set(),
