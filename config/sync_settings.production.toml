@@ -217,6 +217,7 @@ notion_tasks_assignee = "Assignee"
 notion_tasks_dates = "Date"
 #notion_tasks_openclose = ["Opened", "Closed"]
 notion_tasks_priority = "Priority"
+notion_tasks_review_url = "Patch Review URL"
 notion_tasks_team = "Team"
 notion_tasks_milestone_relation = "Milestones"
 notion_tasks_text_assignee = ""

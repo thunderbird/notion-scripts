@@ -359,6 +359,7 @@ class GitHub(IssueTracker):
             priority=getnestedattr(lambda: gh_project_item.priority.name, None),
             notion_url=getnestedattr(lambda: gh_project_item.link.text, None),
             labels={label.name for label in ghissue.labels.nodes},
+            review_url=getnestedattr(lambda: ghissue.timeline_items.nodes[0].source.url, None),
             gql=ghissue,
         )
 
@@ -887,6 +888,11 @@ def issue_field_ops(issue):
     assignees = issue.assignees(first=10)
     assignees.nodes.id()
     assignees.nodes.login()
+
+    timeline_items = issue.timeline_items(last=1, item_types=["CROSS_REFERENCED_EVENT"])
+    crossref_events = timeline_items.nodes.__as__(schema.CrossReferencedEvent)
+    pull_request = crossref_events.source.__as__(schema.PullRequest)
+    pull_request.url()
 
     project_items = issue.project_items(first=10, include_archived=True).nodes
     project_items.id()
