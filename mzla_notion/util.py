@@ -4,6 +4,7 @@
 
 import logging
 import time
+import datetime
 import httpx
 import dataclasses
 import asyncio
@@ -211,3 +212,14 @@ def strip_orgname(repos):
     firstprefix, _ = repos[0].split("/", 1) if repos else (None, None)
     stripped = [parts[1] for repo in repos if (parts := repo.split("/", 1)) and parts[0] == firstprefix]
     return stripped if len(stripped) == len(repos) else repos
+
+
+def ensure_datetime(value):
+    """Return a datetime by filling utc midnight for dates."""
+    if value is None:
+        return None
+    if isinstance(value, datetime.datetime):
+        return value
+    if isinstance(value, datetime.date):
+        return datetime.datetime(value.year, value.month, value.day, tzinfo=datetime.timezone.utc)
+    raise TypeError(f"Expected date or datetime, got {type(value)}")

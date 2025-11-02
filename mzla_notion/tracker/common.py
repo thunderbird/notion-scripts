@@ -88,6 +88,7 @@ class IssueTracker:
         "notion_tasks_title": "Task name",
         "notion_tasks_assignee": "Owner",
         "notion_tasks_dates": "Dates",
+        "notion_tasks_planned_dates": "",  # Default is disabled
         "notion_tasks_team": "",  # Default is disabled
         "notion_tasks_priority": "Priority",
         "notion_tasks_status": "Status",

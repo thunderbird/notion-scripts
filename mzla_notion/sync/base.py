@@ -8,6 +8,7 @@ import logging
 import asyncio
 import re
 import notion_client
+import datetime
 
 from collections import defaultdict
 from functools import cached_property
@@ -16,7 +17,7 @@ from notion_client.helpers import async_iterate_paginated_api
 
 from .. import notion_data as p
 from ..notion_data import NotionDatabase
-from ..util import getnestedattr, AsyncRetryingClient, strip_orgname
+from ..util import getnestedattr, AsyncRetryingClient, strip_orgname, ensure_datetime
 
 logger = logging.getLogger("project_sync")
 
@@ -316,14 +317,29 @@ class BaseSync:
         self._set_if_prop(notion_data, "notion_tasks_whiteboard", tracker_issue.whiteboard)
 
         # Start/end dates
+        old_planned_start, old_planned_target = getnestedattr(
+            lambda: self._get_date_prop(old_page, "notion_tasks_planned_dates"), (None, None)
+        )
+        utc_min = datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
         if tracker_issue.sprint:
-            self._set_if_date_prop(
-                notion_data, "notion_tasks_dates", tracker_issue.sprint.start_date, tracker_issue.sprint.end_date
-            )
+            final_start = tracker_issue.sprint.start_date
+            final_end = tracker_issue.sprint.end_date
         elif tracker_issue.start_date or tracker_issue.end_date:
-            self._set_if_date_prop(notion_data, "notion_tasks_dates", tracker_issue.start_date, tracker_issue.end_date)
+            final_start = max(
+                ensure_datetime(tracker_issue.start_date) or utc_min,
+                ensure_datetime(tracker_issue.created_date),
+                ensure_datetime(old_planned_start) or utc_min,
+            )
+            final_end = tracker_issue.end_date or tracker_issue.closed_date
+        elif final_status in self.propnames["notion_closed_states"]:
+            # No dates set otherwise, and the issue is closed
+            final_start = max(tracker_issue.created_date, old_planned_start or utc_min)
+            final_end = tracker_issue.closed_date
         else:
-            self._set_if_date_prop(notion_data, "notion_tasks_dates", None)
+            final_start = None
+            final_end = None
+
+        self._set_if_date_prop(notion_data, "notion_tasks_dates", final_start, final_end)
 
         # Open/close dates
         self._set_if_date_prop(

@@ -215,6 +215,7 @@ github_tasks_project_id = "PVT_kwDOAOe9Jc4BC4_0"
 notion_tasks_title = "Name"
 notion_tasks_assignee = "Assignee"
 notion_tasks_dates = "Date"
+notion_tasks_planned_dates = "Original Due Date"
 #notion_tasks_openclose = ["Opened", "Closed"]
 notion_tasks_priority = "Priority"
 notion_tasks_review_url = "Patch Review URL"
