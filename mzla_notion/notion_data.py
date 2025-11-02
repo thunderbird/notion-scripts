@@ -207,15 +207,13 @@ class NotionDatabase:
                 "type": block_type,
                 block_type: block[block_type],
             }
-            print("FROM", block)
-            print("TO", new_block)
 
             try:
                 response = await self.notion.blocks.children.append(
                     block_id=target_id,
                     children=[new_block],
                 )
-            except:
+            except Exception:
                 continue
 
             created_block_id = response["results"][0]["id"]

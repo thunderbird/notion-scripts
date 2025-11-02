@@ -29,6 +29,7 @@ def cmd_debug_users():
 
 
 def cmd_debug_project(orgrepo):
+    """Show project properties (e.g. to get the ID)."""
     org, repo = orgrepo.split("/")
 
     GitHubProjectV2.list(org, repo)
