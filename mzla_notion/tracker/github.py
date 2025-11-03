@@ -340,6 +340,11 @@ class GitHub(IssueTracker):
 
         gh_project_item = tasks_project_item or milestones_project_item
 
+        review_url = None
+        for item in ghissue.timeline_items.nodes or []:
+            if item.will_close_target:
+                review_url = item.source.url
+
         issue = GitHubIssue(
             repo=repo,
             id=str(ghissue.number),
@@ -359,7 +364,7 @@ class GitHub(IssueTracker):
             priority=getnestedattr(lambda: gh_project_item.priority.name, None),
             notion_url=getnestedattr(lambda: gh_project_item.link.text, None),
             labels={label.name for label in ghissue.labels.nodes},
-            review_url=getnestedattr(lambda: ghissue.timeline_items.nodes[0].source.url, None),
+            review_url=review_url,
             gql=ghissue,
         )
 
@@ -889,8 +894,9 @@ def issue_field_ops(issue):
     assignees.nodes.id()
     assignees.nodes.login()
 
-    timeline_items = issue.timeline_items(last=1, item_types=["CROSS_REFERENCED_EVENT"])
+    timeline_items = issue.timeline_items(last=50, item_types=["CROSS_REFERENCED_EVENT"])
     crossref_events = timeline_items.nodes.__as__(schema.CrossReferencedEvent)
+    crossref_events.will_close_target()
     pull_request = crossref_events.source.__as__(schema.PullRequest)
     pull_request.url()
 
