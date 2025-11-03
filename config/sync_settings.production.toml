@@ -34,27 +34,6 @@ repositories = [
 github_tasks_project_id = "PVT_kwDOAOe9Jc4A1aav"
 github_milestones_project_id = "PVT_kwDOAOe9Jc4A1aX6"
 
-[sync.bugzilla]
-method = "bugzilla_project"
-tracker_dry_run = true
-notion_tasks_id = "20f2df5d45ae8004baeadc784d8f7ea4"
-notion_milestones_id = "b0343817fb69424e85722e5d5fc8077b"
-bugzilla_base = "https://bugzilla.mozilla.org"
-milestones_tracker_prefix = "[meta] "
-
-[sync.bugzilla.properties]
-notion_tasks_title = "Name"
-notion_tasks_assignee = "Assignee"
-notion_tasks_openclose = "Dates"
-notion_tasks_milestone_relation = "Milestone"
-notion_milestones_title = "Name"
-notion_tasks_review_url = "Review URL"
-notion_milestones_assignee = "Owner"
-notion_issue_field = "Bugzilla URL"
-notion_tasks_priority_values = ["P1", "P2", "P3", "P4", "P5"]
-
-bugzilla_allowed_products = ["Thunderbird", "MailNews Core", "Calendar"]
-
 ### VAULT ###
 
 [sync.support]
