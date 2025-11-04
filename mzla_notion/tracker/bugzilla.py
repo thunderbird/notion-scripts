@@ -58,6 +58,7 @@ class Bugzilla(IssueTracker):
 
         self.base_url = base_url
         self.repo_name = res.netloc
+        self._hack_parent_cache = {}
 
         self.client = BugzillaAsyncRetryingClient(
             base_url=f"{base_url}/rest",
@@ -162,6 +163,8 @@ class Bugzilla(IssueTracker):
         response = await self.client.get("/bug", params={"id": ",".join(bugids), "include_fields": fields})
         response_json = response.json()
 
+        unhandled = set(bugids)
+
         for bug in response_json["bugs"]:
             assignee = bug["assigned_to"] if bug["assigned_to"] != "nobody@mozilla.org" else None
             parents = [IssueRef(repo=self.repo_name, id=str(parent_id)) for parent_id in bug["blocks"]]
@@ -178,22 +181,8 @@ class Bugzilla(IssueTracker):
                 for flag in attachment["flags"]:
                     labels.add("attach:" + flag["name"] + flag["status"])
 
-            issue = Issue(
-                id=str(bug["id"]),
-                repo=self.repo_name,
-                url=f"{self.base_url}/show_bug.cgi?id={bug['id']}",
-                title=bug["summary"],
-                state=status,
-                labels=labels,
-                whiteboard=bug["whiteboard"] or "",
-                description=bug["cf_user_story"] or getnestedattr(lambda: bug["comments"][0]["text"], ""),
-                assignees={User(self.user_map, tracker_user=assignee)} if assignee else set(),
-                priority=bug["priority"] if bug["priority"] != "--" else None,
-                parents=parents,
-                created_date=datetime.datetime.fromisoformat(bug["creation_time"]),
-                closed_date=closed_date,
-            )
-
+            review_url = None
+            notion_url = None
             phab = next(
                 filter(
                     lambda att: att["is_obsolete"] == 0 and att.get("content_type") == "text/x-phabricator-request",
@@ -203,22 +192,64 @@ class Bugzilla(IssueTracker):
             )
             if phab:
                 if bug["status"] in ("ASSIGNED", "REOPENED"):
-                    issue.state = statemap.get("IN REVIEW") or "IN REVIEW"  # TODO hack
+                    status = statemap.get("IN REVIEW") or "IN REVIEW"  # TODO hack
 
-                issue.review_url = base64.b64decode(phab["data"]).decode("utf-8")
+                review_url = base64.b64decode(phab["data"]).decode("utf-8")
 
             for url in bug["see_also"]:
                 if url.startswith("https://www.notion.so/"):
-                    issue.notion_url = url
+                    notion_url = url
                     break
 
-            issue.sub_issues = [
-                IssueRef(repo=self.repo_name, id=str(sub_issue_id), parents=[issue])
-                for sub_issue_id in bug["depends_on"]
-                if self._is_allowed_product(bug)
-            ]
+            issue = Issue(
+                id=str(bug["id"]),
+                repo=self.repo_name,
+                url=f"{self.base_url}/show_bug.cgi?id={bug['id']}",
+                notion_url=notion_url,
+                review_url=review_url,
+                title=bug["summary"],
+                state=status,
+                labels=labels,
+                whiteboard=bug["whiteboard"] or "",
+                description=bug["cf_user_story"] or getnestedattr(lambda: bug["comments"][0]["text"], ""),
+                assignees={User(self.user_map, tracker_user=assignee)} if assignee else set(),
+                priority=bug["priority"] if bug["priority"] != "--" else None,
+                parents=parents,
+                sub_issues=sub_issues,
+                created_date=datetime.datetime.fromisoformat(bug["creation_time"]),
+                closed_date=closed_date,
+            )
+
+            issue.sub_issues = []
+            for sub_issue_id in bug["depends_on"]:
+                if not self._is_allowed_product(bug):
+                    continue
+
+                str_sub_id = str(sub_issue_id)
+                self._hack_parent_cache[str_sub_id] = issue.id
+                issue.sub_issues.append(IssueRef(repo=self.repo_name, id=str_sub_id, parents=[issue]))
+
+            unhandled.remove(issue.id)
+            issues.append(issue)
+
+        for bugid in unhandled:
+            parents = []
+            if bugid in self._hack_parent_cache:
+                parents = [IssueRef(id=self._hack_parent_cache[bugid], repo=self.repo_name)]
+
+            issue = Issue(
+                id=bugid,
+                repo=self.repo_name,
+                url=f"{self.base_url}/show_bug.cgi?id={bugid}",
+                title="Secure Bug",
+                description="",
+                priority=None,
+                state=None,
+                parents=parents,
+            )
 
             issues.append(issue)
+
         return issues
 
     async def get_issues_by_number(self, bugrefs, sub_issues=False):

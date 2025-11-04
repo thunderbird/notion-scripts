@@ -43,7 +43,7 @@ class Issue(IssueRef):
     end_date: datetime.date = None
     sprint: Sprint = None
     sub_issues: list = field(default_factory=list)
-    whiteboard: str = None
+    whiteboard: str = ""
 
 
 class User:
