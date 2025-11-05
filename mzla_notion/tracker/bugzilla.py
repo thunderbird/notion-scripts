@@ -158,7 +158,7 @@ class Bugzilla(IssueTracker):
 
     async def _get_bugzilla_bugs(self, bugids, sub_issues=False):
         issues = []
-        fields = "id,summary,status,product,cf_user_story,assigned_to,priority,depends_on,blocks,attachments,comments,see_also,creation_time,cf_last_resolved,keywords,whiteboard,attachments"
+        fields = "id,summary,status,product,cf_user_story,assigned_to,priority,depends_on,blocks,attachments,comments,see_also,creation_time,cf_last_resolved,keywords,whiteboard"
 
         response = await self.client.get("/bug", params={"id": ",".join(bugids), "include_fields": fields})
         response_json = response.json()
@@ -176,26 +176,23 @@ class Bugzilla(IssueTracker):
             statemap = self.property_names.get("bugzilla_map_state")
             status = statemap.get(bug["status"]) or bug["status"]
 
+            review_url = None
             labels = set(bug["keywords"])
             for attachment in bug["attachments"]:
                 for flag in attachment["flags"]:
                     labels.add("attach:" + flag["name"] + flag["status"])
 
-            review_url = None
+                if (
+                    attachment["is_obsolete"] == 0
+                    and attachment.get("content_type") == "text/x-phabricator-request"
+                    and "[wip]" not in attachment["summary"]
+                ):
+                    review_url = base64.b64decode(attachment["data"]).decode("utf-8")
+
+                    if bug["status"] in ("ASSIGNED", "REOPENED"):
+                        status = statemap.get("IN REVIEW") or "IN REVIEW"  # TODO hack
+
             notion_url = None
-            phab = next(
-                filter(
-                    lambda att: att["is_obsolete"] == 0 and att.get("content_type") == "text/x-phabricator-request",
-                    bug["attachments"],
-                ),
-                None,
-            )
-            if phab:
-                if bug["status"] in ("ASSIGNED", "REOPENED"):
-                    status = statemap.get("IN REVIEW") or "IN REVIEW"  # TODO hack
-
-                review_url = base64.b64decode(phab["data"]).decode("utf-8")
-
             for url in bug["see_also"]:
                 if url.startswith("https://www.notion.so/"):
                     notion_url = url
