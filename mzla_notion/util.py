@@ -10,6 +10,7 @@ import dataclasses
 import asyncio
 import http.client
 import random
+import sgqlc.operation
 
 logger = logging.getLogger("notion_sync")
 
@@ -133,7 +134,13 @@ class AsyncRetryingClient(httpx.AsyncClient):
                 response = await super().send(request, *args, **kwargs)
                 if self.autoraise:
                     response.raise_for_status()
-            except (httpx.TransportError, httpx.HTTPStatusError, ConnectionError, http.client.HTTPException) as e:
+            except (
+                httpx.TransportError,
+                httpx.HTTPStatusError,
+                ConnectionError,
+                http.client.HTTPException,
+                sgqlc.operation.GraphQLErrors,
+            ) as e:
                 # Bail if our retry limit has been reached
                 if recur <= 0:
                     raise
@@ -174,6 +181,13 @@ class AsyncRetryingClient(httpx.AsyncClient):
             logger.info(f"Sleeping {self.RETRY_TIMEOUT} due to {response.status_code} response")
             await rate_limit_gate.engage(self.RETRY_TIMEOUT)
             return True
+
+        if exception and isinstance(exception, sgqlc.operation.GraphQLErrors):
+            for error in exception.errors:
+                if (error["status"] or 0) // 100 == 5:
+                    logger.info(f"Sleeping {self.RETRY_TIMEOUT} due to {error['status']} response")
+                    await rate_limit_gate.engage(self.RETRY_TIMEOUT)
+                    return True
 
         if exception and not isinstance(exception, httpx.HTTPStatusError):
             logger.info(f"Sleeping {self.RETRY_TIMEOUT} due to {type(exception).__name__} ")
