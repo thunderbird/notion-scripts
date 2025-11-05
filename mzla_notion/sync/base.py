@@ -17,7 +17,7 @@ from notion_client.helpers import async_iterate_paginated_api
 
 from .. import notion_data as p
 from ..notion_data import NotionDatabase
-from ..util import getnestedattr, AsyncRetryingClient, strip_orgname, ensure_datetime
+from ..util import getnestedattr, AsyncRetryingClient, ensure_datetime
 
 logger = logging.getLogger("project_sync")
 
@@ -108,15 +108,12 @@ class BaseSync:
             self._setup_prop(tasks_properties, "notion_tasks_team", "relation", team_id, False)
             self._setup_prop(milestones_properties, "notion_milestones_team", "relation", team_id, False)
 
-        self._setup_prop(
-            tasks_properties, "notion_tasks_priority", "select", self.propnames["notion_tasks_priority_values"]
-        )
+        self._setup_prop(tasks_properties, "notion_tasks_priority", "select")
         self._setup_prop(tasks_properties, "notion_tasks_assignee", "people")
         self._setup_prop(tasks_properties, "notion_tasks_review_url", "link")
         self._setup_prop(tasks_properties, "notion_tasks_text_assignee", "rich_text_space_set")
-        self._setup_prop(
-            tasks_properties, "notion_tasks_repository", "select", strip_orgname(self.tracker.get_all_repositories())
-        )
+        self._setup_prop(tasks_properties, "notion_tasks_repository", "select")
+        self._setup_prop(tasks_properties, "notion_tasks_labels", "multi_select", unknown="skip")
 
         self._setup_prop(tasks_properties, "notion_tasks_whiteboard", "rich_text")
         self._setup_date_prop(tasks_properties, "notion_tasks_dates")
@@ -461,13 +458,9 @@ class BaseSync:
             await self.tasks_db.replace_page_contents(page["id"], body)
 
     async def _async_init(self):
-        needs_labels = self.propnames["notion_tasks_labels"] and isinstance(self.propnames["notion_tasks_labels"], str)
         async with asyncio.TaskGroup() as tg:
             valid_milestones = tg.create_task(self.milestones_db.validate_props())
             valid_tasks = tg.create_task(self.tasks_db.validate_props())
-
-            if needs_labels:
-                all_labels = tg.create_task(self.tracker.get_all_labels())
 
             tasks_issues = tg.create_task(
                 self._discover_notion_issues(self.tasks_db.database_id, self.propnames["notion_tasks_team"])
@@ -480,28 +473,6 @@ class BaseSync:
             raise Exception("Milestone schema failed to validate")
         if not valid_tasks.result():
             raise Exception("Tasks schema failed to validate")
-
-        tasks_properties = []
-        if self.propnames["notion_tasks_labels"]:
-            allowed_tasks_labels = None
-            fieldname = None
-            if isinstance(self.propnames["notion_tasks_labels"], list):
-                # List is [fieldname, [field_value1, field_value2]] for pre-determined values
-                fieldname, allowed_tasks_labels = self.propnames["notion_tasks_labels"]
-            elif needs_labels:
-                # Otherwise we take the labels result from the tracker
-                allowed_tasks_labels = all_labels.result()
-                fieldname = self.propnames["notion_tasks_labels"]
-            else:
-                raise Exception("Invalid value for notion_tasks_labels: " + self.propnames["notion_tasks_labels"])
-
-            self.propnames["notion_tasks_labels"] = fieldname
-            self._setup_prop(
-                tasks_properties, "notion_tasks_labels", "multi_select", set(allowed_tasks_labels), unknown="skip"
-            )
-
-        for prop in tasks_properties:
-            self.tasks_db.add_property(prop)
 
         self._notion_tasks_issues = tasks_issues.result()
 

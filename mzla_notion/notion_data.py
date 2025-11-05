@@ -4,6 +4,7 @@
 
 import logging
 import asyncio
+import inspect
 from dataclasses import dataclass, field
 import datetime
 from typing import Any, Callable, Dict, List
@@ -31,6 +32,7 @@ class NotionProperty:
     additional: Dict[str, Any] = field(default_factory=dict)
     _update: Callable[[Any], Dict[str, Any]] = None
     _diff: Callable[[Dict[str, Any], Any], bool] = None
+    _init: Callable[Dict[str, Any], None] = None
 
     def to_dict(self):
         """Returns a dict that defines this property in the Notion API format."""
@@ -250,7 +252,6 @@ class NotionDatabase:
     async def validate_props(self, delete=False, update=False):
         """Updates the properties of the remote Notion database tied to the local instance."""
         # TODO: This method could use some error checking and verifying that it worked properly.
-        desired_props = self.to_dict()
 
         # Fetch the current properties of the database.
         current_db = await self.notion.databases.retrieve(database_id=self.database_id)
@@ -260,7 +261,7 @@ class NotionDatabase:
         # The status and title properties cannot be deleted via the API.
         if delete:
             for prop_name, prop_info in current_props.items():
-                if prop_name not in desired_props and prop_info["type"] not in [
+                if prop_name not in self.properties and prop_info["type"] not in [
                     "status",
                     "title",
                 ]:
@@ -275,7 +276,14 @@ class NotionDatabase:
         # Add or update missing properties
         # TODO TaskGroup
         changes = False
-        for prop_name, prop_schema in desired_props.items():
+        for prop_name, prop in self.properties.items():
+            if prop._init:
+                res = prop._init(prop, current_props.get(prop_name))
+                if inspect.isawaitable(res):
+                    await res
+
+            prop_schema = prop.to_dict()
+
             if prop_schema["type"] == "title":
                 # The title property always has the id "title" so can be renamed that way.
                 properties = {"title": {"name": prop_name}}
@@ -555,15 +563,29 @@ def number(name: str) -> NotionProperty:
     )
 
 
-def select(name: str, options: List[str]) -> NotionProperty:
+def select(name: str, options: List[str] = None, unknown="error") -> NotionProperty:
     """A single-select with a list of options."""
 
-    def _update(content: str) -> Dict[str, Any]:
-        if content and content not in options:
-            raise ValueError(f"Invalid option: {content}. Must be one of {options}.")
+    def get_val(content):
+        if content is None:
+            return None
+        elif content not in (options or []):
+            if unknown == "error":
+                raise ValueError(f"Invalid option {content} for select {name}. Must be one of {options}.")
+            elif unknown == "skip":
+                return None
+            elif unknown == "allow":
+                return content
+            else:
+                raise TypeError(f"Invalid unknown value {unknown} for select {name}")
+        else:
+            return content
 
-        if content:
-            return {name: {"select": {"name": content}}}
+    def _update(content: str) -> Dict[str, Any]:
+        val = get_val(content)
+
+        if val:
+            return {name: {"select": {"name": val}}}
         else:
             return {name: {"select": None}}
 
@@ -574,22 +596,29 @@ def select(name: str, options: List[str]) -> NotionProperty:
             return True
         return False
 
+    def _init(prop, current_properties: Dict[str, Any]):
+        nonlocal options
+        if options is None:
+            options = [opt["name"] for opt in ((current_properties.get("select") or {}).get("options") or [])]
+            prop.additional = {"select": {"options": [{"name": opt} for opt in (options or [])]}}
+
     return NotionProperty(
         name=name,
         type="select",
-        additional={"select": {"options": [{"name": opt} for opt in options]}},
+        additional={"select": {"options": [{"name": opt} for opt in (options or [])]}},
         _update=_update,
         _diff=_diff,
+        _init=_init,
     )
 
 
-def multi_select(name: str, options: List[str], unknown="error") -> NotionProperty:
+def multi_select(name: str, options: List[str] = None, unknown="error") -> NotionProperty:
     """A multi-select with a list of options."""
 
     def get_vals(content):
         vals = set()
         for val in content:
-            if val not in options:
+            if val not in (options or []):
                 if unknown == "error":
                     raise ValueError(f"Invalid option {val} for multi_select {name}. Must be one of {options}.")
                 elif unknown == "skip":
@@ -614,10 +643,17 @@ def multi_select(name: str, options: List[str], unknown="error") -> NotionProper
 
         return prop_vals != content_vals
 
+    def _init(prop, current_properties: Dict[str, Any]):
+        nonlocal options
+        if options is None:
+            options = [opt["name"] for opt in ((current_properties.get("multi_select") or {}).get("options") or [])]
+            prop.additional = {"multi_select": {"options": [{"name": opt} for opt in (options or [])]}}
+
     return NotionProperty(
         name=name,
         type="multi_select",
-        additional={"multi_select": {"options": [{"name": opt} for opt in options]}},
+        additional={"multi_select": {"options": [{"name": opt} for opt in (options or [])]}},
+        _init=_init,
         _update=_update,
         _diff=_diff,
     )

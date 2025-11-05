@@ -170,10 +170,6 @@ class IssueTracker:
         if False:
             yield "hack"
 
-    async def get_all_labels(self):
-        """Get the names of all labels in all associated repositories."""
-        return []
-
 
 class UserMap:
     """A map between different types of user names."""

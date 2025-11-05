@@ -500,16 +500,6 @@ class GitHub(IssueTracker):
             async for issue in streamer:
                 yield issue
 
-    async def get_all_labels(self):
-        """Get the names of all labels in all associated repositories."""
-        all_labels = set()
-
-        for orgrepo in self.allowed_repositories:
-            orgname, repo = orgrepo.split("/")
-            all_labels.update((await self.label_cache.get_all(orgname, repo)).keys())
-
-        return all_labels
-
 
 class IssueTypeCache:
     """A cache for retrieving the issue type ids from GitHub."""
