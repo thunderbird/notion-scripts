@@ -13,7 +13,7 @@ from sgqlc.endpoint.httpx import HTTPXEndpoint
 from sgqlc.operation import Operation, GraphQLErrors
 
 from ..github_schema import schema
-from ..util import getnestedattr
+from ..util import getnestedattr, AsyncRetryingClient
 
 from .common import UserMap, Sprint, IssueRef, Issue, User, IssueTracker
 
@@ -115,7 +115,7 @@ class GitHub(IssueTracker):
             url="https://api.github.com/graphql",
             base_headers={"Authorization": f"Bearer {token}"},
             timeout=120.0,
-            client=httpx.AsyncClient(http2=True),
+            client=AsyncRetryingClient(http2=True),
         )
 
         self.label_cache = LabelCache(self.endpoint)
