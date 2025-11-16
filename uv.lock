@@ -359,7 +359,7 @@ requires-dist = [
     { name = "notion-to-md-py", specifier = "==0.1.0" },
     { name = "python-dateutil", specifier = ">=2.9.0.post0" },
     { name = "requests", specifier = ">=2.32.3" },
-    { name = "sgqlc", specifier = ">=17.1" },
+    { name = "sgqlc", git = "https://github.com/kewisch/sgqlc.git?rev=9ae3726b6f526f948b49abd17447f939e4ac5125" },
     { name = "sgqlc-schemas", specifier = ">=0.1.0" },
 ]
 
@@ -570,13 +570,9 @@ wheels = [
 [[package]]
 name = "sgqlc"
 version = "17.1"
-source = { registry = "https://pypi.org/simple" }
+source = { git = "https://github.com/kewisch/sgqlc.git?rev=9ae3726b6f526f948b49abd17447f939e4ac5125#9ae3726b6f526f948b49abd17447f939e4ac5125" }
 dependencies = [
     { name = "graphql-core" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/5f/7e/9784ce0994d55f2271af15b30f8564c39f997aa57fb2f5b7eab11c2f4feb/sgqlc-17.1.tar.gz", hash = "sha256:93309057889894899819e6aefee544e3d9aa85e33f694b88fb657526c45df4a4", size = 244807, upload-time = "2025-10-06T14:10:30.06Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/27/28/5bdd500f8e2cad9e8ed05de8b918ce16b486bc38b6180aa957ee0a2ba7d0/sgqlc-17.1-py3-none-any.whl", hash = "sha256:d4d030ee687b66a840d605c81060585998fc22bba805b55e496911108800fc48", size = 85619, upload-time = "2025-10-06T14:10:28.47Z" },
 ]
 
 [[package]]

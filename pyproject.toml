@@ -10,7 +10,7 @@ authors = [
 dependencies = [
     "notion-client>=2.2.1",
     "requests>=2.32.3",
-    "sgqlc>=17.1",
+    "sgqlc@git+https://github.com/kewisch/sgqlc.git@9ae3726b6f526f948b49abd17447f939e4ac5125",
     "sgqlc-schemas>=0.1.0",
     "python-dateutil>=2.9.0.post0",
     "md2notionpage==0.1.5",
