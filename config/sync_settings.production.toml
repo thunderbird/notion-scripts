@@ -155,13 +155,17 @@ notion_team_id = "2332df5d45ae80bc8839d089f5c7f608"
 notion_associated_team = "2332df5d45ae8083af1dcda07b5c1eca"
 milestones_issue_type = "Milestone"
 
+milestones_body_sync = false
+milestones_body_sync_if_empty = true
+tasks_body_sync = false
+
 [sync.services.repositories.pro]
 repositories = [
     "thunderbird/addons-server",
     "thunderbird/appointment",
     "thunderbird/cloudops",
     "thunderbird/mailstrom",
-    "thunderbird/observability-strategy",
+    "thunderbird/observability",
     "thunderbird/pulumi",
     "thunderbird/send-suite",
     "thunderbird/services-ui",
