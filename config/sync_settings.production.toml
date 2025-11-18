@@ -2,23 +2,44 @@
 # See README for more information on the setup
 [sync.mobile]
 method = "github_project"
-notion_tasks_id = "94ca27a3d7374a4fae6ad6d5c7a70a76"
-notion_milestones_id = "637245a2c53b4d86a99c6e97006153df"
-notion_sprints_id = "19e2df5d45ae803fa74ff4d6aa52f25f"
+#notion_sprints_id = "19e2df5d45ae803fa74ff4d6aa52f25f"
 
-milestones_tracker_prefix = "[EPIC] "
-milestones_github_label = "type: epic"
+notion_tasks_id = "2332df5d45ae8072aa7aededaf161252"
+notion_milestones_id = "2332df5d45ae80909305fe2278a14629"
+
+notion_team_id = "2332df5d45ae80bc8839d089f5c7f608"
+notion_associated_team = "2332df5d45ae80658b05c4e8a4819827"
+milestones_issue_type = "Milestone"
+
 milestones_body_sync = false
 milestones_body_sync_if_empty = true
 tasks_body_sync = false
 sprints_merge_by_name = true
 
 [sync.mobile.properties]
-notion_tasks_text_assignee = "GitHub Assignee"
-notion_issue_field = "GitHub Issue"
-notion_sprint_tracker_id = "GitHub ID"
+#notion_sprint_tracker_id = "GitHub ID"
 
-[sync.mobile.repositories]
+notion_tasks_title = "Name"
+notion_tasks_assignee = "Assignee"
+notion_tasks_dates = "Date"
+notion_tasks_planned_dates = "Original Due Date"
+#notion_tasks_openclose = ["Opened", "Closed"]
+notion_tasks_priority = "Priority"
+notion_tasks_review_url = "Patch Review URL"
+notion_tasks_team = "Team"
+notion_tasks_milestone_relation = "Milestones"
+notion_tasks_text_assignee = ""
+notion_tasks_labels = ""
+notion_tasks_repository = ""
+notion_milestones_title = "Name"
+notion_milestones_team = "Team"
+notion_milestones_assignee = "Assignee"
+notion_milestones_priority = "Priority"
+notion_milestones_dates = "Original Due Date"
+notion_issue_field = "Bug Tracker"
+notion_default_open_state = "Backlog"
+notion_inprogress_state = "In progress"
+notion_closed_states = ["Done"]
 
 [sync.mobile.repositories.android]
 repositories = [
@@ -33,8 +54,6 @@ repositories = [
 ]
 github_tasks_project_id = "PVT_kwDOAOe9Jc4A1aav"
 github_milestones_project_id = "PVT_kwDOAOe9Jc4A1aX6"
-
-### VAULT ###
 
 [sync.support]
 method = "github_labels"
