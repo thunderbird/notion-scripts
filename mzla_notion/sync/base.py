@@ -112,7 +112,7 @@ class BaseSync:
         self._setup_prop(tasks_properties, "notion_tasks_assignee", "people")
         self._setup_prop(tasks_properties, "notion_tasks_review_url", "link")
         self._setup_prop(tasks_properties, "notion_tasks_text_assignee", "rich_text_space_set")
-        self._setup_prop(tasks_properties, "notion_tasks_repository", "select")
+        self._setup_prop(tasks_properties, "notion_tasks_repository", "select", unknown="skip")
         self._setup_prop(tasks_properties, "notion_tasks_labels", "multi_select", unknown="skip")
 
         self._setup_prop(tasks_properties, "notion_tasks_whiteboard", "rich_text")
@@ -312,6 +312,11 @@ class BaseSync:
         # Labels and Whiteboard
         self._set_if_prop(notion_data, "notion_tasks_labels", tracker_issue.labels or [])
         self._set_if_prop(notion_data, "notion_tasks_whiteboard", tracker_issue.whiteboard)
+
+        # Repository
+        repomap = self.propnames.get("notion_tasks_repository_map") or {}
+        repo = repomap.get(tracker_issue.repo) or tracker_issue.repo
+        self._set_if_prop(notion_data, "notion_tasks_repository", repo)
 
         # Start/end dates
         old_planned_start, old_planned_target = getnestedattr(

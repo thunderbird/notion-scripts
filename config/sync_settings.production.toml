@@ -30,7 +30,6 @@ notion_tasks_team = "Team"
 notion_tasks_milestone_relation = "Milestones"
 notion_tasks_text_assignee = ""
 notion_tasks_labels = ""
-notion_tasks_repository = ""
 notion_milestones_title = "Name"
 notion_milestones_team = "Team"
 notion_milestones_assignee = "Assignee"
@@ -40,6 +39,11 @@ notion_issue_field = "Bug Tracker"
 notion_default_open_state = "Backlog"
 notion_inprogress_state = "In progress"
 notion_closed_states = ["Done"]
+notion_tasks_repository = "Ecosystem (Mobile)"
+
+[sync.mobile.properties.notion_tasks_repository_map]
+"thunderbird/thunderbird-android" = "Android"
+"thunderbird/thunderbird-ios" = "iOS"
 
 [sync.mobile.repositories.android]
 repositories = [
@@ -197,7 +201,6 @@ notion_tasks_team = "Team"
 notion_tasks_milestone_relation = "Milestones"
 notion_tasks_text_assignee = ""
 notion_tasks_labels = ""
-notion_tasks_repository = ""
 notion_milestones_title = "Name"
 notion_milestones_team = "Team"
 notion_milestones_assignee = "Assignee"
@@ -207,3 +210,20 @@ notion_issue_field = "Bug Tracker"
 notion_default_open_state = "Backlog"
 notion_inprogress_state = "In progress"
 notion_closed_states = ["Done"]
+notion_tasks_repository = "Product (Services)"
+
+[sync.services.properties.notion_tasks_repository_map]
+"thunderbird/addons-server" = "Core Services"
+"thunderbird/appointment" = "Appointment"
+"thunderbird/cloudops" = "Core Services"
+"thunderbird/mailstrom" = "Thundermail"
+"thunderbird/observability" = "Pro General"
+"thunderbird/pulumi" = "Pro General"
+"thunderbird/send-suite" = "Send"
+"thunderbird/services-ui" = "Pro General"
+"thunderbird/services-utils" = "Pro General"
+"thunderbird/tbpro-add-on" = "Send"
+"thunderbird/thunderbird-accounts" = "Accounts"
+"thunderbird/thunderbird-notifications" = "Core Services"
+"thunderbird/thunderbird-website" = "Websites"
+"thunderbird/thundernest-ansible" = "Core Services"
