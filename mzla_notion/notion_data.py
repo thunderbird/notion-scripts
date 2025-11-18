@@ -247,7 +247,7 @@ class NotionDatabase:
 
     async def get_props(self):
         """Returns the database information (e.g. properties)."""
-        return self.notion.databases.retrieve(database_id=self.database_id)
+        return await self.notion.databases.retrieve(database_id=self.database_id)
 
     async def validate_props(self, delete=False, update=False):
         """Updates the properties of the remote Notion database tied to the local instance."""
@@ -459,6 +459,36 @@ def status(name: str) -> NotionProperty:
         name=name,
         type="status",
         additional={"status": {}},
+        _update=_update,
+        _diff=_diff,
+    )
+
+
+def files(name: str) -> NotionProperty:
+    """A  list of links."""
+
+    def _update(content: List[str]) -> Dict[str, Any]:
+        vals = []
+        for val in content or []:
+            vals.append({"external": {"url": val}, "name": val})
+
+        return {name: {"files": vals}}
+
+    def _diff(property_data: Dict[str, Any], content: List[str]) -> bool:
+        if "files" not in property_data:
+            return True
+
+        vals = [(v.get("external") or {}).get("url") for v in property_data["files"]]
+        if set(vals) == set(content):
+            return False
+        if {s.lower() for s in vals} == {s.lower() for s in content}:
+            logger.warn(f"Case Warning!\n{vals} | {content}\n")
+        return True
+
+    return NotionProperty(
+        name=name,
+        type="files",
+        additional={"files": {}},
         _update=_update,
         _diff=_diff,
     )
