@@ -55,7 +55,7 @@ jobs:
           then
             echo "synchronizers=$(uv run -m mzla_notion -l -c config/sync_settings.${ENVIRONMENT}.toml | jq -R . | jq -sc .)" | tee -a $GITHUB_OUTPUT
           else
-            echo "synchronizers=$(echo ${PROJECTS} | jq -R . | jq -sc .)" | tee -a $GITHUB_OUTPUT
+            echo "synchronizers=$(echo ${PROJECTS} | tr -s ', ' "\n\n" | jq -R . | jq -sc .)" | tee -a $GITHUB_OUTPUT
           fi
 
   run:
