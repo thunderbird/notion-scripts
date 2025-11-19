@@ -107,7 +107,6 @@ class IssueTracker:
         "notion_milestones_status": "Status",
         "notion_milestones_dates": "Dates",
         "notion_issue_field": "Issue Link",
-        "notion_sprint_tracker_id": "Bug Tracker External ID",
         "notion_sprint_title": "Sprint name",
         "notion_sprint_status": "Sprint status",
         "notion_sprint_dates": "Dates",

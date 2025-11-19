@@ -108,11 +108,6 @@ class ProjectSync(BaseSync):
         collected_tasks = deepcopy(self._notion_tasks_issues)
 
         async with asyncio.TaskGroup() as tg:
-            # Synchronize sprints (if enabled)
-            if self.sprint_db:
-                logger.info(f"Synchronizing sprints to {self.sprint_db}")
-                tg.create_task(self.synchronize_sprints())
-
             # Synchronize issues found in milestones
             for reporef, issues in self._notion_milestone_issues.items():
                 refs = [IssueRef(id=issue, repo=reporef) for issue in issues.keys()]
@@ -148,8 +143,6 @@ class ProjectSync(BaseSync):
             # Update the description with the last updated timestamp
             tg.create_task(self._update_timestamp(self.milestones_db, timestamp))
             tg.create_task(self._update_timestamp(self.tasks_db, timestamp))
-            if self.sprint_db:
-                tg.create_task(self._update_timestamp(self.sprint_db, timestamp))
 
         await self.notion.aclose()
 
