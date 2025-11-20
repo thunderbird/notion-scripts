@@ -184,13 +184,33 @@ class GitHub(IssueTracker):
         """Add additional tasks to the collected tasks for sync."""
         # Collect issues from sprint board, there may be a few not associated with a milestone
         project_item_count = 0
-        for project in self.all_tasks_projects:
+        pr_item_count = 0
+
+        async def process_issues(project):
+            nonlocal project_item_count
             for issue_ref in await project.get_issue_numbers():
                 if self.is_repo_allowed(issue_ref.repo) and issue_ref.id not in collected_tasks[issue_ref.repo]:
                     collected_tasks[issue_ref.repo][issue_ref.id] = None
                     project_item_count += 1
 
+        async def process_pulls(repo):
+            nonlocal pr_item_count
+            async for issue_ref in self._get_pull_request_issues(repo):
+                # Only add issues that are assigned to a notion user we can identify
+                notion_assignees = [assignee for assignee in issue_ref.assignees if assignee.notion_user]
+                if notion_assignees and issue_ref.id not in collected_tasks[issue_ref.repo]:
+                    collected_tasks[issue_ref.repo][issue_ref.id] = None
+                    pr_item_count += 1
+
+        async with asyncio.TaskGroup() as tg:
+            for project in self.all_tasks_projects:
+                tg.create_task(process_issues(project))
+
+            for repo in self.allowed_repositories:
+                tg.create_task(process_pulls(repo))
+
         logger.info(f"Will sync {project_item_count} new sprint board tasks not associated with a milestone")
+        logger.info(f"Will sync {pr_item_count} new tasks from pull requests not associated with a milestone")
 
     async def update_milestone_issue(self, old_issue, new_issue):
         """Update an issue on GitHub."""
@@ -463,6 +483,28 @@ class GitHub(IssueTracker):
             for sprint in sprint_field.configuration.completed_iterations:
                 sprints.append(process_iteration(sprint, "Past"))
         return sprints
+
+    async def _get_pull_request_issues(self, reporef):
+        orgname, reponame = reporef.split("/")
+
+        op = Operation(schema.query_type)
+        pulls = op.repository(owner=orgname, name=reponame).pull_requests(
+            first=100,
+            order_by={"field": "UPDATED_AT", "direction": "DESC"},
+        )
+
+        pulls.nodes.id()
+        pulls.nodes.number()
+
+        issues = pulls.nodes.closing_issues_references(first=20)
+        issue_field_ops(issues.nodes)
+
+        data = await self.endpoint(op)
+        repo = (op + data).repository
+
+        for pull in repo.pull_requests.nodes:
+            for ghissue in pull.closing_issues_references.nodes:
+                yield self._parse_issue(ghissue)
 
     async def _get_repo_issues(self, reporef, sub_issues=False):
         has_next_page = True
