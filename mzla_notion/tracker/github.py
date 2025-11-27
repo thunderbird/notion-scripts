@@ -448,6 +448,11 @@ class GitHub(IssueTracker):
 
                 for ref in itertools.islice(issues, i, i + chunk_size):
                     ghissue = getattr(datarepo, f"issue{ref.id}", None)
+
+                    if not getattr(ghissue, "id", None):
+                        logger.warn(f"Issue https://github.com/{org}/{repo}/issues/{ref.id} is no longer accessible")
+                        continue
+
                     yield self._parse_issue(ghissue, sub_issues)
 
                 i += chunk_size
