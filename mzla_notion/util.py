@@ -3,6 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import logging
+import os
 import time
 import datetime
 import httpx
@@ -195,6 +196,22 @@ class AsyncRetryingClient(httpx.AsyncClient):
             return True
 
         return False
+
+
+class GitHubActionsFormatter(logging.Formatter):
+    """logging formatter to bubble up warnings and errors to github actions."""
+
+    def format(self, record):
+        """Format the record for GitHub actions."""
+        file_name = os.path.basename(record.pathname)
+        message = super().format(record)
+
+        if record.levelno == logging.WARNING:
+            return f"::warning file={file_name},line={record.lineno},title={record.name}::{message}"
+        elif record.levelno == logging.ERROR:
+            return f"::error file={file_name},line={record.lineno},title={record.name}::{message}"
+
+        return message
 
 
 def getnestedattr(func, default):

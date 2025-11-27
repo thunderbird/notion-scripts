@@ -16,6 +16,7 @@ from .sync.project import synchronize as synchronize_project
 from .sync.board import synchronize as synchronize_board
 from .tracker.github import GitHub, GitHubProjectV2
 from .tracker.bugzilla import Bugzilla
+from .util import GitHubActionsFormatter
 
 logger = logging.getLogger("notion_sync")
 
@@ -85,8 +86,11 @@ def cmd_list_repositories(projects, config):
 
 def setup_logging(verbose):
     """Set up debugging based on verbosity level."""
+    DEFAULT_FORMAT = "%(levelname)s [%(asctime)s] %(name)s - %(message)s"
+    SYNC_LOGGERS = ["project_sync", "board_sync", "gh_label_sync", "bugzilla_sync", "notion_sync", "notion_database"]
+    HTTPX_LOGGERS = ["httpx", "httpcore", "sgqlc.endpoint.http"]
     logging.basicConfig(
-        format="%(levelname)s [%(asctime)s] %(name)s - %(message)s",
+        format=DEFAULT_FORMAT,
         datefmt="%Y-%m-%d %H:%M:%S",
     )
     httpx_log_level = (
@@ -94,16 +98,24 @@ def setup_logging(verbose):
     )
     sync_log_level = [logging.INFO, logging.INFO, logging.DEBUG][verbose] if verbose <= 2 else logging.DEBUG
 
-    logging.getLogger("httpx").setLevel(httpx_log_level)
-    logging.getLogger("httpcore").setLevel(httpx_log_level)
-    logging.getLogger("sgqlc.endpoint.http").setLevel(httpx_log_level)
+    actionsHandler = logging.StreamHandler()
+    actionsHandler.setFormatter(
+        GitHubActionsFormatter(
+            fmt=DEFAULT_FORMAT,
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+    )
 
-    logging.getLogger("project_sync").setLevel(sync_log_level)
-    logging.getLogger("board_sync").setLevel(sync_log_level)
-    logging.getLogger("gh_label_sync").setLevel(sync_log_level)
-    logging.getLogger("bugzilla_sync").setLevel(sync_log_level)
-    logging.getLogger("notion_sync").setLevel(sync_log_level)
-    logging.getLogger("notion_database").setLevel(sync_log_level)
+    for logger_name in HTTPX_LOGGERS:
+        logging.getLogger(logger_name).setLevel(httpx_log_level)
+
+    for logger_name in SYNC_LOGGERS:
+        logger = logging.getLogger(logger_name)
+        logger.setLevel(sync_log_level)
+
+        if os.environ.get("GITHUB_ACTIONS") == "true":
+            logger.addHandler(actionsHandler)
+            logger.propagate = False
 
 
 async def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_run=False, synchronous=False):
