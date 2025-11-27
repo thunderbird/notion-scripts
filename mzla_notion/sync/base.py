@@ -98,7 +98,7 @@ class BaseSync:
         tasks_properties = [
             p.relation(self.propnames["notion_tasks_milestone_relation"], milestones_id, True),
             p.title(self.propnames["notion_tasks_title"]),
-            p.link(self.propnames["notion_issue_field"]),
+            p.files(self.propnames["notion_issue_field"]),
         ]
 
         if team_id:
@@ -107,7 +107,7 @@ class BaseSync:
 
         self._setup_prop(tasks_properties, "notion_tasks_priority", "select")
         self._setup_prop(tasks_properties, "notion_tasks_assignee", "people")
-        self._setup_prop(tasks_properties, "notion_tasks_review_url", "link")
+        self._setup_prop(tasks_properties, "notion_tasks_review_url", "files")
         self._setup_prop(tasks_properties, "notion_tasks_text_assignee", "rich_text_space_set")
         self._setup_prop(tasks_properties, "notion_tasks_repository", "select", unknown="skip")
         self._setup_prop(tasks_properties, "notion_tasks_labels", "multi_select", unknown="skip")
@@ -205,12 +205,12 @@ class BaseSync:
             else:
                 obj[propname] = {"start": start, "end": end} if start or end else None
 
-    async def _discover_notion_issues(self, notion_db_id, filter_team=None):
+    async def _discover_notion_issues(self, notion_db_id, filter_team=None, filter_issue_type="url"):
         repos = defaultdict(dict)
 
         query_filter = {
             "property": self.propnames["notion_issue_field"],
-            "rich_text": {"is_not_empty": True},
+            filter_issue_type: {"is_not_empty": True},
         }
 
         if filter_team and self.team:
@@ -227,6 +227,10 @@ class BaseSync:
             filter=query_filter,
         ):
             url = self._get_prop(block, "notion_issue_field")
+
+            # Issue field is either a URL or files field
+            if isinstance(url, list):
+                url = url[0]["external"]["url"]
 
             ref = self.tracker.parse_issueref(url)
 
@@ -248,7 +252,9 @@ class BaseSync:
         title = self.tracker.notion_tasks_title(self.tasks_notion_prefix, tracker_issue)
         notion_data = {
             self.propnames["notion_tasks_title"]: title,
-            self.propnames["notion_issue_field"]: tracker_issue.url,
+            self.propnames["notion_issue_field"]: [
+                {"url": tracker_issue.url, "name": self.tracker.format_issueref_short(tracker_issue)}
+            ],
         }
 
         # Assignees
@@ -291,7 +297,12 @@ class BaseSync:
         self._set_if_prop(notion_data, "notion_tasks_status", final_status)
 
         # Review URL
-        self._set_if_prop(notion_data, "notion_tasks_review_url", tracker_issue.review_url or None)
+        review_url = None
+        if tracker_issue.review_url:
+            review_url = [
+                {"name": self.tracker.format_patchref_short(tracker_issue.review_url), "url": tracker_issue.review_url}
+            ]
+        self._set_if_prop(notion_data, "notion_tasks_review_url", review_url)
 
         # Labels and Whiteboard
         self._set_if_prop(notion_data, "notion_tasks_labels", tracker_issue.labels or [])
@@ -406,7 +417,9 @@ class BaseSync:
             valid_tasks = tg.create_task(self.tasks_db.validate_props())
 
             tasks_issues = tg.create_task(
-                self._discover_notion_issues(self.tasks_db.database_id, self.propnames["notion_tasks_team"])
+                self._discover_notion_issues(
+                    self.tasks_db.database_id, self.propnames["notion_tasks_team"], filter_issue_type="files"
+                )
             )
 
             if self.sprint_db:

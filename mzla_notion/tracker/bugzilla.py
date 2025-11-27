@@ -90,6 +90,19 @@ class Bugzilla(IssueTracker):
         else:
             return None
 
+    def format_issueref_short(self, ref):
+        """Formats an issue ref to a very short string, suitable for Files & Media properties."""
+        return f"bug {ref.id}"
+
+    def format_patchref_short(self, ref):
+        """Formats an patch URL to a very short string, suitable for Files & Media properties."""
+        res = urllib.parse.urlparse(ref)
+
+        if res.scheme + "://" + res.netloc == "https://phabricator.services.mozilla.com":
+            return res.path[1:]
+
+        return ref
+
     def is_repo_allowed(self, reporef):
         """If the repository is allowed as per repository setup."""
         return reporef == self.repo_name

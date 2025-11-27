@@ -467,23 +467,20 @@ def status(name: str) -> NotionProperty:
 def files(name: str) -> NotionProperty:
     """A  list of links."""
 
-    def _update(content: List[str]) -> Dict[str, Any]:
+    def _update(content: List[Dict[str, str]]) -> Dict[str, Any]:
         vals = []
         for val in content or []:
-            vals.append({"external": {"url": val}, "name": val})
+            vals.append({"name": val["name"], "external": {"url": val["url"]}})
 
         return {name: {"files": vals}}
 
-    def _diff(property_data: Dict[str, Any], content: List[str]) -> bool:
+    def _diff(property_data: Dict[str, Any], content: List[Dict[str, str]]) -> bool:
         if "files" not in property_data:
             return True
 
-        vals = [(v.get("external") or {}).get("url") for v in property_data["files"]]
-        if set(vals) == set(content):
-            return False
-        if {s.lower() for s in vals} == {s.lower() for s in content}:
-            logger.warn(f"Case Warning!\n{vals} | {content}\n")
-        return True
+        vals = {(external.get("url"), v.get("name")) for v in property_data["files"] if (external := v.get("external"))}
+        content_vals = {(v.get("url"), v.get("name")) for v in (content or [])}
+        return vals != content_vals
 
     return NotionProperty(
         name=name,

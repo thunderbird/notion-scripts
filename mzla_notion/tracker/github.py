@@ -154,19 +154,30 @@ class GitHub(IssueTracker):
                 for repo in settings["repositories"]:
                     self.github_milestones_projects[repo] = milestones_project
 
-    def parse_issueref(self, ref):
+    def parse_issueref(self, ref, issues="issues"):
         """Parse an issue identifier (e.g. github url) to an IssueRef."""
         # https://github.com/thunderbird/repo/issues/1234
         parts = ref.split("/")
         if (
             len(parts) == 7
             and parts[2] == "github.com"
-            and parts[5] == "issues"
+            and parts[5] == issues
             and self.is_repo_allowed(parts[3] + "/" + parts[4])
         ):
             return IssueRef(repo=parts[3] + "/" + parts[4], id=parts[6])
         else:
             return None
+
+    def format_issueref_short(self, ref):
+        """Formats an issue ref to a very short string, suitable for Files & Media properties."""
+        return f"#{ref.id} ({ref.repo})"
+
+    def format_patchref_short(self, ref):
+        """Formats an patch URL to a very short string, suitable for Files & Media properties."""
+        if pr_ref := self.parse_issueref(ref, "pulls"):
+            return f"#{pr_ref.id} ({pr_ref.repo})"
+
+        return ref
 
     def new_user(self, notion_user=None, tracker_user=None):
         """Create a new user instance based on notion user or tracker user."""
