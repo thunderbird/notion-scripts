@@ -171,7 +171,7 @@ class Bugzilla(IssueTracker):
 
     async def _get_bugzilla_bugs(self, bugids, sub_issues=False):
         issues = []
-        fields = "id,summary,status,product,cf_user_story,assigned_to,priority,depends_on,blocks,attachments,comments,see_also,creation_time,cf_last_resolved,keywords,whiteboard"
+        fields = "id,summary,status,resolution,product,cf_user_story,assigned_to,priority,depends_on,blocks,attachments,comments,see_also,creation_time,cf_last_resolved,keywords,whiteboard"
 
         response = await self.client.get("/bug", params={"id": ",".join(bugids), "include_fields": fields})
         response_json = response.json()
@@ -187,7 +187,8 @@ class Bugzilla(IssueTracker):
                 closed_date = datetime.datetime.fromisoformat(bug["cf_last_resolved"])
 
             statemap = self.property_names.get("bugzilla_map_state")
-            status = statemap.get(bug["status"]) or bug["status"]
+            status_resolution = bug["status"] + (f":{bug['resolution']}" if bug["resolution"] else "")
+            status = statemap.get(status_resolution) or statemap.get(bug["status"]) or bug["status"]
 
             review_url = None
             labels = set(bug["keywords"])

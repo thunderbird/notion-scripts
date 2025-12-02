@@ -114,6 +114,7 @@ class IssueTracker:
         "notion_tasks_priority_values": ["P1", "P2", "P3", "P4", "P5"],
         "notion_default_open_state": "Backlog",
         "notion_closed_states": ["Done", "Canceled"],
+        "notion_canceled_state": "Canceled",
         "notion_inprogress_state": "In progress",
     }
 

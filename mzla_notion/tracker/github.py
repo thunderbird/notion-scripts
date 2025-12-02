@@ -376,6 +376,15 @@ class GitHub(IssueTracker):
             if item.will_close_target:
                 review_url = item.source.url
 
+        state = None
+        if ghissue.state == "CLOSED":
+            if ghissue.state_reason == "COMPLETED":
+                state = self.property_names["notion_closed_states"][0]
+            else:  # NOT_PLANNED, DUPLICATE
+                state = self.property_names["notion_canceled_state"]
+        else:
+            state = getnestedattr(lambda: gh_project_item.status.name, None)
+
         issue = GitHubIssue(
             repo=repo,
             id=str(ghissue.number),
@@ -387,7 +396,7 @@ class GitHub(IssueTracker):
                 for a in ghissue.assignees.nodes
             },
             issue_type=getnestedattr(lambda: ghissue.issue_type.name, None),
-            state=getnestedattr(lambda: gh_project_item.status.name, None),
+            state=state,
             created_date=ghissue.created_at,
             closed_date=ghissue.closed_at,
             start_date=getnestedattr(lambda: gh_project_item.start_date.date, None),
@@ -925,6 +934,7 @@ def issue_field_ops(issue):
     issue.closed_at()
     issue.title()
     issue.state()
+    issue.state_reason()
     issue.url()
     issue.id()
     issue.body()
