@@ -196,14 +196,11 @@ class Bugzilla(IssueTracker):
                 for flag in attachment["flags"]:
                     labels.add("attach:" + flag["name"] + flag["status"])
 
-                if (
-                    attachment["is_obsolete"] == 0
-                    and attachment.get("content_type") == "text/x-phabricator-request"
-                    and "[wip]" not in attachment["summary"]
-                ):
+                if attachment["is_obsolete"] == 0 and attachment.get("content_type") == "text/x-phabricator-request":
                     review_url = base64.b64decode(attachment["data"]).decode("utf-8")
+                    is_wip = "[wip]" in attachment["summary"] or attachment["summary"].startswith("WIP:")
 
-                    if bug["status"] in ("ASSIGNED", "REOPENED"):
+                    if bug["status"] in ("ASSIGNED", "REOPENED") and not is_wip:
                         status = statemap.get("IN REVIEW") or "IN REVIEW"  # TODO hack
 
             notion_url = None
