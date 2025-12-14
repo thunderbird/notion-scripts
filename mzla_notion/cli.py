@@ -169,6 +169,7 @@ async def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_r
                 tracker = await Bugzilla.create(
                     base_url=project["bugzilla_base"],
                     token=os.environ["BUGZILLA_TOKEN"],
+                    phab_token=os.environ["PHAB_TOKEN"],
                     dry=dry_run or project.get("tracker_dry_run", False),
                     user_map=user_map.get("bugzilla") or {},
                     property_names=project.get("properties", {}),

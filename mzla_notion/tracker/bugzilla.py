@@ -8,12 +8,21 @@ import asyncio
 import json
 
 from functools import cache
+from dataclasses import dataclass, field
 
 from ..util import getnestedattr, AsyncRetryingClient, RetryingClient
 
 from .common import UserMap, IssueRef, Issue, User, IssueTracker
 
 logger = logging.getLogger("project_sync")
+
+
+@dataclass(kw_only=True)
+class PhabReview:
+    """An class to contain the relevant fields of a phab review."""
+
+    status: str
+    reviewers: list = field(default_factory=list)
 
 
 class BugzillaUserMap(UserMap):
@@ -30,6 +39,71 @@ class BugzillaUserMap(UserMap):
         response = self._client.get("/user", params={"names": username})
         user = response.json()
         return user["real_name"] or user["name"]
+
+
+class PhabClient(AsyncRetryingClient):
+    """A phabricator client, that always adds the phabricator api token."""
+
+    def __init__(self, phab_token=None, **kwargs):
+        """Initialize client with phabricator token."""
+        self.phab_token = phab_token
+        self._thunderbird_reviewer_groups = None
+        super().__init__(**kwargs)
+
+    def post(self, *args, **kwargs):
+        """Make a post request, but add the api token."""
+        kwargs["data"]["api.token"] = self.phab_token
+        return super().post(*args, **kwargs)
+
+    async def get_phab_reviews(self, urls):
+        """Get phabricator reviews for the respective urls."""
+        if not len(urls):
+            return {}
+
+        data = {f"constraints[ids][{idx}]": int(re.search(r"/D(\d+)$", url).group(1)) for idx, url in enumerate(urls)}
+        data["attachments[reviewers]"] = True
+
+        response = await self.post("differential.revision.search", data=data)
+        payload = response.json()
+
+        if error := payload.get("error_code"):
+            raise Exception("Phabricator Error: " + error)
+
+        resdata = payload.get("result", {}).get("data", [])
+
+        reviewer_groups = await self.get_thunderbird_reviewer_groups()
+
+        return {
+            res["fields"]["uri"]: PhabReview(
+                status=res["fields"]["status"]["value"],
+                reviewers=[
+                    tb_reviewer
+                    for reviewer in res["attachments"]["reviewers"]["reviewers"]
+                    if (tb_reviewer := reviewer_groups.get(reviewer["reviewerPHID"])) and reviewer["status"] in ("added", "blocking")
+                ],
+            )
+            for res in resdata
+        }
+
+    async def get_thunderbird_reviewer_groups(self):
+        """Get the list of thunderbird reviewer groups."""
+        if not self._thunderbird_reviewer_groups:
+            re_name_match = r"^thunderbird-([\w-]+)-reviewers$"
+            data = {"constraints[query]": "thunderbird"}
+            response = await self.post("project.search", data=data)
+            payload = response.json()
+
+            if error := payload.get("error_code"):
+                raise Exception("Phabricator Error: " + error)
+
+            resdata = payload.get("result", {}).get("data", [])
+
+            self._thunderbird_reviewer_groups = {
+                res["phid"]: match.group(1)
+                for res in resdata
+                if (match := re.search(re_name_match, res["fields"]["name"]))
+            }
+        return self._thunderbird_reviewer_groups
 
 
 class Bugzilla(IssueTracker):
@@ -50,7 +124,7 @@ class Bugzilla(IssueTracker):
 
     name = "Bugzilla"
 
-    def __init__(self, base_url, token=None, user_map=None, **kwargs):
+    def __init__(self, base_url, phab_token=None, token=None, user_map=None, **kwargs):
         """Initialize the Bugzilla issue tracker."""
         super().__init__(**kwargs)
 
@@ -66,6 +140,14 @@ class Bugzilla(IssueTracker):
             http2=True,
             params={"api_key": token},
             timeout=60.0,
+            autoraise=True,
+        )
+
+        self.phab_client = PhabClient(
+            base_url="https://phabricator.services.mozilla.com/api/",
+            phab_token=phab_token,
+            limits=httpx.Limits(keepalive_expiry=30.0),
+            http2=True,
             autoraise=True,
         )
 
@@ -170,7 +252,8 @@ class Bugzilla(IssueTracker):
             await self.client.put(f"/bug/{new_issue.id}", json=data)
 
     async def _get_bugzilla_bugs(self, bugids, sub_issues=False):
-        issues = []
+        issues = {}
+        review_urls = {}
         fields = "id,summary,status,resolution,product,cf_user_story,assigned_to,priority,depends_on,blocks,attachments,comments,see_also,creation_time,cf_last_resolved,keywords,whiteboard"
 
         response = await self.client.get("/bug", params={"id": ",".join(bugids), "include_fields": fields})
@@ -201,6 +284,7 @@ class Bugzilla(IssueTracker):
                     is_wip = "[wip]" in attachment["summary"] or attachment["summary"].startswith("WIP:")
 
                     if bug["status"] in ("ASSIGNED", "REOPENED") and not is_wip:
+                        review_urls[review_url] = str(bug["id"])
                         status = statemap.get("IN REVIEW") or "IN REVIEW"  # TODO hack
 
             notion_url = None
@@ -238,7 +322,7 @@ class Bugzilla(IssueTracker):
                 issue.sub_issues.append(IssueRef(repo=self.repo_name, id=str_sub_id, parents=[issue]))
 
             unhandled.remove(issue.id)
-            issues.append(issue)
+            issues[issue.id] = issue
 
         for bugid in unhandled:
             parents = []
@@ -256,9 +340,26 @@ class Bugzilla(IssueTracker):
                 parents=parents,
             )
 
-            issues.append(issue)
+            issues[bugid] = issue
 
-        return issues
+        phab_reviews = await self.phab_client.get_phab_reviews(review_urls.keys())
+
+        for review_url, review in phab_reviews.items():
+            bug_id = review_urls.get(review_url)
+            issue = issues.get(bug_id)
+
+            if not issue:
+                continue
+
+            if review.status == "needs-review":
+                issue.labels.update([f"reviewer:{reviewer}" for reviewer in review.reviewers])
+            elif review.status == "accepted":
+                if "checkin-needed-tb" in issue.labels:
+                    issue.state = statemap.get("CHECKIN") or "CHECKIN"
+                else:
+                    issue.state = statemap.get("ACCEPTED") or "ACCEPTED"
+
+        return list(issues.values())
 
     async def get_issues_by_number(self, bugrefs, sub_issues=False):
         """Retrieve issues by their id number."""

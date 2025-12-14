@@ -116,6 +116,7 @@ jobs:
           DRY: ${{ inputs.dry && '-n' || '' }}
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           GITHUB_TOKEN: ${{ steps.apptoken.outputs.token || secrets.GH_PAT }}
+          PHAB_TOKEN: ${{ secrets.PHAB_TOKEN }}
           BUGZILLA_TOKEN: ${{ secrets.BUGZILLA_TOKEN }}
           NOTION_SYNC_GITHUB_USERMAP: ${{ vars.NOTION_SYNC_GITHUB_USERMAP }}
           NOTION_SYNC_BUGZILLA_USERMAP: ${{ vars.NOTION_SYNC_BUGZILLA_USERMAP }}
