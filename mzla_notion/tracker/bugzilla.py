@@ -79,7 +79,8 @@ class PhabClient(AsyncRetryingClient):
                 reviewers=[
                     tb_reviewer
                     for reviewer in res["attachments"]["reviewers"]["reviewers"]
-                    if (tb_reviewer := reviewer_groups.get(reviewer["reviewerPHID"])) and reviewer["status"] in ("added", "blocking")
+                    if (tb_reviewer := reviewer_groups.get(reviewer["reviewerPHID"]))
+                    and reviewer["status"] in ("added", "blocking")
                 ],
             )
             for res in resdata
@@ -88,7 +89,7 @@ class PhabClient(AsyncRetryingClient):
     async def get_thunderbird_reviewer_groups(self):
         """Get the list of thunderbird reviewer groups."""
         if not self._thunderbird_reviewer_groups:
-            re_name_match = r"^thunderbird-([\w-]+)-reviewers$"
+            re_name_match = r"^thunderbird-(?:([\w-]+)-)?reviewers$"
             data = {"constraints[query]": "thunderbird"}
             response = await self.post("project.search", data=data)
             payload = response.json()
@@ -99,7 +100,7 @@ class PhabClient(AsyncRetryingClient):
             resdata = payload.get("result", {}).get("data", [])
 
             self._thunderbird_reviewer_groups = {
-                res["phid"]: match.group(1)
+                res["phid"]: match.group(1) or "general"
                 for res in resdata
                 if (match := re.search(re_name_match, res["fields"]["name"]))
             }
