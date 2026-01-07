@@ -19,8 +19,10 @@
               "createdAt": "2025-01-31T23:11:17Z",
               "closedAt": null,
               "state": "OPEN",
+              "stateReason": null,
               "url": "https://github.com/kewisch/test/issues/4",
               "id": "I_kwDOMwGgpM6oWzIv",
+              "issueType": null,
               "body": "test",
               "parent": {
                 "number": 2,
@@ -85,6 +87,9 @@
                     }
                   }
                 ]
+              },
+              "timelineItems": {
+                "nodes": []
               }
             }
           },
@@ -103,8 +108,10 @@
               "createdAt": "2025-01-31T20:38:43Z",
               "closedAt": null,
               "state": "OPEN",
+              "stateReason": null,
               "url": "https://github.com/kewisch/test/issues/3",
               "id": "I_kwDOMwGgpM6oWELp",
+              "issueType": null,
               "body": "sup",
               "parent": {
                 "number": 2,
@@ -166,6 +173,9 @@
                     }
                   }
                 ]
+              },
+              "timelineItems": {
+                "nodes": []
               }
             }
           },
@@ -184,8 +194,10 @@
               "createdAt": "2025-02-19T10:57:07Z",
               "closedAt": null,
               "state": "OPEN",
+              "stateReason": null,
               "url": "https://github.com/kewisch/test/issues/6",
               "id": "I_kwDOMwGgpM6qpYBM",
+              "issueType": null,
               "body": "",
               "parent": null,
               "labels": {
@@ -229,6 +241,9 @@
                     }
                   }
                 ]
+              },
+              "timelineItems": {
+                "nodes": []
               }
             }
           },
@@ -247,8 +262,10 @@
               "createdAt": "2025-03-28T11:59:10Z",
               "closedAt": null,
               "state": "OPEN",
+              "stateReason": null,
               "url": "https://github.com/kewisch/test2/issues/16",
               "id": "I_kwDOOE8YY86wMEga",
+              "issueType": null,
               "body": "hello",
               "parent": {
                 "number": 31,
@@ -297,6 +314,9 @@
                     }
                   }
                 ]
+              },
+              "timelineItems": {
+                "nodes": []
               }
             }
           }

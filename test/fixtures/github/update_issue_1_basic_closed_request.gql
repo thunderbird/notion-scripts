@@ -49,6 +49,7 @@ stateReason
 title
 titleHTML
 trackedIssuesCount
+viewerCanSetFields
 }
 }
 }

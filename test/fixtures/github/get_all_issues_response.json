@@ -14,8 +14,10 @@
             "createdAt": "2024-09-11T11:57:39Z",
             "closedAt": null,
             "state": "OPEN",
+            "stateReason": null,
             "url": "https://github.com/kewisch/test/issues/1",
             "id": "I_kwDOMwGgpM6WLTqc",
+            "issueType": null,
             "body": "description2",
             "parent": null,
             "repository": {
@@ -97,6 +99,9 @@
                   "sprint": null
                 }
               ]
+            },
+            "timelineItems": {
+              "nodes": []
             }
           },
           {
@@ -106,8 +111,10 @@
             "createdAt": "2025-02-19T10:57:07Z",
             "closedAt": null,
             "state": "OPEN",
+            "stateReason": null,
             "url": "https://github.com/kewisch/test/issues/6",
             "id": "I_kwDOMwGgpM6qpYBM",
+            "issueType": null,
             "body": "",
             "parent": null,
             "repository": {
@@ -158,6 +165,9 @@
                   }
                 }
               ]
+            },
+            "timelineItems": {
+              "nodes": []
             }
           }
         ]

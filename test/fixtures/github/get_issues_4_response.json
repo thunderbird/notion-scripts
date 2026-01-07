@@ -8,8 +8,10 @@
         "createdAt": "2025-01-31T20:38:43Z",
         "closedAt": null,
         "state": "OPEN",
+        "stateReason": null,
         "url": "https://github.com/kewisch/test/issues/4",
         "id": "I_egnojasdfnafqwfr",
+        "issueType": null,
         "body": "sup",
         "parent": null,
         "repository": {
@@ -118,6 +120,9 @@
               "sprint": null
             }
           ]
+        },
+        "timelineItems": {
+          "nodes": []
         }
       }
     }

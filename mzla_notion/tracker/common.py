@@ -133,6 +133,14 @@ class IssueTracker:
     async def _async_init(self):
         pass
 
+    def format_issueref_short(self, ref):
+        """Formats an issue ref to a very short string, suitable for Files & Media properties."""
+        return f"{ref.repo}/{ref.id}"
+
+    def format_patchref_short(self, ref):
+        """Formats an patch URL to a very short string, suitable for Files & Media properties."""
+        return ref
+
     def new_user(self, notion_user=None, tracker_user=None):
         """Create a new user instance based on notion user or tracker user."""
         return User(self.user_map, notion_user=notion_user, tracker_user=tracker_user)

@@ -49,7 +49,8 @@
         "stateReason": null,
         "title": "title2",
         "titleHTML": "title2",
-        "trackedIssuesCount": 0
+        "trackedIssuesCount": 0,
+        "viewerCanSetFields": false
       }
     }
   }

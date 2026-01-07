@@ -64,7 +64,7 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(next(iter(issue.assignees)).tracker_user, "kewisch")
         self.assertEqual(issue.labels, {"type: epic"})
         self.assertEqual(issue.url, "https://github.com/kewisch/test/issues/1")
-        self.assertEqual(issue.review_url, "")
+        self.assertEqual(issue.review_url, None)
         self.assertEqual(
             issue.notion_url, "https://notion.so/example/rebuild-event-read-dialog-726fac286b6348ca90ec0066be1a2755"
         )
@@ -88,7 +88,7 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(len(issue.assignees), 0)
         self.assertEqual(issue.labels, {"type: epic"})
         self.assertEqual(issue.url, "https://github.com/kewisch/test/issues/2")
-        self.assertEqual(issue.review_url, "")
+        self.assertEqual(issue.review_url, None)
         self.assertEqual(
             issue.notion_url, "https://notion.so/example/test-ref-failure-a2b009b4b63447599b138cf059a7f885"
         )
@@ -124,7 +124,7 @@ class GitHubProjectTest(BaseTestCase):
             },
             labels=set(),
             url="https://github.com/kewisch/test/issues/3",
-            review_url="",
+            review_url=None,
             notion_url=None,
             created_date=datetime.datetime(2025, 1, 31, 20, 38, 43, tzinfo=datetime.timezone.utc),
             start_date=None,
@@ -379,8 +379,8 @@ class GitHubProjectTest(BaseTestCase):
         self.assertIsNone(collected_tasks["kewisch/test"]["4"])
         self.assertEqual(collected_tasks["kewisch/test"]["6"], {"id": "mock_block"})
 
-        self.assertEqual(len(self.github_handler.calls), 1)
         self.assertEqual(len(self.github_handler.calls["get_sprint_tasks"]), 1)
+        self.assertEqual(len(self.github_handler.calls["get_pull_requests"]), 1)
 
     def test_parse_issueref_allowed(self):
         res = self.github.parse_issueref("https://github.com/kewisch/test/issues/1")
@@ -396,24 +396,7 @@ class GitHubProjectTest(BaseTestCase):
 
     async def test_get_all_issues(self):
         issues = [issue async for issue in self.github.get_all_issues()]
-        self.assertEqual(len(issues), 6)
-
-    async def test_get_all_labels(self):
-        labels = await self.github.get_all_labels()
-        self.assertEqual(
-            set(labels),
-            {
-                "wontfix",
-                "bug",
-                "duplicate",
-                "help wanted",
-                "good first issue",
-                "enhancement",
-                "documentation",
-                "question",
-                "invalid",
-            },
-        )
+        self.assertEqual(len(issues), 7)
 
     async def test_label_cache(self):
         cache = LabelCache(self.github.endpoint)
@@ -489,18 +472,16 @@ class GitHubProjectTest(BaseTestCase):
                 issues = [issue async for issue in iterator]
 
     async def test_issue_state(self):
-        # Remove project items so we can go by issue state
-        def handler(request):
-            res = self.github_handler.handle(request)
-            data = res.json()
-            for node in data["data"]["repository"]["issues"]["nodes"]:
-                node["projectItems"]["nodes"] = []
-
-            return httpx.Response(200, json=data)
-
-        self.respx.route(name="github_graphql", method="POST", url="https://api.github.com/graphql").mock(
-            side_effect=handler
-        )
-
         issues = [issue async for issue in self.github.get_all_issues()]
-        self.assertEqual(issues[0].state, None)
+
+        # Open issue, takes from project state
+        with self.subTest(msg="open issue"):
+            self.assertEqual(issues[0].state, "Not started")
+
+        # Completed issue, takes closed state
+        with self.subTest(msg="completed issue"):
+            self.assertEqual(issues[4].state, "Done")
+
+        # Not planned issue, takes canceled state
+        with self.subTest(msg="not planned issue"):
+            self.assertEqual(issues[5].state, "Canceled")

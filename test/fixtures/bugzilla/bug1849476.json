@@ -37,5 +37,8 @@
    "priority" : "--",
    "see_also" : [],
    "status" : "RESOLVED",
+   "resolution": "FIXED",
+   "keywords": [],
+   "whiteboard": "",
    "summary" : "messages.move/copy() doesn't set mail.last_msg_movecopy_target_uri"
 }

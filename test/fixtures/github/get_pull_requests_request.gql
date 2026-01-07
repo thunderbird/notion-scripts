@@ -1,6 +1,11 @@
 query {
 repository(owner: "kewisch", name: "test") {
-issue2: issue(number: 2) {
+pullRequests(first: 100, orderBy: {field: UPDATED_AT, direction: DESC}) {
+nodes {
+id
+number
+closingIssuesReferences(first: 20) {
+nodes {
 title
 number
 updatedAt
@@ -154,9 +159,7 @@ duration
 }
 }
 }
-subIssues(first: 100) {
-nodes {
-number
+}
 }
 }
 }

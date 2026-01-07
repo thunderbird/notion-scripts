@@ -50,6 +50,7 @@ class BaseTestCase(unittest.IsolatedAsyncioTestCase):
     def reset_handlers(self):
         self.respx.reset()
         self.bugzilla_handler = BugzillaHandler(self.respx)
+        self.phab_handler = PhabHandler(self.respx)
         self.notion_handler = NotionHandler(self.respx)
         self.github_handler = GitHubHandler(self.respx)
 
@@ -68,6 +69,24 @@ class BaseTestCase(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(subgroup, f"{expected_type} not found in exception group")
         matches = [e for e in subgroup.exceptions if msg_part in str(e)]
         self.assertTrue(matches, f"No {expected_type.__name__} contained message '{msg_part}'")
+
+
+class PhabHandler:
+    def __init__(self, respx_mock):
+        PHAB_ROUTE = {"scheme": "https", "host": "phabricator.services.mozilla.com", "method": "POST"}
+        respx_mock.route(name="phab_search", **PHAB_ROUTE, path="/api/differential.revision.search").mock(
+            side_effect=self.search_handler
+        )
+
+        respx_mock.route(name="phab_projects", **PHAB_ROUTE, path="/api/project.search").mock(
+            side_effect=self.project_handler
+        )
+
+    def search_handler(self, req):
+        return httpx.Response(200, json={})
+
+    def project_handler(self, req):
+        return httpx.Response(200, json={})
 
 
 class BugzillaHandler:

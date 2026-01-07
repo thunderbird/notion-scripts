@@ -19,6 +19,7 @@ updatedAt
 createdAt
 closedAt
 state
+stateReason
 url
 id
 body
@@ -33,10 +34,28 @@ nodes {
 name
 }
 }
+issueType {
+id
+name
+}
 assignees(first: 10) {
 nodes {
 id
 login
+}
+}
+timelineItems(last: 50, itemTypes: [CROSS_REFERENCED_EVENT]) {
+nodes {
+__typename
+... on CrossReferencedEvent {
+willCloseTarget
+source {
+__typename
+... on PullRequest {
+url
+}
+}
+}
 }
 }
 projectItems(first: 10, includeArchived: true) {

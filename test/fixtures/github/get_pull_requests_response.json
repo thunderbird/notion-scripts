@@ -1,0 +1,13 @@
+{
+  "data": {
+    "repository": {
+      "pullRequests": {
+        "pageInfo": {
+          "hasNextPage": false,
+          "endCursor": "Y3Vyc29yOnYyOpK5MjAyNS0wMi0xOVQxMTo1NzowNyswMTowMM6qpYBM"
+        },
+        "nodes": []
+      }
+    }
+  }
+}

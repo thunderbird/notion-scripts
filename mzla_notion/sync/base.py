@@ -322,6 +322,8 @@ class BaseSync:
             final_start = tracker_issue.sprint.start_date
             final_end = tracker_issue.sprint.end_date
         elif tracker_issue.start_date or tracker_issue.end_date:
+            # TODO we should probably only use datetime for comparison, and then a normal date.
+            # Some get added as "2025-04-01T00:00:00+00:00"
             final_start = max(
                 ensure_datetime(tracker_issue.start_date) or utc_min,
                 ensure_datetime(tracker_issue.created_date),

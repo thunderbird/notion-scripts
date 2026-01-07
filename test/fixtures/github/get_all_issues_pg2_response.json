@@ -14,8 +14,10 @@
             "createdAt": "2025-01-31T14:54:53Z",
             "closedAt": null,
             "state": "OPEN",
+            "stateReason": null,
             "url": "https://github.com/kewisch/test/issues/2",
             "id": "I_kwDOMwGgpM6oTotN",
+            "issueType": null,
             "body": "\nThis is a page with content\n\n\n@kewisch \n\n\n# hi\n\n\ndings\n\n\n---\n\n",
             "parent": null,
             "repository": {
@@ -89,6 +91,9 @@
                   "sprint": null
                 }
               ]
+            },
+            "timelineItems": {
+              "nodes": []
             }
           },
           {
@@ -98,8 +103,10 @@
             "createdAt": "2025-01-31T20:38:43Z",
             "closedAt": null,
             "state": "OPEN",
+            "stateReason": null,
             "url": "https://github.com/kewisch/test/issues/3",
             "id": "I_kwDOMwGgpM6oWELp",
+            "issueType": null,
             "body": "sup",
             "parent": {
               "number": 2,
@@ -168,6 +175,9 @@
                   }
                 }
               ]
+            },
+            "timelineItems": {
+              "nodes": []
             }
           },
           {
@@ -177,8 +187,10 @@
             "createdAt": "2025-02-02T16:21:31Z",
             "closedAt": "2025-02-02T16:55:51Z",
             "state": "CLOSED",
+            "stateReason": "COMPLETED",
             "url": "https://github.com/kewisch/test/issues/5",
             "id": "I_kwDOMwGgpM6ob5Dw",
+            "issueType": null,
             "body": "",
             "parent": null,
             "repository": {
@@ -195,6 +207,41 @@
             },
             "projectItems": {
               "nodes": []
+            },
+            "timelineItems": {
+              "nodes": []
+            }
+          },
+          {
+            "title": "Random other issue not planned",
+            "number": 6,
+            "updatedAt": "2025-02-02T16:55:51Z",
+            "createdAt": "2025-02-02T16:21:31Z",
+            "closedAt": "2025-02-02T16:55:51Z",
+            "state": "CLOSED",
+            "stateReason": "NOT_PLANNED",
+            "url": "https://github.com/kewisch/test/issues/6",
+            "id": "I_kwDOMniafewFASra",
+            "issueType": null,
+            "body": "",
+            "parent": null,
+            "repository": {
+              "id": "R_kgDOMwGgpA",
+              "nameWithOwner": "kewisch/test",
+              "name": "test",
+              "isPrivate": false
+            },
+            "labels": {
+              "nodes": []
+            },
+            "assignees": {
+              "nodes": []
+            },
+            "projectItems": {
+              "nodes": []
+            },
+            "timelineItems": {
+              "nodes": []
             }
           },
           {
@@ -204,8 +251,10 @@
             "createdAt": "2025-01-31T23:11:17Z",
             "closedAt": null,
             "state": "OPEN",
+            "stateReason": null,
             "url": "https://github.com/kewisch/test/issues/4",
             "id": "I_kwDOMwGgpM6oWzIv",
+            "issueType": null,
             "body": "test",
             "parent": {
               "number": 2,
@@ -269,6 +318,9 @@
                   }
                 }
               ]
+            },
+            "timelineItems": {
+              "nodes": []
             }
           }
         ]

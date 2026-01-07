@@ -8,8 +8,10 @@
         "createdAt": "2024-09-11T11:57:39Z",
         "closedAt": null,
         "state": "OPEN",
+        "stateReason": null,
         "url": "https://github.com/kewisch/test/issues/1",
         "id": "I_kwDOMwGgpM6WLTqc",
+        "issueType": null,
         "body": "I am the body",
         "parent": null,
         "repository": {
@@ -89,6 +91,9 @@
             }
           ]
         },
+        "timelineItems": {
+          "nodes": []
+        },
         "subIssues": {
           "nodes": []
         }
@@ -100,8 +105,10 @@
         "createdAt": "2025-01-31T14:54:53Z",
         "closedAt": null,
         "state": "OPEN",
+        "stateReason": null,
         "url": "https://github.com/kewisch/test/issues/2",
         "id": "I_kwDOMwGgpM6oTotN",
+        "issueType": null,
         "body": "\nThis is a page with content\n\n\n@kewisch \n\n\n# hi\n\n\ndings\n\n\n---\n\n",
         "parent": null,
         "repository": {
@@ -175,6 +182,9 @@
               "sprint": null
             }
           ]
+        },
+        "timelineItems": {
+          "nodes": []
         },
         "subIssues": {
           "nodes": [

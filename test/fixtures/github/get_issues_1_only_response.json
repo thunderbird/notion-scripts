@@ -8,8 +8,10 @@
         "createdAt": "2024-09-11T11:57:39Z",
         "closedAt": null,
         "state": "OPEN",
+        "stateReason": null,
         "url": "https://github.com/kewisch/test/issues/1",
         "id": "I_kwDOMwGgpM6WLTqc",
+        "issueType": null,
         "body": "I am the body",
         "parent": null,
         "repository": {
@@ -88,6 +90,9 @@
               "sprint": null
             }
           ]
+        },
+        "timelineItems": {
+          "nodes": []
         },
         "subIssues": {
           "nodes": []

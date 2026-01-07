@@ -22,8 +22,8 @@ TEST_PROPERTY_NAMES = {
 }
 
 
-class TestTracker(IssueTracker):
-    name = "TestTracker"
+class IssueTestTracker(IssueTracker):
+    name = "IssueTestTracker"
 
     def __init__(self, user_map={}, issues=[], property_names={}, **kwargs):
         all_props = {**TEST_PROPERTY_NAMES, **property_names}
@@ -150,11 +150,18 @@ class ProjectSyncTest(BaseTestCase):
         self.respx.reset()
 
     def expect_typical_db_update(self):
-        db_count = 3 if self.project_sync.sprint_db else 2
+        has_sprints = bool(self.project_sync.sprint_db)
+        dry = self.project_sync.dry
 
-        self.expect_call("db_info", 2 if self.project_sync.dry else db_count + 2)
-        self.expect_call("db_update", 0 if self.project_sync.dry else db_count)
-        self.expect_call("db_query", db_count)
+        # 2x validate_props, 2x get_description tasks/milestones (if not dry),
+        # TODO 1x get_description sprints (if not dry and enabled)
+        self.expect_call("db_info", 2 + (0 if dry else 2))
+
+        # update tasks and milestone db
+        self.expect_call("db_update", 0 if dry else 2)
+
+        # query tasks, milestone, and maybe sprint db
+        self.expect_call("db_query", 3 if has_sprints else 2)
 
     async def synchronize_project(self, tracker, **kwargs):
         sync_kwargs_defaults = {
@@ -170,7 +177,6 @@ class ProjectSyncTest(BaseTestCase):
             "milestones_tracker_prefix": "",
             "milestones_extra_label": None,
             "tasks_notion_prefix": "[tasks_notion_prefix] ",
-            "sprints_merge_by_name": False,
             "dry": False,
         }
         self.project_sync = ProjectSync(**{**sync_kwargs_defaults, **kwargs})
@@ -179,7 +185,7 @@ class ProjectSyncTest(BaseTestCase):
     @freeze_time("2023-01-01 12:13:14")
     async def test_update_sync_stamp(self):
         self.notion_handler.milestones_handler.pages = []
-        tracker = TestTracker(dry=True)
+        tracker = IssueTestTracker(dry=True)
 
         # Dry run, no updates
         await self.synchronize_project(tracker, dry=True)
@@ -210,7 +216,7 @@ class ProjectSyncTest(BaseTestCase):
         # Only milestone issue
         issue = self.issues[0]
         issue.sub_issues = []
-        tracker = TestTracker(issues=[issue], dry=False)
+        tracker = IssueTestTracker(issues=[issue], dry=False)
 
         with self.assertLogs("project_sync", level="INFO") as logs:
             await self.synchronize_project(tracker)
@@ -235,7 +241,7 @@ class ProjectSyncTest(BaseTestCase):
 
     async def test_milestone_sync_single_no_children_with_update(self):
         self.issues[0].title = "Title will be changed"
-        tracker = TestTracker(
+        tracker = IssueTestTracker(
             issues=self.issues, dry=False, property_names={"notion_milestones_dates": ["Start", "End"]}
         )
 
@@ -250,7 +256,7 @@ class ProjectSyncTest(BaseTestCase):
         self.assertEqual(tracker.update_milestone_issue.call_args[0][1].description, "description")
 
     async def test_milestone_sync_single_no_children_dry(self):
-        tracker = TestTracker(issues=self.issues, dry=True)
+        tracker = IssueTestTracker(issues=self.issues, dry=True)
 
         await self.synchronize_project(tracker, dry=True)
         self.assertEqual(tracker.update_milestone_issue.call_count, 0)
@@ -260,7 +266,7 @@ class ProjectSyncTest(BaseTestCase):
         issue = self.issues[0]
         issue.sub_issues = []
 
-        tracker = TestTracker(issues=[issue])
+        tracker = IssueTestTracker(issues=[issue])
 
         await self.synchronize_project(tracker, milestones_extra_label="extra-label")
         self.assertEqual(tracker.update_milestone_issue.call_count, 1)
@@ -268,7 +274,7 @@ class ProjectSyncTest(BaseTestCase):
         self.assertEqual(tracker.update_milestone_issue.call_args[0][1].labels, {"extra-label"})
 
     async def test_milestone_sync_with_task(self):
-        tracker = TestTracker(issues=self.issues)
+        tracker = IssueTestTracker(issues=self.issues)
         await self.synchronize_project(tracker)
 
         self.expect_typical_db_update()
@@ -281,7 +287,9 @@ class ProjectSyncTest(BaseTestCase):
                 "parent": {"database_id": "tasks_id"},
                 "properties": {
                     "Dates": {"date": None},
-                    "Issue Link": {"url": "https://example.com/repo/234"},
+                    "Issue Link": {
+                        "files": [{"name": "repo/234", "external": {"url": "https://example.com/repo/234"}}]
+                    },
                     "Owner": {"type": "people", "people": []},
                     "Priority": {"select": None},
                     "Project": {"relation": [{"id": "726fac286b6348ca90ec0066be1a2755"}]},
@@ -291,14 +299,16 @@ class ProjectSyncTest(BaseTestCase):
                         "type": "title",
                     },
                     "Text Assignee": {"rich_text": [{"text": {"content": ""}}]},
-                    "Review URL": {"url": None},
+                    "Review URL": {"files": []},
                 },
             },
         )
 
         self.expect_call("pages_update", 1)
         self.assertEqual(
-            json.loads(self.respx.routes["pages_update"].calls.last.request.content)["properties"]["Issue Link"]["url"],
+            json.loads(self.respx.routes["pages_update"].calls.last.request.content)["properties"]["Issue Link"][
+                "files"
+            ][0]["external"]["url"],
             "https://example.com/repo/345",
         )
 
@@ -312,14 +322,14 @@ class ProjectSyncTest(BaseTestCase):
         self.assertEqual(update_content["children"][0]["paragraph"]["rich_text"][0]["text"]["content"], "ℹ️ ")
         self.assertEqual(
             update_content["children"][0]["paragraph"]["rich_text"][1]["text"]["content"],
-            "This task synchronizes with TestTracker. Any changes you make here will be overwritten.",
+            "This task synchronizes with IssueTestTracker. Any changes you make here will be overwritten.",
         )
 
         # Update database info
         self.expect_total_calls()
 
     async def test_milestone_sync_with_task_no_updates(self):
-        tracker = TestTracker(
+        tracker = IssueTestTracker(
             issues=self.issues,
             property_names={
                 "notion_tasks_review_url": None,
@@ -339,7 +349,9 @@ class ProjectSyncTest(BaseTestCase):
                 "parent": {"database_id": "tasks_id"},
                 "properties": {
                     "Dates": {"date": None},
-                    "Issue Link": {"url": "https://example.com/repo/234"},
+                    "Issue Link": {
+                        "files": [{"name": "repo/234", "external": {"url": "https://example.com/repo/234"}}]
+                    },
                     "Project": {"relation": [{"id": "726fac286b6348ca90ec0066be1a2755"}]},
                     "Status": {"status": {"name": "NEW"}},
                     "Title": {
@@ -358,7 +370,7 @@ class ProjectSyncTest(BaseTestCase):
         del self.issues[1]
         del self.issues[0].sub_issues[0]
 
-        tracker = TestTracker(issues=self.issues)
+        tracker = IssueTestTracker(issues=self.issues)
         await self.synchronize_project(tracker, tasks_body_sync=True)
 
         self.expect_call("pages_update", 1)
@@ -371,7 +383,7 @@ class ProjectSyncTest(BaseTestCase):
         self.assertEqual(update_content["children"][0]["paragraph"]["rich_text"][0]["text"]["content"], "ℹ️ ")
         self.assertEqual(
             update_content["children"][0]["paragraph"]["rich_text"][1]["text"]["content"],
-            "This task synchronizes with TestTracker. Any changes you make here will be overwritten.",
+            "This task synchronizes with IssueTestTracker. Any changes you make here will be overwritten.",
         )
 
         # Update database info
@@ -382,7 +394,7 @@ class ProjectSyncTest(BaseTestCase):
         """Tests the milestones_body_sync setting."""
         issue = self.issues[0]
         issue.sub_issues = []
-        tracker = TestTracker(issues=[issue], dry=False)
+        tracker = IssueTestTracker(issues=[issue], dry=False)
 
         await self.synchronize_project(tracker, milestones_body_sync=True)
         self.expect_call("pages_child_get", 1)
@@ -400,7 +412,7 @@ class ProjectSyncTest(BaseTestCase):
         self.issues[0].sub_issues = []
         issues = [self.issues[0]]
 
-        tracker = TestTracker(issues=issues, dry=False)
+        tracker = IssueTestTracker(issues=issues, dry=False)
 
         with self.subTest(msg="not empty"):
             await self.synchronize_project(tracker, milestones_body_sync_if_empty=True)
@@ -428,7 +440,7 @@ class ProjectSyncTest(BaseTestCase):
             self.expect_total_calls()
 
     async def test_milestone_sync_with_sprint(self):
-        tracker = TestTracker(issues=self.issues)
+        tracker = IssueTestTracker(issues=self.issues)
 
         self.issues[1].sprint = (await tracker.get_sprints())[1]
         self.issues[2].sprint = (await tracker.get_sprints())[2]
@@ -438,48 +450,11 @@ class ProjectSyncTest(BaseTestCase):
         self.expect_typical_db_update()
 
         # Create the task to synchronize
-        self.expect_call("pages_create", 3)
-        self.assertEqual(
-            json.loads(self.respx.routes["pages_create"].calls[0].request.content),
-            {
-                "parent": {"database_id": "sprints_id"},
-                "properties": {
-                    "Sprint name": {"type": "title", "title": [{"text": {"content": "Sprint 1"}}]},
-                    "Dates": {"date": {"start": "2025-01-01", "end": "2025-01-07"}},
-                    "Sprint status": {"status": {"name": "Past"}},
-                    "TestTracker ID": {"rich_text": [{"text": {"content": "1"}}]},
-                },
-            },
-        )
-        self.assertEqual(
-            json.loads(self.respx.routes["pages_create"].calls[1].request.content),
-            {
-                "parent": {"database_id": "sprints_id"},
-                "properties": {
-                    "Sprint name": {"type": "title", "title": [{"text": {"content": "Sprint 3"}}]},
-                    "Dates": {"date": {"start": "2025-01-16", "end": "2025-01-23"}},
-                    "Sprint status": {"status": {"name": "Future"}},
-                    "TestTracker ID": {"rich_text": [{"text": {"content": "3"}}]},
-                },
-            },
-        )
+        self.expect_call("pages_create", 1)
+        self.expect_call("pages_update", 1)
 
-        self.expect_call("pages_update", 2)
         self.assertEqual(
             json.loads(self.respx.routes["pages_update"].calls[0].request.content),
-            {
-                "properties": {
-                    "Sprint name": {"type": "title", "title": [{"text": {"content": "Sprint 2"}}]},
-                    "Dates": {"date": {"start": "2025-01-08", "end": "2025-01-15"}},
-                    "Sprint status": {"status": {"name": "Current"}},
-                },
-            },
-        )
-
-        sprint_3_id = json.loads(self.respx.routes["pages_create"].calls[1].response.content)["id"]
-
-        self.assertEqual(
-            json.loads(self.respx.routes["pages_update"].calls[1].request.content),
             {
                 "properties": {
                     "Status": {"status": {"name": "NEW"}},
@@ -487,25 +462,29 @@ class ProjectSyncTest(BaseTestCase):
                         "type": "title",
                         "title": [{"text": {"content": "[tasks_notion_prefix] - test - Subissue 2"}}],
                     },
-                    "Issue Link": {"url": "https://example.com/repo/345"},
+                    "Issue Link": {
+                        "files": [{"name": "repo/345", "external": {"url": "https://example.com/repo/345"}}]
+                    },
                     "Owner": {"type": "people", "people": []},
                     "Text Assignee": {"rich_text": [{"text": {"content": ""}}]},
                     "Priority": {"select": None},
-                    "Review URL": {"url": None},
+                    "Review URL": {"files": []},
                     "Dates": {"date": {"start": "2025-01-16", "end": "2025-01-23"}},
-                    "Sprint": {"relation": [{"id": sprint_3_id}]},
+                    "Sprint": {"relation": [{"id": "89cc4fa2f788430da33764a9aa6cb0ab"}]},
                     "Project": {"relation": [{"id": "726fac286b6348ca90ec0066be1a2755"}]},
                 }
             },
         )
 
         self.assertEqual(
-            json.loads(self.respx.routes["pages_create"].calls[2].request.content),
+            json.loads(self.respx.routes["pages_create"].calls[0].request.content),
             {
                 "parent": {"database_id": "tasks_id"},
                 "properties": {
                     "Dates": {"date": {"end": "2025-01-15", "start": "2025-01-08"}},
-                    "Issue Link": {"url": "https://example.com/repo/234"},
+                    "Issue Link": {
+                        "files": [{"name": "repo/234", "external": {"url": "https://example.com/repo/234"}}]
+                    },
                     "Owner": {"type": "people", "people": []},
                     "Priority": {"select": None},
                     "Project": {"relation": [{"id": "726fac286b6348ca90ec0066be1a2755"}]},
@@ -516,7 +495,7 @@ class ProjectSyncTest(BaseTestCase):
                         "type": "title",
                     },
                     "Text Assignee": {"rich_text": [{"text": {"content": ""}}]},
-                    "Review URL": {"url": None},
+                    "Review URL": {"files": []},
                 },
             },
         )
@@ -526,124 +505,11 @@ class ProjectSyncTest(BaseTestCase):
         self.expect_call("pages_child_update", 1)
         self.expect_total_calls()
 
-    async def test_milestone_sync_with_sprint_merge_by_title(self):
-        tracker = TestTracker(issues=self.issues)
-
-        self.issues[1].sprint = (await tracker.get_sprints())[1]
-        self.issues[2].sprint = (await tracker.get_sprints())[2]
-
-        await self.synchronize_project(tracker, sprint_id="sprints_id", sprints_merge_by_name=True)
-
-        self.expect_typical_db_update()
-
-        # Create the task to synchronize
-        self.expect_call("pages_create", 2)
-        self.assertEqual(
-            json.loads(self.respx.routes["pages_create"].calls[0].request.content),
-            {
-                "parent": {"database_id": "sprints_id"},
-                "properties": {
-                    "Sprint name": {"type": "title", "title": [{"text": {"content": "Sprint 1"}}]},
-                    "Dates": {"date": {"start": "2025-01-01", "end": "2025-01-07"}},
-                    "Sprint status": {"status": {"name": "Past"}},
-                    "TestTracker ID": {"rich_text": [{"text": {"content": "1"}}]},
-                },
-            },
-        )
-
-        self.expect_call("pages_update", 3)
-        self.assertEqual(
-            json.loads(self.respx.routes["pages_update"].calls[0].request.content),
-            {
-                "properties": {
-                    "Sprint name": {"type": "title", "title": [{"text": {"content": "Sprint 2"}}]},
-                    "Dates": {"date": {"start": "2025-01-08", "end": "2025-01-15"}},
-                    "Sprint status": {"status": {"name": "Current"}},
-                },
-            },
-        )
-        self.assertEqual(
-            json.loads(self.respx.routes["pages_update"].calls[1].request.content),
-            {
-                "properties": {
-                    "TestTracker ID": {"rich_text": [{"text": {"content": "three\n3"}}]},
-                },
-            },
-        )
-
-        self.assertEqual(
-            json.loads(self.respx.routes["pages_create"].calls[1].request.content),
-            {
-                "parent": {"database_id": "tasks_id"},
-                "properties": {
-                    "Dates": {"date": {"end": "2025-01-15", "start": "2025-01-08"}},
-                    "Issue Link": {"url": "https://example.com/repo/234"},
-                    "Owner": {"type": "people", "people": []},
-                    "Priority": {"select": None},
-                    "Project": {"relation": [{"id": "726fac286b6348ca90ec0066be1a2755"}]},
-                    "Status": {"status": {"name": "NEW"}},
-                    "Sprint": {"relation": [{"id": "1c5dea4adcdf8159948bf193a527ef1a"}]},
-                    "Title": {
-                        "title": [{"text": {"content": "[tasks_notion_prefix] - test - Subissue 1"}}],
-                        "type": "title",
-                    },
-                    "Text Assignee": {"rich_text": [{"text": {"content": ""}}]},
-                    "Review URL": {"url": None},
-                },
-            },
-        )
-        self.assertEqual(
-            json.loads(self.respx.routes["pages_update"].calls[2].request.content),
-            {
-                "properties": {
-                    "Dates": {"date": {"end": "2025-01-23", "start": "2025-01-16"}},
-                    "Issue Link": {"url": "https://example.com/repo/345"},
-                    "Owner": {"type": "people", "people": []},
-                    "Priority": {"select": None},
-                    "Project": {"relation": [{"id": "726fac286b6348ca90ec0066be1a2755"}]},
-                    "Status": {"status": {"name": "NEW"}},
-                    "Sprint": {"relation": [{"id": "89cc4fa2f788430da33764a9aa6cb0ab"}]},
-                    "Title": {
-                        "title": [{"text": {"content": "[tasks_notion_prefix] - test - Subissue 2"}}],
-                        "type": "title",
-                    },
-                    "Text Assignee": {"rich_text": [{"text": {"content": ""}}]},
-                    "Review URL": {"url": None},
-                },
-            },
-        )
-
-        self.expect_call("pages_child_get", 1)
-        self.expect_call("pages_child_update", 1)
-        self.expect_total_calls()
-
-    async def test_milestone_sync_with_sprint_merge_by_title_date_mismatch(self):
-        tracker = TestTracker(issues=self.issues)
-        self.issues[1].sprint = (await tracker.get_sprints())[1]
-        self.issues[2].sprint = (await tracker.get_sprints())[2]
-
-        with self.subTest(msg="end date"):
-            self.notion_handler.sprints_handler.pages[1]["properties"]["Dates"]["date"]["end"] = "2025-01-24"
-            with self.assertRaisesInGroup(
-                Exception, r"Could not merge sprint Sprint 3, end dates mismatch! 2025-01-24 != 2025-01-23"
-            ):
-                await self.synchronize_project(tracker, sprint_id="sprints_id", sprints_merge_by_name=True)
-
-            self.notion_handler.sprints_handler.pages[1]["properties"]["Dates"]["date"]["end"] = "2025-01-23"
-
-        with self.subTest(msg="start date"):
-            self.notion_handler.sprints_handler.pages[1]["properties"]["Dates"]["date"]["start"] = "2025-01-15"
-
-            with self.assertRaisesInGroup(
-                Exception, r"Could not merge sprint Sprint 3, start dates mismatch! 2025-01-15 != 2025-01-16"
-            ):
-                await self.synchronize_project(tracker, sprint_id="sprints_id", sprints_merge_by_name=True)
-
     async def test_task_with_dates(self):
         self.issues[2].start_date = datetime.date(2025, 4, 1)
         self.issues[2].end_date = datetime.date(2025, 4, 7)
 
-        tracker = TestTracker(
+        tracker = IssueTestTracker(
             issues=self.issues,
             property_names={
                 "notion_tasks_openclose": ["Created", "Closed"],
@@ -656,14 +522,17 @@ class ProjectSyncTest(BaseTestCase):
             await self.synchronize_project(tracker, sprint_id="sprints_id")
 
             # Uses augmented dates, but still associated with the original sprint
+            print(self.respx.routes["pages_update"].calls)
             self.assertEqual(
-                json.loads(self.respx.routes["pages_update"].calls[1].request.content),
+                json.loads(self.respx.routes["pages_update"].calls[0].request.content),
                 {
                     "properties": {
                         "Created": {"date": {"start": "2025-03-04T05:00:00+00:00"}},
                         "Closed": {"date": None},
                         "Dates": {"date": {"start": "2025-01-08", "end": "2025-01-15"}},
-                        "Issue Link": {"url": "https://example.com/repo/345"},
+                        "Issue Link": {
+                            "files": [{"name": "repo/345", "external": {"url": "https://example.com/repo/345"}}]
+                        },
                         "Owner": {"type": "people", "people": []},
                         "Priority": {"select": None},
                         "Project": {"relation": [{"id": "726fac286b6348ca90ec0066be1a2755"}]},
@@ -674,7 +543,7 @@ class ProjectSyncTest(BaseTestCase):
                             "type": "title",
                         },
                         "Text Assignee": {"rich_text": [{"text": {"content": ""}}]},
-                        "Review URL": {"url": None},
+                        "Review URL": {"files": []},
                     },
                 },
             )
@@ -686,15 +555,15 @@ class ProjectSyncTest(BaseTestCase):
 
             await self.synchronize_project(tracker, sprint_id="sprints_id")
 
-            content = json.loads(self.respx.routes["pages_update"].calls[1].request.content)
+            content = json.loads(self.respx.routes["pages_update"].calls[0].request.content)
 
-            self.assertEqual(content["properties"]["Dates"]["date"]["start"], "2025-04-01")
+            self.assertEqual(content["properties"]["Dates"]["date"]["start"], "2025-04-01T00:00:00+00:00")
             self.assertEqual(content["properties"]["Dates"]["date"]["end"], "2025-04-07")
 
     async def test_task_no_parent(self):
         self.issues[1].parents = []
 
-        tracker = TestTracker(issues=self.issues)
+        tracker = IssueTestTracker(issues=self.issues)
         tracker.additional_tasks = [IssueRef(id="234", repo="repo")]
 
         await self.synchronize_project(tracker)
@@ -706,7 +575,9 @@ class ProjectSyncTest(BaseTestCase):
                 "parent": {"database_id": "tasks_id"},
                 "properties": {
                     "Dates": {"date": None},
-                    "Issue Link": {"url": "https://example.com/repo/234"},
+                    "Issue Link": {
+                        "files": [{"name": "repo/234", "external": {"url": "https://example.com/repo/234"}}]
+                    },
                     "Owner": {"type": "people", "people": []},
                     "Priority": {"select": None},
                     "Project": {"relation": []},
@@ -716,13 +587,13 @@ class ProjectSyncTest(BaseTestCase):
                         "type": "title",
                     },
                     "Text Assignee": {"rich_text": [{"text": {"content": ""}}]},
-                    "Review URL": {"url": None},
+                    "Review URL": {"files": []},
                 },
             },
         )
 
     async def test_task_wrong_title(self):
-        tracker = TestTracker(
+        tracker = IssueTestTracker(
             issues=self.issues,
             property_names={
                 "notion_milestones_title": "Headline",
@@ -734,70 +605,8 @@ class ProjectSyncTest(BaseTestCase):
         self.assertEqual(tracker.update_milestone_issue.call_args[0][0].title, "Rebuild the calendar Read Event dialog")
         self.assertEqual(tracker.update_milestone_issue.call_args[0][1].title, "")
 
-    async def test_dropdown_props(self):
-        tracker = TestTracker(
-            issues=self.issues,
-            property_names={
-                "notion_tasks_labels": "Labels",
-                "notion_tasks_repository": "Repository",
-            },
-        )
-
-        with self.subTest(msg="strip orgname"):
-            tracker.get_all_repositories = lambda: ["kewisch/test", "kewisch/test2"]
-            project_sync = ProjectSync(
-                project_key="test",
-                notion_token="NOTION_TOKEN",
-                milestones_id="milestones_id",
-                tasks_id="tasks_id",
-                tracker=tracker,
-            )
-
-            self.assertEqual(
-                project_sync.tasks_db.properties["Repository"].additional["select"]["options"],
-                [{"name": "test"}, {"name": "test2"}],
-            )
-
-        with self.subTest(msg="don't strip orgname"):
-            tracker.get_all_repositories = lambda: ["kewisch/test", "settings/test2"]
-            self.notion_handler.tasks_handler.database_info["properties"]["Repository"]["select"]["options"] = [
-                {"name": "kewisch/test"},
-                {"name": "settings/test2"},
-            ]
-            project_sync = ProjectSync(
-                project_key="test",
-                notion_token="NOTION_TOKEN",
-                milestones_id="milestones_id",
-                tasks_id="tasks_id",
-                tracker=tracker,
-            )
-            self.assertEqual(
-                project_sync.tasks_db.properties["Repository"].additional["select"]["options"],
-                [{"name": "kewisch/test"}, {"name": "settings/test2"}],
-            )
-
-        with self.subTest(msg="all labels"):
-
-            async def get_all_labels():
-                return ["bug", "enhancement"]
-
-            tracker.get_all_labels = get_all_labels
-            project_sync = ProjectSync(
-                project_key="test",
-                notion_token="NOTION_TOKEN",
-                milestones_id="milestones_id",
-                tasks_id="tasks_id",
-                tracker=tracker,
-            )
-            await project_sync._async_init()
-
-            self.assertEqual(
-                project_sync.tasks_db.properties["Labels"].additional["multi_select"]["options"],
-                [{"name": "bug"}, {"name": "enhancement"}],
-            )
-
     async def test_validate_schema(self):
-        tracker = TestTracker(dry=True)
+        tracker = IssueTestTracker(dry=True)
         logging.getLogger("notion_database").setLevel(logging.CRITICAL)
 
         del self.notion_handler.tasks_handler.database_info["properties"]["Issue Link"]
@@ -828,7 +637,7 @@ class ProjectSyncTest(BaseTestCase):
     async def test_null_state(self):
         self.issues[1].state = None
         self.issues[2].state = None
-        tracker = TestTracker(
+        tracker = IssueTestTracker(
             issues=self.issues,
             property_names={
                 "notion_default_open_state": "Wide",

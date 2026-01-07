@@ -4,6 +4,8 @@
   "creation_time": "2025-01-30T15:32:37Z",
   "priority": "P3",
   "summary": "Read Calendar Event - Acceptance Widget",
+  "keywords": [],
+  "whiteboard": "",
   "attachments": [
     {
       "file_name": "phabricator-D248065-url.txt",
@@ -33,6 +35,7 @@
   "id": 1944885,
   "assigned_to": "user1@example.com",
   "status": "ASSIGNED",
+  "resolution": null,
   "comments": [
     {
       "tags": [],

@@ -701,7 +701,7 @@ class LabelCache:
 
             self._cache[orgrepo] = orgrepocache
 
-        return orgrepocache
+        return {key: orgrepocache[key] for key in labels}
 
 
 class GitHubProjectV2:

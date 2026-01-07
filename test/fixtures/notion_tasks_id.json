@@ -9,7 +9,7 @@
     "description": [],
     
     "properties": {
-      "Issue Link": { "id": "n%3EUR", "name": "Issue Link", "type": "url", "url": {}},
+      "Issue Link": { "id": "n%3EUR", "name": "Issue Link", "type": "files", "files": []},
       "Project": {
         "name": "Project",
         "type": "relation",
@@ -18,7 +18,7 @@
       "Title": {"type": "title", "title": {"name": "Title"}},
       "Priority": {"name": "Priority", "type": "select", "select": {"options": [{"name": "P1"}, {"name": "P2"}, {"name": "P3"}]}},
       "Owner": {"name": "Owner", "type": "people"},
-      "Review URL": {"name": "Review URL", "type": "url", "url": {}},
+      "Review URL": {"name": "Review URL", "type": "files", "files": []},
       "Text Assignee": {"name": "Text Assignee", "type": "rich_text", "rich_text": {}},
       "Dates": {"name": "Dates", "type": "date", "date": {}},
       "Created": {"name": "Created", "type": "date", "date": {}},
@@ -73,8 +73,8 @@
           "type" : "status"
         },
         "Issue Link": {
-          "type": "url",
-          "url": "https://example.com/repo/345"
+          "type": "files",
+          "files": [{"name": "repo/345", "external": {"url": "https://example.com/repo/345"}}]
         },
         "Project": {
           "type": "relation",
