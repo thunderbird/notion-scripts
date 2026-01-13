@@ -38,6 +38,7 @@ class BaseSync:
         sprint_id=None,
         milestones_body_sync=False,
         milestones_body_sync_if_empty=False,
+        milestones_create_from_tracker=False,
         tasks_body_sync=False,
         milestones_tracker_prefix="",
         milestones_extra_label="",
@@ -63,6 +64,8 @@ class BaseSync:
             milestones_body_sync_if_empty (bool): If true, the Notion page body will be synchronized
                 to the tracker, but only if the tracker issue is empty. This works great for a one
                 time import.
+            milestones_create_from_tracker (bool): If true, tracker issues with the milestone type
+                will be created in Notion if they do not exist.
             tasks_body_sync (bool): If true, the issue body will be synced to Notion tasks.
                 Note this takes a lot of requests, so recommend avoiding.
             milestones_tracker_prefix (str): Optional prefix on the issue tracker when synchronized
@@ -84,11 +87,20 @@ class BaseSync:
 
         # Milestones Database
         milestones_properties = [
-            # There are more, but this is the only one we change
             p.link(self.propnames["notion_issue_field"]),
         ]
+
+        self._setup_prop(milestones_properties, "notion_milestones_title", "title")
+        self._setup_prop(milestones_properties, "notion_milestones_assignee", "people")
+        self._setup_prop(milestones_properties, "notion_milestones_priority", "select")
+        self._setup_date_prop(milestones_properties, "notion_milestones_dates")
+
+        if team_id:
+            self._setup_prop(milestones_properties, "notion_milestones_team", "relation", team_id, False)
+
         self.milestones_db = NotionDatabase(milestones_id, self.notion, milestones_properties, dry=dry)
         self.milestones_body_sync = milestones_body_sync
+        self.milestones_create_from_tracker = milestones_create_from_tracker
         self.milestones_body_sync_if_empty = milestones_body_sync_if_empty
         self.milestones_tracker_prefix = milestones_tracker_prefix
         self.milestones_extra_label = milestones_extra_label
@@ -103,7 +115,6 @@ class BaseSync:
 
         if team_id:
             self._setup_prop(tasks_properties, "notion_tasks_team", "relation", team_id, False)
-            self._setup_prop(milestones_properties, "notion_milestones_team", "relation", team_id, False)
 
         self._setup_prop(tasks_properties, "notion_tasks_priority", "select")
         self._setup_prop(tasks_properties, "notion_tasks_assignee", "people")

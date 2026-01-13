@@ -149,6 +149,11 @@ class IssueTracker:
         """Determine the title for notion tasks."""
         return tasks_notion_prefix + issue.title
 
+    async def collect_tracker_milestones(self, milestones_issue_type, sub_issues=False):
+        """Collect all milestone issues on the tracker."""
+        if False:
+            yield "hack"
+
     async def collect_additional_tasks(self, collected_tasks):
         """Add additional tasks to the collected tasks for sync."""
         pass

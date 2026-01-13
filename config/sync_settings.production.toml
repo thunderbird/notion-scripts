@@ -168,6 +168,7 @@ milestones_issue_type = "Milestone"
 
 milestones_body_sync = false
 milestones_body_sync_if_empty = true
+milestones_create_from_tracker = true
 tasks_body_sync = false
 
 [sync.services.repositories.pro]

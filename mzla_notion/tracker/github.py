@@ -191,6 +191,38 @@ class GitHub(IssueTracker):
         """Get a list of all associated repositories."""
         return list(self.allowed_repositories)
 
+    async def collect_tracker_milestones(self, milestones_issue_type, sub_issues=False):
+        """Collect all milestone issues on the tracker."""
+        query = (
+            " ".join(f"repo:{repo}" for repo in self.allowed_repositories) + " is:issue type:" + milestones_issue_type
+        )
+        has_next_page = True
+        cursor = None
+
+        while has_next_page:
+            op = Operation(schema.query_type)
+            search = op.search(query=query, type=schema.SearchType.ISSUE, first=100, after=cursor)
+
+            nodes = search.edges.node.__as__(schema.Issue)
+            issue_field_ops(nodes)
+
+            if sub_issues:
+                # TODO run through this with a cursor
+                subissues = nodes.sub_issues(first=100)
+                subissues.nodes.number()
+
+            search.page_info.__fields__(has_next_page=True)
+            search.page_info.__fields__(end_cursor=True)
+
+            data = await self.endpoint(op)
+            searchdata = (op + data).search
+
+            for edge in searchdata.edges:
+                yield self._parse_issue(edge.node)
+
+            has_next_page = searchdata.page_info.has_next_page
+            cursor = searchdata.page_info.end_cursor
+
     async def collect_additional_tasks(self, collected_tasks):
         """Add additional tasks to the collected tasks for sync."""
         # Collect issues from sprint board, there may be a few not associated with a milestone
