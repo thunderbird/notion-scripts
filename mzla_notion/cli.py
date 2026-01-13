@@ -180,6 +180,7 @@ async def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_r
                     repositories=project["repositories"],
                     dry=dry_run or project.get("tracker_dry_run", False),
                     user_map=user_map.get("github") or {},
+                    milestones_issue_type=project.get("milestones_issue_type", None),
                     property_names=project.get("properties", {}),
                 )
 

@@ -107,7 +107,7 @@ class GitHub(IssueTracker):
 
     name = "GitHub"
 
-    def __init__(self, token=None, repositories={}, user_map=None, **kwargs):
+    def __init__(self, token=None, repositories={}, user_map=None, milestones_issue_type=None, **kwargs):
         """Initialize issue tracker."""
         super().__init__(**kwargs)
 
@@ -120,6 +120,7 @@ class GitHub(IssueTracker):
 
         self.label_cache = LabelCache(self.endpoint)
         self.issue_type_cache = IssueTypeCache(self.endpoint)
+        self.milestones_issue_type = milestones_issue_type
 
         self._init_repository_settings(repositories)
         self._raw_user_map = user_map
@@ -218,7 +219,7 @@ class GitHub(IssueTracker):
             searchdata = (op + data).search
 
             for edge in searchdata.edges:
-                yield self._parse_issue(edge.node)
+                yield await self._parse_issue(edge.node)
 
             has_next_page = searchdata.page_info.has_next_page
             cursor = searchdata.page_info.end_cursor
@@ -254,6 +255,11 @@ class GitHub(IssueTracker):
 
         logger.info(f"Will sync {project_item_count} new sprint board tasks not associated with a milestone")
         logger.info(f"Will sync {pr_item_count} new tasks from pull requests not associated with a milestone")
+
+    async def _comment_on_issue(self, ghissue, body):
+        op = Operation(schema.Mutation)
+        op.add_comment(input={"subjectId": ghissue.id, "body": body})
+        await self.endpoint(op)
 
     async def update_milestone_issue(self, old_issue, new_issue):
         """Update an issue on GitHub."""
@@ -381,9 +387,96 @@ class GitHub(IssueTracker):
             op.update_issue_issue_type(input={"issue_id": old_issue.gql.id, "issue_type_id": issue_type_id})
             await self.endpoint(op)
 
-    def _parse_issue(self, ghissue, sub_issues=False):
-        repo = ghissue.repository.name_with_owner
+    async def _fixup_issue(self, ghissue, sub_issues=False):
+        issue_type = getnestedattr(lambda: ghissue.issue_type.name, None)
+        orgrepo = ghissue.repository.name_with_owner
 
+        tasks_project_item = (
+            self.github_tasks_projects[orgrepo].find_project_item(
+                ghissue, self.github_tasks_projects[orgrepo].database_id
+            )
+            if orgrepo in self.github_tasks_projects
+            else None
+        )
+
+        milestones_project_item = (
+            self.github_milestones_projects[orgrepo].find_project_item(
+                ghissue, self.github_milestones_projects[orgrepo].database_id
+            )
+            if orgrepo in self.github_milestones_projects
+            else None
+        )
+
+        if tasks_project_item and milestones_project_item:
+            if not ghissue.parent and (
+                issue_type == self.milestones_issue_type or (sub_issues and ghissue.sub_issues.nodes)
+            ):
+                # This is a milestone, or it at least has sub-issues. Remove it from the task
+                # project
+                logger.warn(
+                    f"Issue https://github.com/{orgrepo}/issues/{ghissue.number} is on both "
+                    "milestone and task project. Removing from task project."
+                )
+                if not self.dry:
+                    async with asyncio.TaskGroup() as tg:
+                        tg.create_task(
+                            self._comment_on_issue(
+                                ghissue,
+                                "Issues cannot be both on the Milestones and Tasks boards. This "
+                                "appears to be a Milestone issue, removing from Tasks board",
+                            )
+                        )
+                        tg.create_task(self.github_tasks_projects[orgrepo].remove_project_from_issue(ghissue))
+
+                tasks_project_item = None
+            elif ghissue.parent and ghissue.parent.number:
+                # this has a parent issue, which might be a milestone. Remove it from the milestone
+                # project
+                logger.warn(
+                    f"Issue https://github.com/{orgrepo}/issues/{ghissue.number} is on both the "
+                    "Milestone and Tasks project. Removing from Milestones project."
+                )
+                if not self.dry:
+                    async with asyncio.TaskGroup() as tg:
+                        tg.create_task(
+                            self._comment_on_issue(
+                                ghissue,
+                                "Issues cannot be both on the Milestones and Tasks boards. This "
+                                "appears to be a Task, removing from Milestones board",
+                            )
+                        )
+                        tg.create_task(self.github_milestones_projects[orgrepo].remove_project_from_issue(ghissue))
+
+                milestones_project_item = None
+            else:
+                raise Exception(f"Issue {ghissue.url} has both tasks and milestones project")
+
+        if milestones_project_item and ghissue.parent and ghissue.parent.number:
+            # This is an issue with a parent, but it is also on the milestones board. This can
+            # happen when you create sub-issues of items on the milestone board, github defaults to
+            # adding it to the project.
+            logger.warn(
+                f"Issue https://github.com/{orgrepo}/issues/{ghissue.number} has a parent and is "
+                "on the Milestones board. Removing from milestones project."
+            )
+            if not self.dry:
+                async with asyncio.TaskGroup() as tg:
+                    tg.create_task(
+                        self._comment_on_issue(
+                            ghissue,
+                            "Issues with a parent cannot be on the Milestones board, removing. "
+                            "Either move your sub-issues up to the parent issue, or turn this into "
+                            "an independent Milestone issue that has sub-issues.",
+                        )
+                    )
+                    tg.create_task(self.github_milestones_projects[orgrepo].remove_project_from_issue(ghissue))
+
+    async def _parse_issue(self, ghissue, sub_issues=False):
+        # There isn't really a better place to put it with the current architecture. If while
+        # parsing github issues we find a problem, fix it on the spot before we continue
+        await self._fixup_issue(ghissue, sub_issues)
+
+        repo = ghissue.repository.name_with_owner
         tasks_project_item = (
             self.github_tasks_projects[repo].find_project_item(ghissue, self.github_tasks_projects[repo].database_id)
             if repo in self.github_tasks_projects
@@ -397,9 +490,6 @@ class GitHub(IssueTracker):
             if repo in self.github_milestones_projects
             else None
         )
-
-        if tasks_project_item and milestones_project_item:
-            raise Exception(f"Issue {ghissue.url} has both tasks and milestones project")
 
         gh_project_item = tasks_project_item or milestones_project_item
 
@@ -505,7 +595,7 @@ class GitHub(IssueTracker):
                         logger.warn(f"Issue https://github.com/{org}/{repo}/issues/{ref.id} is no longer accessible")
                         continue
 
-                    yield self._parse_issue(ghissue, sub_issues)
+                    yield await self._parse_issue(ghissue, sub_issues)
 
                 i += chunk_size
             except GraphQLErrors as e:
@@ -561,7 +651,7 @@ class GitHub(IssueTracker):
 
         for pull in repo.pull_requests.nodes:
             for ghissue in pull.closing_issues_references.nodes:
-                yield self._parse_issue(ghissue)
+                yield await self._parse_issue(ghissue)
 
     async def _get_repo_issues(self, reporef, sub_issues=False):
         has_next_page = True
@@ -584,7 +674,7 @@ class GitHub(IssueTracker):
             repo = (op + data).repository
 
             for ghissue in repo.issues.nodes:
-                yield self._parse_issue(ghissue, sub_issues)
+                yield await self._parse_issue(ghissue, sub_issues)
 
             has_next_page = repo.issues.page_info.has_next_page
             cursor = repo.issues.page_info.end_cursor
@@ -873,6 +963,15 @@ class GitHubProjectV2:
         info = await self.get()
         return getattr(info, name, default)
 
+    async def remove_project_from_issue(self, ghissue):
+        """Remove an issue from the project."""
+        item = self.find_project_item(ghissue, self.database_id, delete=True)
+
+        project = await self.get()
+        op = Operation(schema.mutation_type)
+        op.delete_project_v2_item(input={"project_id": project.id, "item_id": item.id})
+        await self.endpoint(op)
+
     async def update_project_for_issue(self, issue, properties, add=False):
         """Update ProjectV2 properties for the given issue.
 
@@ -931,7 +1030,7 @@ class GitHubProjectV2:
         if not matches:
             await self.endpoint(op)
 
-    def find_project_item(self, gh_issue, project_id):
+    def find_project_item(self, gh_issue, project_id, delete=False):
         """Find the correct project item.
 
         An issue might be connected to multiple projects, find the project item associated with this
@@ -940,12 +1039,15 @@ class GitHubProjectV2:
         Args:
             gh_issue (Issue): The GraphQL GitHub Issue to look on
             project_id (str): The node id of the project to look for
+            delete (bool): If true, remove the project item before returning it
 
         Returns:
             ProjectV2Item: The project item associated with the Issue
         """
-        for project_item in gh_issue.project_items.nodes:
+        for index, project_item in enumerate(gh_issue.project_items.nodes):
             if project_item.project.id == project_id:
+                if delete:
+                    gh_issue.project_items.nodes.pop(index)
                 return project_item
 
     def find_option_id(self, field, option_name):
