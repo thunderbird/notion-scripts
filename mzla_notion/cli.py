@@ -87,7 +87,15 @@ def cmd_list_repositories(projects, config):
 def setup_logging(verbose):
     """Set up debugging based on verbosity level."""
     DEFAULT_FORMAT = "%(levelname)s [%(asctime)s] %(name)s - %(message)s"
-    SYNC_LOGGERS = ["project_sync", "board_sync", "gh_label_sync", "bugzilla_sync", "notion_sync", "notion_database"]
+    SYNC_LOGGERS = [
+        "project_sync",
+        "board_sync",
+        "gh_fixups",
+        "gh_label_sync",
+        "bugzilla_sync",
+        "notion_sync",
+        "notion_database",
+    ]
     HTTPX_LOGGERS = ["httpx", "httpcore", "sgqlc.endpoint.http"]
     logging.basicConfig(
         format=DEFAULT_FORMAT,

@@ -16,6 +16,7 @@ from ..github_schema import schema
 from ..util import getnestedattr, AsyncRetryingClient
 
 from .common import UserMap, Sprint, IssueRef, Issue, User, IssueTracker
+from .github_fixups import GitHubFixups
 
 logger = logging.getLogger("project_sync")
 
@@ -102,7 +103,7 @@ class GitHubIssue(Issue):
     gql: sgqlc.types.Type = None
 
 
-class GitHub(IssueTracker):
+class GitHub(IssueTracker, GitHubFixups):
     """GitHub issue tracker connection."""
 
     name = "GitHub"
@@ -142,14 +143,16 @@ class GitHub(IssueTracker):
             self.allowed_repositories.update(settings["repositories"])
 
             if tasks_project_id := settings.get("github_tasks_project_id"):
-                tasks_project = GitHubProjectV2(self.endpoint, tasks_project_id, GITHUB_PROJECT_TASKS_FIELDS)
+                tasks_project = GitHubProjectV2(
+                    self.endpoint, tasks_project_id, GITHUB_PROJECT_TASKS_FIELDS, dry=self.dry
+                )
                 self.all_tasks_projects.append(tasks_project)
                 for repo in settings["repositories"]:
                     self.github_tasks_projects[repo] = tasks_project
 
             if milestones_project_id := settings.get("github_milestones_project_id"):
                 milestones_project = GitHubProjectV2(
-                    self.endpoint, milestones_project_id, GITHUB_PROJECT_MILESTONE_FIELDS
+                    self.endpoint, milestones_project_id, GITHUB_PROJECT_MILESTONE_FIELDS, dry=self.dry
                 )
                 self.all_milestones_projects.append(milestones_project)
                 for repo in settings["repositories"]:
@@ -259,7 +262,9 @@ class GitHub(IssueTracker):
     async def _comment_on_issue(self, ghissue, body):
         op = Operation(schema.Mutation)
         op.add_comment(input={"subjectId": ghissue.id, "body": body})
-        await self.endpoint(op)
+
+        if not self.dry:
+            await self.endpoint(op)
 
     async def update_milestone_issue(self, old_issue, new_issue):
         """Update an issue on GitHub."""
@@ -360,7 +365,7 @@ class GitHub(IssueTracker):
             or old_link != new_issue.notion_url
         ):
             await self.github_milestones_projects[new_issue.repo].update_project_for_issue(
-                new_issue,
+                new_issue.gql,
                 {
                     "start_date": new_issue.start_date,
                     "target_date": new_issue.end_date,
@@ -386,90 +391,6 @@ class GitHub(IssueTracker):
             op = Operation(schema.mutation_type)
             op.update_issue_issue_type(input={"issue_id": old_issue.gql.id, "issue_type_id": issue_type_id})
             await self.endpoint(op)
-
-    async def _fixup_issue(self, ghissue, sub_issues=False):
-        issue_type = getnestedattr(lambda: ghissue.issue_type.name, None)
-        orgrepo = ghissue.repository.name_with_owner
-
-        tasks_project_item = (
-            self.github_tasks_projects[orgrepo].find_project_item(
-                ghissue, self.github_tasks_projects[orgrepo].database_id
-            )
-            if orgrepo in self.github_tasks_projects
-            else None
-        )
-
-        milestones_project_item = (
-            self.github_milestones_projects[orgrepo].find_project_item(
-                ghissue, self.github_milestones_projects[orgrepo].database_id
-            )
-            if orgrepo in self.github_milestones_projects
-            else None
-        )
-
-        if tasks_project_item and milestones_project_item:
-            if not ghissue.parent and (
-                issue_type == self.milestones_issue_type or (sub_issues and ghissue.sub_issues.nodes)
-            ):
-                # This is a milestone, or it at least has sub-issues. Remove it from the task
-                # project
-                logger.warn(
-                    f"Issue https://github.com/{orgrepo}/issues/{ghissue.number} is on both "
-                    "milestone and task project. Removing from task project."
-                )
-                if not self.dry:
-                    async with asyncio.TaskGroup() as tg:
-                        tg.create_task(
-                            self._comment_on_issue(
-                                ghissue,
-                                "Issues cannot be both on the Milestones and Tasks boards. This "
-                                "appears to be a Milestone issue, removing from Tasks board",
-                            )
-                        )
-                        tg.create_task(self.github_tasks_projects[orgrepo].remove_project_from_issue(ghissue))
-
-                tasks_project_item = None
-            elif ghissue.parent and ghissue.parent.number:
-                # this has a parent issue, which might be a milestone. Remove it from the milestone
-                # project
-                logger.warn(
-                    f"Issue https://github.com/{orgrepo}/issues/{ghissue.number} is on both the "
-                    "Milestone and Tasks project. Removing from Milestones project."
-                )
-                if not self.dry:
-                    async with asyncio.TaskGroup() as tg:
-                        tg.create_task(
-                            self._comment_on_issue(
-                                ghissue,
-                                "Issues cannot be both on the Milestones and Tasks boards. This "
-                                "appears to be a Task, removing from Milestones board",
-                            )
-                        )
-                        tg.create_task(self.github_milestones_projects[orgrepo].remove_project_from_issue(ghissue))
-
-                milestones_project_item = None
-            else:
-                raise Exception(f"Issue {ghissue.url} has both tasks and milestones project")
-
-        if milestones_project_item and ghissue.parent and ghissue.parent.number:
-            # This is an issue with a parent, but it is also on the milestones board. This can
-            # happen when you create sub-issues of items on the milestone board, github defaults to
-            # adding it to the project.
-            logger.warn(
-                f"Issue https://github.com/{orgrepo}/issues/{ghissue.number} has a parent and is "
-                "on the Milestones board. Removing from milestones project."
-            )
-            if not self.dry:
-                async with asyncio.TaskGroup() as tg:
-                    tg.create_task(
-                        self._comment_on_issue(
-                            ghissue,
-                            "Issues with a parent cannot be on the Milestones board, removing. "
-                            "Either move your sub-issues up to the parent issue, or turn this into "
-                            "an independent Milestone issue that has sub-issues.",
-                        )
-                    )
-                    tg.create_task(self.github_milestones_projects[orgrepo].remove_project_from_issue(ghissue))
 
     async def _parse_issue(self, ghissue, sub_issues=False):
         # There isn't really a better place to put it with the current architecture. If while
@@ -631,7 +552,7 @@ class GitHub(IssueTracker):
                 sprints.append(process_iteration(sprint, "Past"))
         return sprints
 
-    async def _get_pull_request_issues(self, reporef):
+    async def _get_pull_requests(self, reporef):
         orgname, reponame = reporef.split("/")
 
         op = Operation(schema.query_type)
@@ -642,6 +563,10 @@ class GitHub(IssueTracker):
 
         pulls.nodes.id()
         pulls.nodes.number()
+        pulls.nodes.url()
+        pulls.nodes.author.login()
+        pulls.nodes.state()
+        pulls.nodes.is_draft()
 
         issues = pulls.nodes.closing_issues_references(first=20)
         issue_field_ops(issues.nodes)
@@ -649,7 +574,14 @@ class GitHub(IssueTracker):
         data = await self.endpoint(op)
         repo = (op + data).repository
 
-        for pull in repo.pull_requests.nodes:
+        await self._fixup_pull_requests(repo.pull_requests.nodes)
+
+        return repo.pull_requests.nodes
+
+    async def _get_pull_request_issues(self, reporef):
+        pull_requests = await self._get_pull_requests(reporef)
+
+        for pull in pull_requests:
             for ghissue in pull.closing_issues_references.nodes:
                 yield await self._parse_issue(ghissue)
 
@@ -861,18 +793,20 @@ class GitHubProjectV2:
         for project in res_projects.nodes:
             print(f"Project {project.url} ({project.title}) has id {project.id}")
 
-    def __init__(self, endpoint, database_id: str, field_names=[]):
+    def __init__(self, endpoint, database_id: str, field_names=[], dry=False):
         """Initialize the project container.
 
         Args:
             endpoint (HTTPEndpoint): The GraphQL endpoint to use
             database_id (str): The node id of the GiHub project
             field_names (list[str]): The names of the project fields to retrieve
+            dry (bool): If true, don't execute mutations
         """
         self.database_id = database_id
         self.endpoint = endpoint
         self.field_names = field_names
         self.project = None
+        self.dry = dry
 
     async def get(self, force=False):
         """Retrieve the cached project and its fields.
@@ -970,25 +904,49 @@ class GitHubProjectV2:
         project = await self.get()
         op = Operation(schema.mutation_type)
         op.delete_project_v2_item(input={"project_id": project.id, "item_id": item.id})
-        await self.endpoint(op)
 
-    async def update_project_for_issue(self, issue, properties, add=False):
+        if not self.dry:
+            await self.endpoint(op)
+
+    async def add_issue_to_project(self, ghissue):
+        """Add an issue to a project."""
+        item = self.find_project_item(ghissue, self.database_id)
+        if not item and not self.dry:
+            project = await self.get()
+            op = Operation(schema.mutation_type)
+            payload = op.add_project_v2_item_by_id(input={"project_id": project.id, "content_id": ghissue.id})
+
+            project_item = payload.item
+            project_item.id()
+            project_selector = project_item.project.__as__(schema.ProjectV2)
+            project_selector.id()
+            project_selector.number()
+            project_selector.title()
+            project_selector.__fields__("id", "title", "number")
+
+            data = await self.endpoint(op)
+            item = (op + data).add_project_v2_item_by_id.item
+            ghissue.project_items.nodes.append(item)
+
+        return item
+
+    async def update_project_for_issue(self, ghissue, properties, add=False):
         """Update ProjectV2 properties for the given issue.
 
         Args:
-            issue (GitHubIssue): The GitHub Issue
+            ghissue (Issue): The graphql issue
             properties (dict): A dict with project fields to update
             add (bool): If true, the issue will be added to the project if not the case.
         """
         project = await self.get()
-        item = self.find_project_item(issue.gql, self.database_id)
+        item = self.find_project_item(ghissue, self.database_id)
 
         # Check if the issue needs to be added to the project
         if not item and add:
-            op = Operation(schema.mutation_type)
-            op.add_project_v2_item_by_id(input={"project_id": project.id, "content_id": issue.gql.id})
-            data = await self.endpoint(op)
-            item = (op + data).add_project_v2_item_by_id.item
+            item = self.add_issue_to_project(ghissue)
+
+        if not item:
+            return False
 
         matches = True
 
@@ -1027,8 +985,10 @@ class GitHubProjectV2:
             op.update_project_v2_item_field_value(__alias__=f"update{key}", input=input_item)
 
         # Only actually update if there were changes
-        if not matches:
+        if not self.dry and not matches:
             await self.endpoint(op)
+
+        return not matches
 
     def find_project_item(self, gh_issue, project_id, delete=False):
         """Find the correct project item.
