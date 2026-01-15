@@ -222,7 +222,7 @@ class GitHub(IssueTracker, GitHubFixups):
             searchdata = (op + data).search
 
             for edge in searchdata.edges:
-                yield await self._parse_issue(edge.node)
+                yield await self._parse_issue(edge.node, sub_issues)
 
             has_next_page = searchdata.page_info.has_next_page
             cursor = searchdata.page_info.end_cursor
