@@ -14,6 +14,7 @@ from pprint import pprint
 from .sync.label import synchronize as synchronize_gh_label
 from .sync.project import synchronize as synchronize_project
 from .sync.board import synchronize as synchronize_board
+from .sync.deployments import synchronize as synchronize_deployments
 from .tracker.github import GitHub, GitHubProjectV2
 from .tracker.bugzilla import Bugzilla
 from .util import GitHubActionsFormatter
@@ -92,6 +93,7 @@ def setup_logging(verbose):
         "board_sync",
         "gh_fixups",
         "gh_label_sync",
+        "gh_deployments",
         "bugzilla_sync",
         "notion_sync",
         "notion_database",
@@ -250,6 +252,17 @@ async def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_r
                 properties=project.get("properties", {}),
                 dry=dry_run,
                 synchronous=synchronous,
+            )
+        elif project["method"] == "github_deployments":
+            await synchronize_deployments(
+                project_key=key,
+                blocks=project.get("blocks", {}),
+                notion_token=os.environ["NOTION_TOKEN"],
+                github_token=os.environ["GITHUB_TOKEN"],
+                expected_columns=project["expected_columns"],
+                stage_column=project["stage_column"],
+                prod_column=project["prod_column"],
+                dry=dry_run,
             )
         else:
             raise Exception(f"Unknown synchronization {project['method']}")
