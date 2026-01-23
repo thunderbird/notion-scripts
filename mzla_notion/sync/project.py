@@ -211,15 +211,6 @@ class ProjectSync(BaseSync):
                         missing_refs.append(IssueRef(id=issue_id, repo=reporef))
 
                 # Remaining milestones are new in the tracker
-                if self.milestones_create_from_tracker:
-                    logger.info(f"Creating {len(repo_milestones)} new milestones for {reporef}")
-                    for milestone in repo_milestones.values():
-                        self._schedule_milestone_sync(
-                            tg,
-                            milestone,
-                            None,
-                            collected_tasks,
-                        )
 
                 # Fetch and schedule missing milestones
                 async for issue in self.tracker.get_issues_by_number(missing_refs, True):
@@ -231,6 +222,20 @@ class ProjectSync(BaseSync):
                     )
 
                 logger.info(f"Synchronizing {len(notion_pages)} milestones for {reporef}")
+
+            if self.milestones_create_from_tracker:
+                for reporef, milestones in collected_tracker_milestones.items():
+                    if not len(milestones):
+                        continue
+
+                    logger.info(f"Creating {len(milestones)} new milestones for {reporef}")
+                    for milestone in milestones.values():
+                        self._schedule_milestone_sync(
+                            tg,
+                            milestone,
+                            None,
+                            collected_tasks,
+                        )
 
             # Any additional tasks the tracker might be interested in (e.g. sprint boards)
             await self.tracker.collect_additional_tasks(collected_tasks)
