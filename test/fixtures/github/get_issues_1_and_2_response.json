@@ -189,10 +189,16 @@
         "subIssues": {
           "nodes": [
             {
-              "number": 4
+              "number": 4,
+              "repository": {
+                "nameWithOwner": "kewisch/test"
+              }
             },
             {
-              "number": 3
+              "number": 3,
+              "repository": {
+                "nameWithOwner": "kewisch/test"
+              }
             }
           ]
         }

@@ -516,7 +516,7 @@ class GitHub(IssueTracker, GitHubFixups):
                     ghissue = getattr(datarepo, f"issue{ref.id}", None)
 
                     if not getattr(ghissue, "id", None):
-                        logger.warn(f"Issue https://github.com/{org}/{repo}/issues/{ref.id} is no longer accessible")
+                        logger.warning(f"Issue https://github.com/{org}/{repo}/issues/{ref.id} is no longer accessible")
                         continue
 
                     yield await self._parse_issue(ghissue, sub_issues)

@@ -8,7 +8,53 @@
     "title": [  { "type": "text", "text": { "content": "Milestones", "link": null }, "annotations": { "bold": false, "italic": false, "strikethrough": false, "underline": false, "code": false, "color": "default" }, "plain_text": "Milestones", "href": null } ],
     "description": [  { "type": "text", "text": { "content": "Previous Content", "link": null } } ],
     "properties": {
-      "Issue Link": { "id": "n%3EUR", "name": "GitHub Issue", "type": "url", "url": {}}
+      "Issue Link": { "id": "n%3EUR", "name": "GitHub Issue", "type": "url", "url": {}},
+      "Title": { "name": "Title", "type": "title", "title": {}},
+      "Headline": { "name": "Headline", "type": "title", "title": {}},
+      "Name": {"description": null, "id": "title","name": "Name", "title": {}, "type": "title"},
+      "Dates": {"date": {}, "description": null, "id": "Yy%7DK", "name": "Dates", "type": "date"},
+      "Start": {"date": {}, "description": null, "id": "Yy%7DK", "name": "Start", "type": "date"},
+      "End": {"date": {}, "description": null, "id": "Yy%7DK", "name": "End", "type": "date"},
+      "Owner": {"description": null, "id": "FQY%7D", "name": "Owner", "people": {}, "type": "people"},
+      "Priority": {
+        "description": null,
+        "id": "%3F%7BJE",
+        "name": "Priority",
+        "type": "select",
+        "select": {"options": [
+          {
+            "color": "default",
+            "description": null,
+            "id": "HTg?",
+            "name": "P???"
+          }, {
+            "color": "red",
+            "description": null,
+            "id": "hbdy",
+            "name": "P1"
+          }, {
+            "color": "yellow",
+            "description": null,
+            "id": "uS<G",
+            "name": "P2"
+          }, {
+            "color": "green",
+            "description": null,
+            "id": "dIvi",
+            "name": "P3"
+          }, {
+            "color": "blue",
+            "description": null,
+            "id": "yi;k",
+            "name": "P4"
+          }, {
+            "color": "gray",
+            "description": null,
+            "id": "\\z=]",
+            "name": "P5"
+          }
+        ]}
+      }
     },
     "archived": false,
     "in_trash": false,

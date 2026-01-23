@@ -111,7 +111,7 @@ class GitHubFixups:
             ):
                 # This is a milestone, or it at least has sub-issues. Remove it from the task
                 # project
-                logger.warn(
+                logger.warning(
                     f"Issue https://github.com/{orgrepo}/issues/{ghissue.number} is on both "
                     "milestone and task project. Removing from task project."
                 )
@@ -130,7 +130,7 @@ class GitHubFixups:
             elif ghissue.parent and ghissue.parent.number:
                 # this has a parent issue, which might be a milestone. Remove it from the milestone
                 # project
-                logger.warn(
+                logger.warning(
                     f"Issue https://github.com/{orgrepo}/issues/{ghissue.number} is on both the "
                     "Milestone and Tasks project. Removing from Milestones project."
                 )
@@ -157,7 +157,7 @@ class GitHubFixups:
             # This is an issue with a parent, but it is also on the milestones board. This can
             # happen when you create sub-issues of items on the milestone board, github defaults to
             # adding it to the project.
-            logger.warn(
+            logger.warning(
                 f"Issue https://github.com/{orgrepo}/issues/{ghissue.number} has a parent and is "
                 "on the Milestones board. Removing from milestones project."
             )

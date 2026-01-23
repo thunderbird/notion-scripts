@@ -1,0 +1,14 @@
+mutation {
+addComment(input: {subjectId: "I_egnojasdfnafqwfr", body: "Issues cannot be both on the Milestones and Tasks boards. This appears to be a Milestone issue, removing from Tasks board"}) {
+clientMutationId
+commentEdge {
+cursor
+}
+subject {
+id
+}
+timelineEdge {
+cursor
+}
+}
+}

@@ -1,0 +1,16 @@
+{
+  "data": {
+    "addComment": {
+      "clientMutationId": null,
+      "commentEdge": {
+        "cursor": "Y29tbWVudC0xMjM0" 
+      },
+      "subject": {
+        "id": "I_egnojasdfnafqwfr"
+      },
+      "timelineEdge": {
+        "cursor": "dGltZWxpbmUtMTIzNA=="
+      }
+    }
+  }
+}

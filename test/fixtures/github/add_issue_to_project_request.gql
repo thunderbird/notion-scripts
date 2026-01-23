@@ -1,13 +1,15 @@
 mutation {
 addProjectV2ItemById(input: {projectId: "PVT_kwHOAAlD3s4AxVDI", contentId: "I_kwDOMwGgpM6WLTqc"}) {
-clientMutationId
 item {
 id
-createdAt
-fullDatabaseId
-isArchived
-type
-updatedAt
+project {
+__typename
+... on ProjectV2 {
+id
+number
+title
+}
+}
 }
 }
 }
