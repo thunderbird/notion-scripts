@@ -187,6 +187,7 @@ repositories = [
     "thunderbird/thunderbird-notifications",
     "thunderbird/thunderbird-website",
     "thunderbird/thundernest-ansible",
+    "thunderbird/routing",
     #"thunderbird/assist",
     #"thunderbird/code-coverage",
     #"thunderbird/notion-scripts",
