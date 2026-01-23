@@ -22,6 +22,10 @@ on:
         type: boolean
         description: Do a dry run
 
+concurrency:
+  group: synchronize
+  cancel-in-progress: false
+
 
 jobs:
   setup-matrix:
