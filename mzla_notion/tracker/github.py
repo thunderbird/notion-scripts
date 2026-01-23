@@ -214,6 +214,7 @@ class GitHub(IssueTracker, GitHubFixups):
                 # TODO run through this with a cursor
                 subissues = nodes.sub_issues(first=100)
                 subissues.nodes.number()
+                subissues.nodes.repository.name_with_owner()
 
             search.page_info.__fields__(has_next_page=True)
             search.page_info.__fields__(end_cursor=True)
@@ -456,7 +457,8 @@ class GitHub(IssueTracker, GitHubFixups):
 
         if sub_issues:
             issue.sub_issues = [
-                IssueRef(id=str(subissue.number), repo=repo, parents=[issue]) for subissue in ghissue.sub_issues.nodes
+                IssueRef(id=str(subissue.number), repo=subissue.repository.name_with_owner, parents=[issue])
+                for subissue in ghissue.sub_issues.nodes
             ]
 
         if gh_project_item and getattr(gh_project_item, "sprint", None):
@@ -504,6 +506,7 @@ class GitHub(IssueTracker, GitHubFixups):
                     # TODO run through this with a cursor
                     subissues = issue.sub_issues(first=100)
                     subissues.nodes.number()
+                    subissues.nodes.repository.name_with_owner()
 
             try:
                 data = await self.endpoint(op)
