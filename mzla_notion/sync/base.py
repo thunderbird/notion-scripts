@@ -350,7 +350,7 @@ class BaseSync:
             final_end = None
 
         if final_start and final_end and ensure_datetime(final_start) > ensure_datetime(final_end):
-            logger.warn(f"Issue {tracker_issue.url} ends before it starts ({final_start} – {final_end})")
+            logger.warning(f"Issue {tracker_issue.url} ends before it starts ({final_start} – {final_end})")
             final_end = final_start
 
         self._set_if_date_prop(notion_data, "notion_tasks_dates", final_start, final_end)

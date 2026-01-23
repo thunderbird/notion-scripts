@@ -168,11 +168,12 @@ class GitHubProjectTest(BaseTestCase):
             self.assertEqual(issues, {"3": issue3})
 
     async def test_github_get_issue_both_projects(self):
-        with self.assertRaisesRegex(
-            Exception, r"Issue https://github.com/kewisch/test/issues/4 has both tasks and milestones project"
-        ):
-            iterator = self.github.get_issues_by_number([IssueRef(repo="kewisch/test", id="4")])
-            [issue async for issue in iterator]
+        iterator = self.github.get_issues_by_number([IssueRef(repo="kewisch/test", id="4")])
+        issues = [issue async for issue in iterator]
+
+        # This issue was in both roadmaps. The test is also validated by the commenting request
+        # being made, and a delete item from project request
+        self.assertEqual(len(issues[0].gql.project_items), 1)
 
     async def test_github_update_no_change(self):
         self.github.user_map = await GitHubUserMap.create(
@@ -322,50 +323,49 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(len(self.github_handler.calls["get_issues_1_and_2"]), 1)
         self.assertEqual(len(self.github_handler.calls["get_label_bug"]), 1)
 
-    @freeze_time("2025-02-24 12:13:14")
     async def test_get_sprints(self):
-        res = await self.github.get_sprints()
-
-        self.assertCountEqual(
-            res,
-            [
-                Sprint(
-                    id="08c4a1b9",
-                    name="Sprint 5",
-                    status="Future",
-                    start_date=datetime.date(2025, 3, 2),
-                    end_date=datetime.date(2025, 3, 8),
-                ),
-                Sprint(
-                    id="8260fc57",
-                    name="Sprint 4",
-                    status="Current",
-                    start_date=datetime.date(2025, 2, 23),
-                    end_date=datetime.date(2025, 3, 1),
-                ),
-                Sprint(
-                    id="ff6e72b7",
-                    name="Sprint 3",
-                    status="Past",
-                    start_date=datetime.date(2025, 2, 16),
-                    end_date=datetime.date(2025, 2, 22),
-                ),
-                Sprint(
-                    id="adaae9c2",
-                    name="Sprint 2",
-                    status="Past",
-                    start_date=datetime.date(2025, 2, 9),
-                    end_date=datetime.date(2025, 2, 15),
-                ),
-                Sprint(
-                    id="08dfe996",
-                    name="Sprint 1",
-                    status="Past",
-                    start_date=datetime.date(2025, 2, 2),
-                    end_date=datetime.date(2025, 2, 8),
-                ),
-            ],
-        )
+        with freeze_time("2025-02-24 12:13:14"):
+            res = await self.github.get_sprints()
+            self.assertCountEqual(
+                res,
+                [
+                    Sprint(
+                        id="08c4a1b9",
+                        name="Sprint 5",
+                        status="Future",
+                        start_date=datetime.date(2025, 3, 2),
+                        end_date=datetime.date(2025, 3, 8),
+                    ),
+                    Sprint(
+                        id="8260fc57",
+                        name="Sprint 4",
+                        status="Current",
+                        start_date=datetime.date(2025, 2, 23),
+                        end_date=datetime.date(2025, 3, 1),
+                    ),
+                    Sprint(
+                        id="ff6e72b7",
+                        name="Sprint 3",
+                        status="Past",
+                        start_date=datetime.date(2025, 2, 16),
+                        end_date=datetime.date(2025, 2, 22),
+                    ),
+                    Sprint(
+                        id="adaae9c2",
+                        name="Sprint 2",
+                        status="Past",
+                        start_date=datetime.date(2025, 2, 9),
+                        end_date=datetime.date(2025, 2, 15),
+                    ),
+                    Sprint(
+                        id="08dfe996",
+                        name="Sprint 1",
+                        status="Past",
+                        start_date=datetime.date(2025, 2, 2),
+                        end_date=datetime.date(2025, 2, 8),
+                    ),
+                ],
+            )
 
     async def test_collect_additional_tasks(self):
         collected_tasks = {"kewisch/test": {"4": None, "6": {"id": "mock_block"}}}

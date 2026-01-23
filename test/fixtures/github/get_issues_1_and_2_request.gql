@@ -157,6 +157,9 @@ duration
 subIssues(first: 100) {
 nodes {
 number
+repository {
+nameWithOwner
+}
 }
 }
 }
@@ -317,6 +320,9 @@ duration
 subIssues(first: 100) {
 nodes {
 number
+repository {
+nameWithOwner
+}
 }
 }
 }

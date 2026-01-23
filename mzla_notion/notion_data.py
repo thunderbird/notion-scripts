@@ -278,7 +278,7 @@ class NotionDatabase:
         changes = False
         for prop_name, prop in self.properties.items():
             if prop._init:
-                res = prop._init(prop, current_props.get(prop_name))
+                res = prop._init(prop, current_props.get(prop_name) or {})
                 if inspect.isawaitable(res):
                     await res
 
@@ -300,7 +300,7 @@ class NotionDatabase:
             elif current_props[prop_name]["type"] != prop_schema["type"]:
                 changes = True
                 if not update or self.dry:
-                    logger.warn(
+                    logger.warning(
                         f"Property {prop_name} has mismatching type {current_props[prop_name]['type']} != {prop_schema['type']}"
                     )
                 else:
@@ -312,7 +312,7 @@ class NotionDatabase:
                 if current_options != desired_options:
                     # changes = True
                     if not update or self.dry:
-                        logger.warn(
+                        logger.warning(
                             f"Property {prop_name} has mismatching options {current_options} != {desired_options}"
                         )
                     else:

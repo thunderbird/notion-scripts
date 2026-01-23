@@ -182,7 +182,6 @@ class ProjectSyncTest(BaseTestCase):
         self.project_sync = ProjectSync(**{**sync_kwargs_defaults, **kwargs})
         await self.project_sync.synchronize()
 
-    @freeze_time("2023-01-01 12:13:14")
     async def test_update_sync_stamp(self):
         self.notion_handler.milestones_handler.pages = []
         tracker = IssueTestTracker(dry=True)
@@ -192,25 +191,30 @@ class ProjectSyncTest(BaseTestCase):
         self.expect_typical_db_update()
         self.expect_total_calls()
 
-        # Not a dry run
-        self.expect_reset()
-        await self.synchronize_project(tracker, dry=False)
-        self.expect_typical_db_update()
+        with freeze_time("2023-01-01 12:13:14", ignore=["monotonic", "perf_counter"]):
+            # Not a dry run
+            self.expect_reset()
+            import asyncio
 
-        last_update = {
-            "description": [
-                {
-                    "type": "text",
-                    "text": {"content": "Last Issue Tracker Sync (test): 2023-01-01T12:13:14Z\n\nPrevious Content"},
-                }
-            ]
-        }
-        self.assertEqual(json.loads(self.respx.routes["db_update"].calls[0].request.content), last_update)
+            await asyncio.wait_for(self.synchronize_project(tracker, dry=False), timeout=2)
+            self.expect_typical_db_update()
 
-        last_update["description"][0]["text"]["content"] = "Last Issue Tracker Sync (test): 2023-01-01T12:13:14Z\n\n"
-        self.assertEqual(json.loads(self.respx.routes["db_update"].calls[1].request.content), last_update)
+            last_update = {
+                "description": [
+                    {
+                        "type": "text",
+                        "text": {"content": "Last Issue Tracker Sync (test): 2023-01-01T12:13:14Z\n\nPrevious Content"},
+                    }
+                ]
+            }
+            self.assertEqual(json.loads(self.respx.routes["db_update"].calls[0].request.content), last_update)
 
-        self.expect_total_calls()
+            last_update["description"][0]["text"]["content"] = (
+                "Last Issue Tracker Sync (test): 2023-01-01T12:13:14Z\n\n"
+            )
+            self.assertEqual(json.loads(self.respx.routes["db_update"].calls[1].request.content), last_update)
+
+            self.expect_total_calls()
 
     async def test_milestone_sync_single_no_children_no_updates(self):
         # Only milestone issue

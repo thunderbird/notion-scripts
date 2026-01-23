@@ -1,0 +1,6 @@
+mutation {
+deleteProjectV2Item(input: {projectId: "PVT_kwHOAAlD3s4AxVFW", itemId: "PVTI_lAHOAAlD3s4AxVFWzgW66Rg"}) {
+clientMutationId
+deletedItemId
+}
+}

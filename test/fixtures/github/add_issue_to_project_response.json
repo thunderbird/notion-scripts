@@ -8,7 +8,12 @@
             "id" : "PVTI_lAHOAAlD3s4AxVDIzgXcyAk",
             "isArchived" : false,
             "type" : "ISSUE",
-            "updatedAt" : "2025-07-07T10:02:01Z"
+            "updatedAt" : "2025-07-07T10:02:01Z",
+            "project": {
+              "id": "PVT_kwHOAAlD3s4AxVDI",
+              "number": 1,
+              "title": "Test Roadmap - Readonly"
+            }
          }
       }
    }
