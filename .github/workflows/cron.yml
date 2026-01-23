@@ -4,9 +4,12 @@ name: Scheduler
 on:
   schedule:
     - cron: '*/5 * * * *'
+  push:
+    branches:
+      - main
 
 concurrency:
-  group: synchronize
+  group: cron
   cancel-in-progress: false
 
 
