@@ -8,7 +8,7 @@ from copy import deepcopy
 from .base import BaseSync
 
 from ..tracker.common import IssueRef
-from ..util import diff_dataclasses, ensure_datetime
+from ..util import diff_dataclasses, ensure_datetime, ensure_date
 
 from ..notion_data import CustomNotionToMarkdown
 
@@ -86,8 +86,6 @@ class ProjectSync(BaseSync):
         # Dates
         utc_min = datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
         if tracker_issue.start_date or tracker_issue.end_date:
-            # TODO we should probably only use datetime for comparison, and then a normal date.
-            # Some get added as "2025-04-01T00:00:00+00:00"
             final_start = max(
                 ensure_datetime(tracker_issue.start_date) or utc_min, ensure_datetime(tracker_issue.created_date)
             )
@@ -96,7 +94,7 @@ class ProjectSync(BaseSync):
             final_start = None
             final_end = None
 
-        self._set_if_date_prop(notion_data, "notion_milestones_dates", final_start, final_end)
+        self._set_if_date_prop(notion_data, "notion_milestones_dates", ensure_date(final_start), ensure_date(final_end))
 
         # TODO labels
         # TODO body
