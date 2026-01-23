@@ -946,7 +946,7 @@ class GitHubProjectV2:
 
         # Check if the issue needs to be added to the project
         if not item and add:
-            item = self.add_issue_to_project(ghissue)
+            item = await self.add_issue_to_project(ghissue)
 
         if not item:
             return False
