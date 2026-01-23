@@ -6,7 +6,7 @@ on:
     - cron: '*/5 * * * *'
 
 concurrency:
-  group: cron
+  group: synchronize
   cancel-in-progress: false
 
 
