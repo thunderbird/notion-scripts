@@ -254,3 +254,14 @@ def ensure_datetime(value):
     if isinstance(value, datetime.date):
         return datetime.datetime(value.year, value.month, value.day, tzinfo=datetime.timezone.utc)
     raise TypeError(f"Expected date or datetime, got {type(value)}")
+
+
+def ensure_date(value):
+    """Ensure the passed value is a date."""
+    if value is None:
+        return None
+    if isinstance(value, datetime.date):
+        return value
+    if isinstance(value, datetime.datetime):
+        return value.date()
+    raise TypeError(f"Expected date or datetime, got {type(value)}")
