@@ -356,7 +356,7 @@ requires-dist = [
     { name = "h2", specifier = ">=4.2.0" },
     { name = "md2notionpage", specifier = "==0.1.5" },
     { name = "notion-client", specifier = ">=2.2.1" },
-    { name = "notion-to-md-py", specifier = "==0.1.0" },
+    { name = "notion-to-md-py", specifier = "==0.1.4" },
     { name = "python-dateutil", specifier = ">=2.9.0.post0" },
     { name = "requests", specifier = ">=2.32.3" },
     { name = "sgqlc", git = "https://github.com/kewisch/sgqlc.git?rev=9ae3726b6f526f948b49abd17447f939e4ac5125" },
@@ -387,16 +387,16 @@ wheels = [
 
 [[package]]
 name = "notion-to-md-py"
-version = "0.1.0"
+version = "0.1.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
     { name = "notion-client" },
     { name = "pytablewriter" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3c/27/5b2d4babc98bc6242cba4b85586f863bc89f0591bf1507119f56b413c691/notion_to_md_py-0.1.0.tar.gz", hash = "sha256:cbd4462d6294fad0166c7d4e25f1c2fadb8d6e01d7e27d6a0f3fb93425a80f83", size = 11401, upload-time = "2025-01-14T20:31:23.404Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cd/fc/b5c89f669a5216e3e7a19806f06327eac6f7340410a8388bc2b861b2d47d/notion_to_md_py-0.1.4.tar.gz", hash = "sha256:11b53cf1d903a48f66bdc6b4e3a0941d61fc4aae1eccffab60f0f1eb684130d7", size = 11252, upload-time = "2025-11-14T13:47:10.559Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1a/f7/b12bf9138fdf5f5a1931ec72fadc9d5084eb1312a154a762d2f3ed2a7c71/notion_to_md_py-0.1.0-py3-none-any.whl", hash = "sha256:67340959ef4f6eae3bb960c7b98a79b202b1150b6491664b20e7d499baeb556a", size = 11975, upload-time = "2025-01-14T20:31:22.265Z" },
+    { url = "https://files.pythonhosted.org/packages/a3/eb/a8f26a12ced1949288a8946c259243a8d1721d31414b26a101aba1fc91ea/notion_to_md_py-0.1.4-py3-none-any.whl", hash = "sha256:3db73e55f04f02845273816de33ea5de7c8eb7e72136372ff75075ea0b552462", size = 12007, upload-time = "2025-11-14T13:47:09.768Z" },
 ]
 
 [[package]]
