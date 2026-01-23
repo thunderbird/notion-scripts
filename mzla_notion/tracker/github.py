@@ -919,7 +919,7 @@ class GitHubProjectV2:
             op = Operation(schema.mutation_type)
             payload = op.add_project_v2_item_by_id(input={"project_id": project.id, "content_id": ghissue.id})
 
-            project_item = payload.item
+            project_item = payload.item()
             project_item.id()
             project_selector = project_item.project.__as__(schema.ProjectV2)
             project_selector.id()
