@@ -241,7 +241,7 @@ class BaseSync:
 
             # Issue field is either a URL or files field
             if isinstance(url, list):
-                url = url[0]["external"]["url"]
+                url = url[0]["external"]["url"] if len(url) else ""
 
             ref = self.tracker.parse_issueref(url)
 
