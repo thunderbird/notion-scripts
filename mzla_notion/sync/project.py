@@ -8,7 +8,7 @@ from copy import deepcopy
 from .base import BaseSync
 
 from ..tracker.common import IssueRef
-from ..util import diff_dataclasses, ensure_datetime, ensure_date
+from ..util import diff_dataclasses, ensure_datetime, ensure_date, from_isoformat
 
 from ..notion_data import CustomNotionToMarkdown
 
@@ -146,8 +146,8 @@ class ProjectSync(BaseSync):
             priority=(self._get_prop(page, "notion_milestones_priority") or {}).get("name"),
             assignees=community_assignees.union(milestone_assignees),
             notion_url=page.get("url", ""),
-            start_date=datetime.date.fromisoformat(start_date_str) if start_date_str else None,
-            end_date=datetime.date.fromisoformat(end_date_str) if end_date_str else None,
+            start_date=ensure_date(from_isoformat(start_date_str)) if start_date_str else None,
+            end_date=ensure_date(from_isoformat(end_date_str)) if end_date_str else None,
         )
 
         if self.milestones_issue_type:

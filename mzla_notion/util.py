@@ -245,6 +245,14 @@ def strip_orgname(repos):
     return stripped if len(stripped) == len(repos) else repos
 
 
+def from_isoformat(value):
+    """Reads the string from iso format, either as a date or datetime."""
+    try:
+        return datetime.date.fromisoformat(value)
+    except ValueError:
+        return datetime.datetime.fromisoformat(value)
+
+
 def ensure_datetime(value):
     """Return a datetime by filling utc midnight for dates."""
     if value is None:
