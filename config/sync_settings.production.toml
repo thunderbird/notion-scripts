@@ -178,6 +178,7 @@ repositories = [
     "thunderbird/cloudops",
     "thunderbird/mailstrom",
     "thunderbird/observability",
+    "thunderbird/pro",
     "thunderbird/pulumi",
     "thunderbird/send-suite",
     "thunderbird/services-ui",
