@@ -245,8 +245,22 @@ expected_columns = 4
 stage_column = 3
 prod_column = 4
 
-[sync.services_deployments.blocks]
-"thunderbird/tbpro-add-on" = "2332df5d45ae8073b22ed40032f0f440"
-"thunderbird/appointment" = "2332df5d45ae80f98483cdd99603a862"
-"thunderbird/thunderbird-accounts" = "27e2df5d45ae800c82f6e87f4527ce1e"
-"thunderbird/mailstrom" = "2332df5d45ae802787cde66564c51d88"
+[[sync.services_deployments.blocks]]
+repo = "thunderbird/tbpro-add-on"
+block_id = "2332df5d45ae8073b22ed40032f0f440"
+stage_env = "send-stage"
+prod_env = "send-prod"
+
+[[sync.services_deployments.blocks]]
+repo = "thunderbird/appointment"
+block_id = "2332df5d45ae80f98483cdd99603a862"
+
+[[sync.services_deployments.blocks]]
+repo = "thunderbird/thunderbird-accounts"
+block_id = "27e2df5d45ae800c82f6e87f4527ce1e"
+
+[[sync.services_deployments.blocks]]
+repo = "thunderbird/mailstrom"
+block_id = "2332df5d45ae802787cde66564c51d88"
+stage_env = "staging"
+prod_env = ""

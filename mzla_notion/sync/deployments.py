@@ -58,16 +58,24 @@ class DeploymentsSync:
             logger.error("No blocks to synchronize")
             return
 
-        for orgrepo in self.blocks.keys():
-            org, repo = orgrepo.split("/")
+        for blockinfo in self.blocks:
+            org, repo = blockinfo["repo"].split("/")
             alias = f"deployment_{org}_{repo.replace('-', '_')}"
+
+            environments = [blockinfo.get("stage_env", "staging"), blockinfo.get("prod_env", "production")]
 
             repository = op.repository(owner=org, name=repo, __alias__=alias)
 
-            deploy = repository.deployments(first=50, order_by={"field": "CREATED_AT", "direction": "DESC"})
+            deploy = repository.deployments(
+                first=50,
+                order_by={"field": "CREATED_AT", "direction": "DESC"},
+                environments=[env for env in environments if env is not None],
+            )
 
             deploy.nodes.environment()
             deploy.nodes.state()
+            deploy.nodes.commit_oid()
+            deploy.nodes.created_at()
             status = deploy.nodes.latest_status()
             status.state()
             status.created_at()
@@ -76,8 +84,12 @@ class DeploymentsSync:
         datares = op + data
 
         async with asyncio.TaskGroup() as tg:
-            for orgrepo, block_id in self.blocks.items():
-                org, repo = orgrepo.split("/")
+            for blockinfo in self.blocks:
+                org, repo = blockinfo["repo"].split("/")
+                block_id = blockinfo["block_id"]
+                stage_env_name = blockinfo.get("stage_env", "staging")
+                prod_env_name = blockinfo.get("prod_env", "production")
+
                 alias = f"deployment_{org}_{repo.replace('-', '_')}"
                 res = getattr(datares, alias)
 
@@ -86,23 +98,28 @@ class DeploymentsSync:
 
                 for node in res.deployments.nodes:
                     env = node.environment
+                    if node.state != "ACTIVE":
+                        continue
+
                     if node.latest_status.state != "SUCCESS":
                         continue
 
-                    timestamp = node.latest_status.created_at or node.created_at
+                    timestamp = node.created_at
                     formatted_timestamp = timestamp.strftime(self.DATE_FORMAT) if timestamp else ""
 
                     # Not a typo, catches "staging" as well
-                    if "stag" in env and stage_date == "":
+                    if env == stage_env_name and stage_date == "":
                         stage_date = formatted_timestamp
+                        logger.debug(f"Using stage deployment for {org}/{repo}: {str(node)}")
 
-                    elif "prod" in env and prod_date == "":
+                    elif env == prod_env_name and prod_date == "":
                         prod_date = formatted_timestamp
+                        logger.debug(f"Using prod deployment for {org}/{repo}: {str(node)}")
 
-                    if stage_date and prod_date:
+                    if (stage_date or not stage_env_name) and (prod_date or not prod_env_name):
                         break
 
-                tg.create_task(self._update_block(orgrepo, block_id, stage_date, prod_date))
+                tg.create_task(self._update_block(blockinfo["repo"], block_id, stage_date, prod_date))
 
     async def _update_block(self, orgrepo, block_id, stage_date, prod_date):
         """Updates a block with the given stage and prod date."""
