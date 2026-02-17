@@ -51,7 +51,7 @@ class DeploymentsSync:
         return [{"type": "text", "text": {"content": text}}]
 
     async def synchronize(self):
-        """Synchronize the configured repo deployments to the notion blocks/page."""
+        """Synchronize the configured repo deployment dates to the notion blocks/page."""
         op = Operation(schema.Query)
 
         if not len(self.blocks):
@@ -61,24 +61,32 @@ class DeploymentsSync:
         for blockinfo in self.blocks:
             org, repo = blockinfo["repo"].split("/")
             alias = f"deployment_{org}_{repo.replace('-', '_')}"
-
-            environments = [blockinfo.get("stage_env", "staging"), blockinfo.get("prod_env", "production")]
+            method = blockinfo.get("method", "releases")
 
             repository = op.repository(owner=org, name=repo, __alias__=alias)
 
-            deploy = repository.deployments(
-                first=50,
-                order_by={"field": "CREATED_AT", "direction": "DESC"},
-                environments=[env for env in environments if env is not None],
-            )
+            if method == "deployments":
+                environments = [blockinfo.get("stage_env", "staging"), blockinfo.get("prod_env", "production")]
+                deploy = repository.deployments(
+                    first=50,
+                    order_by={"field": "CREATED_AT", "direction": "DESC"},
+                    environments=[env for env in environments if env is not None],
+                )
+                deploy.nodes.environment()
+                deploy.nodes.state()
+                deploy.nodes.commit_oid()
+                deploy.nodes.created_at()
+                status = deploy.nodes.latest_status()
+                status.state()
+                status.created_at()
+            elif method == "releases":
+                releases = repository.releases(first=100, order_by={"field": "CREATED_AT", "direction": "DESC"})
 
-            deploy.nodes.environment()
-            deploy.nodes.state()
-            deploy.nodes.commit_oid()
-            deploy.nodes.created_at()
-            status = deploy.nodes.latest_status()
-            status.state()
-            status.created_at()
+                releases.nodes.is_draft()
+                releases.nodes.is_latest()
+                releases.nodes.created_at()
+                releases.nodes.published_at()
+                releases.nodes.name()
 
         data = await self.endpoint(op)
         datares = op + data
@@ -86,9 +94,7 @@ class DeploymentsSync:
         async with asyncio.TaskGroup() as tg:
             for blockinfo in self.blocks:
                 org, repo = blockinfo["repo"].split("/")
-                block_id = blockinfo["block_id"]
-                stage_env_name = blockinfo.get("stage_env", "staging")
-                prod_env_name = blockinfo.get("prod_env", "production")
+                method = blockinfo.get("method", "releases")
 
                 alias = f"deployment_{org}_{repo.replace('-', '_')}"
                 res = getattr(datares, alias)
@@ -96,30 +102,68 @@ class DeploymentsSync:
                 stage_date = ""
                 prod_date = ""
 
-                for node in res.deployments.nodes:
-                    env = node.environment
-                    if node.state != "ACTIVE":
+                if method == "deployments":
+                    stage_date, prod_date = self.get_deployment_dates(blockinfo, res.deployments.nodes)
+                elif method == "releases":
+                    if not getattr(res, "releases", None):
+                        logger.warning(f"Repository {blockinfo['repo']} has no releases")
                         continue
+                    stage_date, prod_date = self.get_releases_dates(blockinfo, res.releases.nodes)
+                else:
+                    raise Exception("Unknown sync method " + method)
 
-                    if node.latest_status.state != "SUCCESS":
-                        continue
+                tg.create_task(self._update_block(blockinfo["repo"], blockinfo["block_id"], stage_date, prod_date))
 
-                    timestamp = node.created_at
-                    formatted_timestamp = timestamp.strftime(self.DATE_FORMAT) if timestamp else ""
+    def get_deployments_dates(self, blockinfo, deployments):
+        """Gets the stage/prod dates via deployments."""
+        stage_env_name = blockinfo.get("stage_env", "staging")
+        prod_env_name = blockinfo.get("prod_env", "production")
 
-                    # Not a typo, catches "staging" as well
-                    if env == stage_env_name and stage_date == "":
-                        stage_date = formatted_timestamp
-                        logger.debug(f"Using stage deployment for {org}/{repo}: {str(node)}")
+        stage_date = ""
+        prod_date = ""
 
-                    elif env == prod_env_name and prod_date == "":
-                        prod_date = formatted_timestamp
-                        logger.debug(f"Using prod deployment for {org}/{repo}: {str(node)}")
+        for node in deployments:
+            env = node.environment
+            if node.state != "ACTIVE":
+                continue
 
-                    if (stage_date or not stage_env_name) and (prod_date or not prod_env_name):
-                        break
+            if node.latest_status.state != "SUCCESS":
+                continue
 
-                tg.create_task(self._update_block(blockinfo["repo"], block_id, stage_date, prod_date))
+            timestamp = node.created_at.strftime(self.DATE_FORMAT) if node.created_at else ""
+
+            if env == stage_env_name and stage_date == "":
+                stage_date = timestamp
+                logger.debug(f"Using stage deployment for {blockinfo['repo']}: {str(node)}")
+
+            elif env == prod_env_name and prod_date == "":
+                prod_date = timestamp
+                logger.debug(f"Using prod deployment for {blockinfo['repo']}: {str(node)}")
+
+            if (stage_date or not stage_env_name) and (prod_date or not prod_env_name):
+                break
+
+        return stage_date, prod_date
+
+    def get_releases_dates(self, blockinfo, releases):
+        """Gets the stage/prod dates via releases."""
+        stage_date = ""
+        prod_date = ""
+
+        for node in releases:
+            if not stage_date and node.is_draft:
+                logger.debug(f"Using stage release for {blockinfo['repo']}: {str(node)}")
+                stage_date = node.created_at.strftime(self.DATE_FORMAT) if node.created_at else ""
+            elif not prod_date and node.is_latest:
+                logger.debug(f"Using prod release for {blockinfo['repo']}: {str(node)}")
+                prod_date = node.published_at.strftime(self.DATE_FORMAT) if node.published_at else ""
+            else:
+                logger.debug(f"This release is not it for {blockinfo['repo']}: {str(node)}")
+
+            if stage_date and prod_date:
+                break
+
+        return stage_date, prod_date
 
     async def _update_block(self, orgrepo, block_id, stage_date, prod_date):
         """Updates a block with the given stage and prod date."""
