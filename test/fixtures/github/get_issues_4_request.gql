@@ -12,6 +12,7 @@ url
 id
 body
 parent {
+id
 number
 repository {
 nameWithOwner

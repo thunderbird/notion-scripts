@@ -12,6 +12,7 @@ url
 id
 body
 parent {
+id
 number
 repository {
 nameWithOwner
@@ -175,6 +176,7 @@ url
 id
 body
 parent {
+id
 number
 repository {
 nameWithOwner
