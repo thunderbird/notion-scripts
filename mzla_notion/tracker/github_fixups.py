@@ -77,7 +77,7 @@ class GitHubFixups:
 
                 tg.create_task(update_and_log(tasks_project, ghissue, "In Review"))
 
-    async def _fixup_issue(self, ghissue, sub_issues=False):
+    def _get_project_items(self, ghissue):
         orgrepo = ghissue.repository.name_with_owner
 
         tasks_project_item = (
@@ -96,16 +96,20 @@ class GitHubFixups:
             else None
         )
 
-        await self._fixup_issue_both_projects(tasks_project_item, milestones_project_item, ghissue, sub_issues)
-        await self._fixup_issue_milestone_with_parent(milestones_project_item, ghissue)
+        return tasks_project_item, milestones_project_item
 
-    async def _fixup_issue_both_projects(self, tasks_project_item, milestones_project_item, ghissue, sub_issues):
+    async def _fixup_issue(self, ghissue, sub_issues=False):
+        await self._fixup_issue_both_projects(ghissue, sub_issues)
+        await self._fixup_issue_milestone_with_parent(ghissue)
+
+    async def _fixup_issue_both_projects(self, ghissue, sub_issues):
         """Issues should not be on both boards. Use some indicators to make a best effort call where it belongs."""
+        tasks_project_item, milestones_project_item = self._get_project_items(ghissue)
         issue_type = getnestedattr(lambda: ghissue.issue_type.name, None)
         orgrepo = ghissue.repository.name_with_owner
 
-        # Issues cannot be on both tasks and milestone projects
         if tasks_project_item and milestones_project_item:
+            # Issues cannot be on both tasks and milestone projects
             if not ghissue.parent and (
                 issue_type == self.milestones_issue_type or (sub_issues and ghissue.sub_issues.nodes)
             ):
@@ -149,9 +153,36 @@ class GitHubFixups:
             else:
                 raise Exception(f"Issue {ghissue.url} has both tasks and milestones project")
 
-    async def _fixup_issue_milestone_with_parent(self, milestones_project_item, ghissue):
+    async def _fixup_issue_milestone_with_parent(self, ghissue):
         """Issues on the Milestone project shouldn't have parents. Avoids sub-issues landing on the roadmap."""
+        _, milestones_project_item = self._get_project_items(ghissue)
         orgrepo = ghissue.repository.name_with_owner
+
+        issue_type = getnestedattr(lambda: ghissue.issue_type.name, None)
+
+        if issue_type and issue_type == self.milestones_issue_type and ghissue.parent and ghissue.parent.number:
+            # The issue is flagged as a milestone issue, but has a parent. They should not have
+            # parents, but they can have epics in Notion.
+            logger.warning(
+                f"Issue https://github.com/{orgrepo}/issues/{ghissue.number} has a parent and the Milestone issue type,"
+                " removing parent."
+            )
+            parent_id = ghissue.parent.id
+            ghissue.parent = None
+
+            async with asyncio.TaskGroup() as tg:
+                if not self.dry:
+                    tg.create_task(
+                        self._comment_on_issue(
+                            ghissue,
+                            "Milestone issues cannot have a parent. Please set the "
+                            "Epic in Notion if this is part of a larger effort.",
+                        )
+                    )
+
+                    op = Operation(schema.mutation_type)
+                    op.remove_sub_issue(input={"issue_id": parent_id, "sub_issue_id": ghissue.id})
+                    tg.create_task(self.endpoint(op))
 
         if milestones_project_item and ghissue.parent and ghissue.parent.number:
             # This is an issue with a parent, but it is also on the milestones board. This can
@@ -159,16 +190,17 @@ class GitHubFixups:
             # adding it to the project.
             logger.warning(
                 f"Issue https://github.com/{orgrepo}/issues/{ghissue.number} has a parent and is "
-                "on the Milestones board. Removing from milestones project."
+                "on the Milestones board. Removing from milestones board."
             )
 
             async with asyncio.TaskGroup() as tg:
-                tg.create_task(
-                    self._comment_on_issue(
-                        ghissue,
-                        "Issues with a parent cannot be on the Milestones board, removing. "
-                        "Either move your sub-issues up to the parent issue, or turn this into "
-                        "an independent Milestone issue that has sub-issues.",
+                if not self.dry:
+                    tg.create_task(
+                        self._comment_on_issue(
+                            ghissue,
+                            "Issues with a parent cannot be on the Milestones board, removing. "
+                            "Either move your sub-issues up to the parent issue, or turn this into "
+                            "an independent Milestone issue that has sub-issues.",
+                        )
                     )
-                )
-                tg.create_task(self.github_milestones_projects[orgrepo].remove_project_from_issue(ghissue))
+                    tg.create_task(self.github_milestones_projects[orgrepo].remove_project_from_issue(ghissue))

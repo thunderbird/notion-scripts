@@ -25,6 +25,7 @@
               "issueType": null,
               "body": "test",
               "parent": {
+                "id": "I_kwDOMwGgpM6oTotN",
                 "number": 2,
                 "repository": {
                   "nameWithOwner": "kewisch/test"
@@ -114,6 +115,7 @@
               "issueType": null,
               "body": "sup",
               "parent": {
+                "id": "I_kwDOMwGgpM6oTotN",
                 "number": 2,
                 "repository": {
                   "nameWithOwner": "kewisch/test"
@@ -268,6 +270,7 @@
               "issueType": null,
               "body": "hello",
               "parent": {
+                "id": "I_opRGaWgpT9aTbarN",
                 "number": 31,
                 "repository": {
                   "nameWithOwner": "kewisch/test2"
