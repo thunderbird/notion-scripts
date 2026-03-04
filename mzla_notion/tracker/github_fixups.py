@@ -24,10 +24,22 @@ class GitHubFixups:
             if not ghissues or pull_request.state != "OPEN":
                 continue
 
+            change_issues = []
+            for ghissue in ghissues:
+                # Skip Milestone issues with a pull request attached
+                issue_type = getnestedattr(lambda: ghissue.issue_type.name, None)
+                if issue_type and issue_type == self.milestones_issue_type:
+                    continue
+
+                change_issues.append(ghissue)
+
+            if not change_issues:
+                continue
+
             # We could do this one level up, but that might mean a lot of parallel requests
             async with asyncio.TaskGroup() as tg:
-                tg.create_task(self._fixup_pull_request_assign_author(pull_request, ghissues))
-                tg.create_task(self._fixup_add_to_tasks_project(pull_request, ghissues))
+                tg.create_task(self._fixup_pull_request_assign_author(pull_request, change_issues))
+                tg.create_task(self._fixup_add_to_tasks_project(pull_request, change_issues))
 
     async def _fixup_pull_request_assign_author(self, pull_request, ghissues):
         """Sets the author of the pull request as an assignee of the linked issue."""
