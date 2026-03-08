@@ -179,15 +179,27 @@ class AsyncRetryingClient(httpx.AsyncClient):
             return True
 
         if response and response.status_code // 100 == 5:
-            logger.info(f"Sleeping {self.RETRY_TIMEOUT} due to {response.status_code} response")
+            logger.info(f"Sleeping {self.RETRY_TIMEOUT} seconds due to {response.status_code} response")
             await rate_limit_gate.engage(self.RETRY_TIMEOUT)
             return True
 
         if exception and isinstance(exception, sgqlc.operation.GraphQLErrors):
             for error in exception.errors:
                 if (error["status"] or 0) // 100 == 5:
-                    logger.info(f"Sleeping {self.RETRY_TIMEOUT} due to {error['status']} response")
+                    logger.info(f"Sleeping {self.RETRY_TIMEOUT} seconds due to {error['status']} response")
                     await rate_limit_gate.engage(self.RETRY_TIMEOUT)
+                    return True
+                if "API rate limit already exceeded" in error["message"]:
+                    now = int(time.time())
+                    timestamp = int(response.headers.get("x-ratelimit-reset", 0))
+                    if timestamp:
+                        seconds = now - timestamp
+                    else:
+                        # GitHub would like a timeout of at least 60 seconds
+                        seconds = 60
+
+                    logger.info(f"Sleeping {seconds} seconds due to GraphQL rate limit")
+                    await rate_limit_gate.engage(seconds)
                     return True
 
         if exception and not isinstance(exception, httpx.HTTPStatusError):
