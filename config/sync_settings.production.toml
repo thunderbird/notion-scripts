@@ -61,7 +61,7 @@ github_tasks_project_id = "PVT_kwDOAOe9Jc4A1aav"
 github_milestones_project_id = "PVT_kwDOAOe9Jc4A1aX6"
 
 [sync.support]
-method = "github_labels"
+method = "github_project"
 
 notion_milestones_id = "2332df5d45ae80909305fe2278a14629"
 notion_tasks_id = "2332df5d45ae8072aa7aededaf161252"
@@ -69,12 +69,17 @@ notion_tasks_id = "2332df5d45ae8072aa7aededaf161252"
 notion_team_id = "2332df5d45ae80bc8839d089f5c7f608"
 notion_associated_team = "2332df5d45ae809696b3f0e6e6b1eead"
 
+github_milestones_project_id = "PVT_kwDOAOe9Jc4BSDKP"
+
+milestones_issue_type = "Milestone"
+milestones_body_sync = false
+milestones_body_sync_if_empty = false
+milestones_create_from_tracker = true
+tasks_body_sync = false
+
 [sync.support.repositories]
 repositories = [
     "thunderbird/knowledgebase-issues",
-    "thunderbird/android-knowledgebase-issues",
-    "thunderbird/ios-knowledgebase-issues",
-    "thunderbird/tbpro-knowledgebase-issues",
 ]
 
 [sync.support.properties]
@@ -83,10 +88,10 @@ notion_tasks_assignee = "Assignee"
 notion_tasks_dates = ""
 #notion_tasks_openclose = "GitHub Dates"
 notion_tasks_priority = ""
-notion_task_team = "Team"
+notion_tasks_team = "Team"
 notion_tasks_milestone_relation = "Milestones"
 notion_tasks_text_assignee = ""
-notion_tasks_labels = ""
+notion_tasks_labels = "Product (Support)"
 notion_tasks_repository = ""
 notion_milestones_title = "Name"
 notion_milestones_team = "Team"
@@ -94,6 +99,7 @@ notion_milestones_assignee = "Assignee"
 notion_milestones_priority = ""
 notion_milestones_dates = ""
 notion_issue_field = "Bug URL"
+notion_default_open_state = "Backlog"
 notion_inprogress_state = "In progress"
 notion_closed_states = ["Done"]
 
