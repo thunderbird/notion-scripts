@@ -347,6 +347,9 @@ class GitHub(IssueTracker, GitHubFixups):
         if self.dry:
             return
 
+        if old_issue.repo not in self.github_milestones_projects:
+            return
+
         gh_project_item = self.github_milestones_projects[old_issue.repo].find_project_item(
             old_issue.gql, self.github_milestones_projects[old_issue.repo].database_id
         )
