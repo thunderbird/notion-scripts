@@ -30,11 +30,11 @@ def cmd_debug_users():
         print(f'{user["person"]["email"]} = "{user["id"]}" # {user["name"]}')
 
 
-def cmd_debug_project(orgrepo):
+async def cmd_debug_project(orgrepo):
     """Show project properties (e.g. to get the ID)."""
     org, repo = orgrepo.split("/")
 
-    GitHubProjectV2.list(org, repo)
+    await GitHubProjectV2.list(org, repo)
 
 
 def cmd_debug_db(dbid=None):
@@ -324,7 +324,7 @@ async def async_main():
     setup_logging(args.verbose)
 
     if args.debug_project:
-        cmd_debug_project(args.debug_project)
+        await cmd_debug_project(args.debug_project)
     elif args.debug_db:
         cmd_debug_db(dbid=args.debug_db)
     elif args.debug_users:
