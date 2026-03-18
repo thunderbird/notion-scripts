@@ -34,13 +34,13 @@ jobs:
       synchronizers: ${{ steps.generate.outputs.synchronizers }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
 
       - name: Setup uv
-        uses: astral-sh/setup-uv@4959332f0f014c5280e7eac8b70c90cb574c9f9b  # v6.6.0
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78  # v7.6.0
         with:
           enable-cache: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -72,13 +72,13 @@ jobs:
         synchronizer: ${{ fromJson(needs.setup-matrix.outputs.synchronizers) }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
 
       - name: Setup uv
-        uses: astral-sh/setup-uv@4959332f0f014c5280e7eac8b70c90cb574c9f9b  # v6.6.0
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78  # v7.6.0
         with:
           enable-cache: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -105,7 +105,7 @@ jobs:
       - name: Get app token
         id: apptoken
         if: ${{ vars.GH_APP_ID }}
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ vars.GH_APP_ID }}
           private-key: ${{ secrets.GH_APP_KEY }}
