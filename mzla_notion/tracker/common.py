@@ -44,6 +44,7 @@ class Issue(IssueRef):
     sprint: Sprint = None
     sub_issues: list = field(default_factory=list)
     whiteboard: str = ""
+    requested_ref: IssueRef = None
 
 
 class User:

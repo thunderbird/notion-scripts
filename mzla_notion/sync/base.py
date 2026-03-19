@@ -400,6 +400,15 @@ class BaseSync:
             page (dict): The Notion page object of the existing task in notion. Leave out to add
                 instead of update.
         """
+        if page:
+            old_issue_url = getnestedattr(
+                lambda: self._get_prop(page, "notion_issue_field", [])[0]["external"]["url"], None
+            )
+            if old_issue_url and old_issue_url != tracker_issue.url:
+                logger.warning(
+                    f"Task URL changed for {tracker_issue.repo}#{tracker_issue.id}: {old_issue_url} -> {tracker_issue.url}"
+                )
+
         parents = self._find_task_parents(tracker_issue)
         notion_data = await self._get_task_notion_data(
             tracker_issue=tracker_issue, parent_milestone_ids=parents, old_page=page

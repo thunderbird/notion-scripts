@@ -116,6 +116,12 @@ class ProjectSync(BaseSync):
             page (dict): The Notion page object of the milestone in notion.
             skip_unchanged_msg (bool): Skip the "Unchanged milestone" log message (for creating).
         """
+        old_issue_url = self._get_prop(page, "notion_issue_field")
+        if old_issue_url and old_issue_url != tracker_issue.url:
+            logger.warning(
+                f"Milestone URL changed for {tracker_issue.repo}#{tracker_issue.id}: {old_issue_url} -> {tracker_issue.url}"
+            )
+
         # Body
         body = tracker_issue.description
         if self.milestones_body_sync or (self.milestones_body_sync_if_empty and not len(tracker_issue.description)):
@@ -183,6 +189,14 @@ class ProjectSync(BaseSync):
         timestamp = datetime.datetime.now(datetime.UTC)
         collected_tasks = deepcopy(self._notion_tasks_issues)
 
+        def get_page_for_issue(issue, issue_pages):
+            requested_ref = getattr(issue, "requested_ref", None)
+            if requested_ref:
+                requested_page = issue_pages.get(requested_ref.id)
+                if requested_page:
+                    return requested_page
+            return issue_pages.get(issue.id)
+
         collected_tracker_milestones = {}
         if self.milestones_create_from_tracker:
             async for milestone in self.tracker.collect_tracker_milestones(self.milestones_issue_type, sub_issues=True):
@@ -215,7 +229,7 @@ class ProjectSync(BaseSync):
                     self._schedule_milestone_sync(
                         tg,
                         issue,
-                        notion_pages.get(issue.id),
+                        get_page_for_issue(issue, notion_pages),
                         collected_tasks,
                     )
 
@@ -246,7 +260,7 @@ class ProjectSync(BaseSync):
                 logger.info(f"Synchronizing tasks for {reporef}")
 
                 async for issue in tracker_issues:
-                    tg.create_task(self.synchronize_single_task(issue, issue_pages[issue.id]))
+                    tg.create_task(self.synchronize_single_task(issue, get_page_for_issue(issue, issue_pages)))
 
         async with asyncio.TaskGroup() as tg:
             # Update the description with the last updated timestamp
