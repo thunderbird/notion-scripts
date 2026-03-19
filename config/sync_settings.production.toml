@@ -244,6 +244,8 @@ notion_tasks_repository = "Product (Services)"
 "thunderbird/thunderbird-notifications" = "Core Services"
 "thunderbird/thunderbird-website" = "Websites"
 "thunderbird/thundernest-ansible" = "Core Services"
+"thunderbird/routing" = "Pro General"
+"thunderbird/pro" = "Pro General"
 
 [sync.services_deployments]
 method="github_deployments"
