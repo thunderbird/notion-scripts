@@ -519,7 +519,23 @@ class GitHub(IssueTracker, GitHubFixups):
                     ghissue = getattr(datarepo, f"issue{ref.id}", None)
 
                     if not getattr(ghissue, "id", None):
-                        logger.warning(f"Issue https://github.com/{org}/{repo}/issues/{ref.id} is no longer accessible")
+                        response = await self.endpoint.client.get(
+                            f"https://github.com/{org}/{repo}/issues/{ref.id}", follow_redirects=False
+                        )
+                        new_ref = self.parse_issueref(response.headers.get("location"))
+
+                        if new_ref:
+                            async for issue in self.get_issues_by_number([new_ref], sub_issues):
+                                logger.warning(
+                                    f"Issue https://github.com/{org}/{repo}/issues/{ref.id} has moved to {response.headers.get('location')}"
+                                )
+                                issue.requested_ref = ref
+                                yield issue
+                        else:
+                            logger.warning(
+                                f"Issue https://github.com/{org}/{repo}/issues/{ref.id} is no longer accessible"
+                            )
+
                         continue
 
                     yield await self._parse_issue(ghissue, sub_issues)
