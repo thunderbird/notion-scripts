@@ -127,7 +127,7 @@ class ProjectSync(BaseSync):
         if self.milestones_body_sync or (self.milestones_body_sync_if_empty and not len(tracker_issue.description)):
             blocks = await self.milestones_db.get_page_contents(page["id"])
             converter = CustomNotionToMarkdown(self.notion, strip_images=True, tracker=self.tracker)
-            body = await converter.convert(blocks)
+            body = await converter.convert(blocks) or ""
 
         # Assignees. Community assignees should be kept on the issue so a sync doesn't remove them.
         community_assignees = {assignee for assignee in tracker_issue.assignees if assignee.notion_user is None}
