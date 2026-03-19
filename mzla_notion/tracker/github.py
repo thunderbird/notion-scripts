@@ -522,7 +522,7 @@ class GitHub(IssueTracker, GitHubFixups):
                         response = await self.endpoint.client.get(
                             f"https://github.com/{org}/{repo}/issues/{ref.id}", follow_redirects=False
                         )
-                        new_ref = self.parse_issueref(response.headers.get("location"))
+                        new_ref = self.parse_issueref(response.headers.get("location", ""))
 
                         if new_ref:
                             async for issue in self.get_issues_by_number([new_ref], sub_issues):
