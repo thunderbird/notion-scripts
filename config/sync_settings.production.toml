@@ -276,3 +276,10 @@ repo = "thunderbird/mailstrom"
 block_id = "2332df5d45ae802787cde66564c51d88"
 stage_env = "staging"
 prod_env = ""
+
+[[sync.services_deployments.blocks]]
+method = "deployments"
+repo = "thunderbird/thunderbird-website"
+block_id = "3282df5d45ae800ba70af6b974b2931d"
+stage_env = "stage"
+prod_env = "prod"
