@@ -38,13 +38,28 @@ async def cmd_debug_project(orgrepo):
 
 
 def cmd_debug_db(dbid=None):
-    """Show a debug view of a page or database."""
+    """Show a debug view of a database, page, or block."""
     notion = notion_client.Client(auth=os.environ["NOTION_TOKEN"])
 
     try:
-        pprint(notion.databases.retrieve(database_id=dbid))
+        database_info = notion.databases.retrieve(database_id=dbid)
+        print("Database Information:")
+        pprint(database_info)
     except notion_client.errors.APIResponseError:
-        pprint(notion.pages.retrieve(dbid))
+        try:
+            page_info = notion.pages.retrieve(dbid)
+            child_info = notion.blocks.children.list(block_id=dbid)
+            print("Page Information:")
+            pprint(page_info)
+            print("\nChild blocks:")
+            pprint(child_info)
+        except notion_client.errors.APIResponseError:
+            block_info = notion.blocks.retrieve(block_id=dbid)
+            child_info = notion.blocks.children.list(block_id=dbid)
+            print("Block Information:")
+            pprint(block_info)
+            print("\nChild blocks:")
+            pprint(child_info)
 
 
 def cmd_list_synchronizers(config):
