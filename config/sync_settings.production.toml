@@ -5,7 +5,7 @@ method = "github_project"
 
 notion_tasks_id = "2332df5d45ae8072aa7aededaf161252"
 notion_milestones_id = "2332df5d45ae80909305fe2278a14629"
-notion_sprints_id = "2342df5d45ae806fb294c410dd0e71bd"
+#notion_sprints_id = "2342df5d45ae806fb294c410dd0e71bd"
 
 notion_team_id = "2332df5d45ae80bc8839d089f5c7f608"
 notion_associated_team = "2332df5d45ae80658b05c4e8a4819827"
@@ -14,7 +14,7 @@ milestones_issue_type = "Milestone"
 milestones_body_sync = false
 milestones_body_sync_if_empty = true
 tasks_body_sync = false
-sprints_merge_by_name = true
+#sprints_merge_by_name = true
 
 [sync.mobile.properties]
 #notion_sprint_tracker_id = "GitHub ID"
@@ -28,7 +28,7 @@ notion_tasks_priority = "Priority"
 notion_tasks_review_url = "Patch URL"
 notion_tasks_team = "Team"
 notion_tasks_milestone_relation = "Milestones"
-notion_tasks_sprint_relation = "Sprint"
+#notion_tasks_sprint_relation = "Sprint"
 notion_tasks_text_assignee = ""
 notion_tasks_labels = "Keywords (Mobile)"
 notion_milestones_title = "Name"
@@ -166,7 +166,7 @@ VERIFIED = "Canceled"
 method = "github_project"
 notion_tasks_id = "2332df5d45ae8072aa7aededaf161252"
 notion_milestones_id = "2332df5d45ae80909305fe2278a14629"
-notion_sprints_id = "2342df5d45ae806fb294c410dd0e71bd"
+#notion_sprints_id = "2342df5d45ae806fb294c410dd0e71bd"
 
 notion_team_id = "2332df5d45ae80bc8839d089f5c7f608"
 notion_associated_team = "2332df5d45ae8083af1dcda07b5c1eca"
@@ -215,7 +215,7 @@ notion_tasks_priority = "Priority"
 notion_tasks_review_url = "Patch URL"
 notion_tasks_team = "Team"
 notion_tasks_milestone_relation = "Milestones"
-notion_tasks_sprint_relation = "Sprint"
+#notion_tasks_sprint_relation = "Sprint"
 notion_tasks_text_assignee = ""
 notion_tasks_labels = "Keywords (Services)"
 notion_milestones_title = "Name"
