@@ -419,9 +419,21 @@ class GitHub(IssueTracker, GitHubFixups):
         gh_project_item = tasks_project_item or milestones_project_item
 
         review_url = None
+        reviewers = set()
         for item in ghissue.timeline_items.nodes or []:
             if item.will_close_target:
                 review_url = item.source.url
+
+                if item.source.review_requests:
+                    reviewers = {
+                        GitHubUser(
+                            user_map=self.user_map,
+                            tracker_user=r.requested_reviewer.login,
+                            dbid_user=r.requested_reviewer.id,
+                        )
+                        for r in item.source.review_requests.nodes
+                        if r.requested_reviewer
+                    }
 
         state = None
         if ghissue.state == "CLOSED":
@@ -452,6 +464,7 @@ class GitHub(IssueTracker, GitHubFixups):
             notion_url=getnestedattr(lambda: gh_project_item.link.text, None),
             labels={label.name for label in ghissue.labels.nodes},
             review_url=review_url,
+            reviewers=reviewers,
             gql=ghissue,
         )
 
@@ -1074,6 +1087,9 @@ def issue_field_ops(issue):
     crossref_events.will_close_target()
     pull_request = crossref_events.source.__as__(schema.PullRequest)
     pull_request.url()
+    pull_request_reviewer = pull_request.review_requests(first=10).nodes.requested_reviewer.__as__(schema.User)
+    pull_request_reviewer.id()
+    pull_request_reviewer.login()
 
     project_items = issue.project_items(first=10, include_archived=True).nodes
     project_items.id()

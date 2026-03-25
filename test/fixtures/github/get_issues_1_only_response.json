@@ -92,7 +92,27 @@
           ]
         },
         "timelineItems": {
-          "nodes": []
+          "nodes": [
+            {
+              "__typename": "CrossReferencedEvent",
+              "willCloseTarget": true,
+              "source": {
+                "__typename": "PullRequest",
+                "url": "https://github.com/kewisch/test/pull/10",
+                "reviewRequests": {
+                  "nodes": [
+                    {
+                      "requestedReviewer": {
+                        "__typename": "User",
+                        "id": "MDQ6VXNlcjYwNzE5OA==",
+                        "login": "kewisch"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
         },
         "subIssues": {
           "nodes": []

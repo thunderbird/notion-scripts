@@ -82,11 +82,28 @@ class PhabHandler:
             side_effect=self.project_handler
         )
 
+        respx_mock.route(name="phab_users", **PHAB_ROUTE, path="/api/user.query").mock(side_effect=self.user_handler)
+
+        self.review_response = {"result": {"data": []}}
+        self.project_response = {"result": {"data": []}}
+        self.users = {}
+
     def search_handler(self, req):
-        return httpx.Response(200, json={})
+        return httpx.Response(200, json=self.review_response)
 
     def project_handler(self, req):
-        return httpx.Response(200, json={})
+        return httpx.Response(200, json=self.project_response)
+
+    def user_handler(self, req):
+        fields = urllib.parse.parse_qs(req.content.decode("utf-8"))
+        result = []
+
+        for index in range(len([key for key in fields if key.startswith("emails[")])):
+            email = fields[f"emails[{index}]"][0]
+            if email in self.users:
+                result.append(self.users[email])
+
+        return httpx.Response(200, json={"result": result})
 
 
 class BugzillaHandler:
@@ -290,7 +307,7 @@ class GitHubHandler:
                     responses[filename[:-14]] = json.load(fp)
             elif filename.endswith("_request.gql"):
                 with open(basepath / filename, "r") as fp:
-                    requests[filename[:-12]] = fp.read()
+                    requests[filename[:-12]] = fp.read().strip()
 
         self.pages = {request: filename for filename, request in requests.items()}
         self.responses = responses
@@ -299,7 +316,7 @@ class GitHubHandler:
         self.calls = defaultdict(list)
 
     def handle(self, request):
-        reqdata = json.loads(request.content.decode("utf-8"))["query"]
+        reqdata = json.loads(request.content.decode("utf-8"))["query"].strip()
 
         if reqdata in self.pages:
             request_name = self.pages[reqdata]

@@ -1,0 +1,28 @@
+{
+  "result": {
+    "data": [
+      {
+        "fields": {
+          "uri": "https://phabricator.services.mozilla.com/D248065",
+          "status": {
+            "value": "needs-review"
+          }
+        },
+        "attachments": {
+          "reviewers": {
+            "reviewers": [
+              {
+                "reviewerPHID": "PHID-USER-reviewer",
+                "status": "added"
+              },
+              {
+                "reviewerPHID": "PHID-PROJ-frontend",
+                "status": "blocking"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

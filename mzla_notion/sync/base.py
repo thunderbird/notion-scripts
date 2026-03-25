@@ -119,6 +119,7 @@ class BaseSync:
         self._setup_prop(tasks_properties, "notion_tasks_priority", "select")
         self._setup_prop(tasks_properties, "notion_tasks_assignee", "people")
         self._setup_prop(tasks_properties, "notion_tasks_review_url", "files")
+        self._setup_prop(tasks_properties, "notion_tasks_reviewers", "people")
         self._setup_prop(tasks_properties, "notion_tasks_text_assignee", "rich_text_space_set")
         self._setup_prop(tasks_properties, "notion_tasks_repository", "select", unknown="skip")
         self._setup_prop(tasks_properties, "notion_tasks_labels", "multi_select", unknown="skip")
@@ -314,6 +315,10 @@ class BaseSync:
                 {"name": self.tracker.format_patchref_short(tracker_issue.review_url), "url": tracker_issue.review_url}
             ]
         self._set_if_prop(notion_data, "notion_tasks_review_url", review_url)
+
+        # Reviewers
+        reviewers = [user.notion_user for user in tracker_issue.reviewers if user.notion_user is not None]
+        self._set_if_prop(notion_data, "notion_tasks_reviewers", reviewers)
 
         # Labels and Whiteboard
         self._set_if_prop(notion_data, "notion_tasks_labels", tracker_issue.labels or [])

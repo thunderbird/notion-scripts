@@ -43,6 +43,19 @@ class GitHubProjectTest(BaseTestCase):
             )
             issues = [issue async for issue in iterator]
 
+    async def test_github_get_issue_reviewers(self):
+        self.github.user_map = GitHubUserMap({"kewisch": "3df71ec3-17c7-4eb4-80bc-a321af157be6"})
+        self.github.user_map._trk_to_dbid = {"kewisch": "MDQ6VXNlcjYwNzE5OA=="}
+        self.github.user_map._dbid_to_trk = {"MDQ6VXNlcjYwNzE5OA==": "kewisch"}
+
+        iterator = self.github.get_issues_by_number([IssueRef(repo="kewisch/test", id="1")], True)
+        issues = {issue.id: issue async for issue in iterator}
+        issue = issues["1"]
+
+        self.assertEqual(issue.review_url, "https://github.com/kewisch/test/pull/10")
+        self.assertEqual({user.tracker_user for user in issue.reviewers}, {"kewisch"})
+        self.assertEqual({user.notion_user for user in issue.reviewers}, {"3df71ec3-17c7-4eb4-80bc-a321af157be6"})
+
     async def test_github_get_issues_epics(self):
         iterator = self.github.get_issues_by_number(
             [IssueRef(repo="kewisch/test", id="1"), IssueRef(repo="kewisch/test", id="2")], True

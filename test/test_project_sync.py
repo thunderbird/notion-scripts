@@ -3,7 +3,7 @@ import urllib
 import datetime
 import logging
 
-from mzla_notion.tracker.common import IssueRef, Issue, IssueTracker, Sprint
+from mzla_notion.tracker.common import IssueRef, Issue, IssueTracker, Sprint, User, UserMap
 from mzla_notion.sync.project import ProjectSync
 
 from freezegun import freeze_time
@@ -20,6 +20,11 @@ TEST_PROPERTY_NAMES = {
     "notion_tasks_review_url": "Review URL",
     "notion_sprint_tracker_id": "TestTracker ID",
 }
+
+
+class StaticUserMap(UserMap):
+    def tracker_mention(self, tracker_user):
+        return tracker_user
 
 
 class IssueTestTracker(IssueTracker):
@@ -368,6 +373,38 @@ class ProjectSyncTest(BaseTestCase):
 
         # No updates to the task
         self.expect_call("pages_update", 0)
+
+    async def test_milestone_sync_with_task_reviewers(self):
+        user_map = StaticUserMap(USER_MAP)
+        self.issues[1].reviewers = {
+            User(user_map, tracker_user="user1@example.com"),
+            User(user_map, tracker_user="unknown@example.com"),
+        }
+        tracker = IssueTestTracker(
+            issues=self.issues,
+            user_map=user_map,
+            property_names={"notion_tasks_reviewers": "Peer Reviewer"},
+        )
+
+        await self.synchronize_project(tracker)
+
+        self.expect_call("pages_create", 1)
+        create_content = json.loads(self.respx.routes["pages_create"].calls.last.request.content)
+        self.assertEqual(
+            create_content["properties"]["Peer Reviewer"],
+            {"type": "people", "people": [{"object": "user", "id": USER_MAP["user1@example.com"]}]},
+        )
+
+    async def test_milestone_sync_with_task_reviewers_feature_off(self):
+        user_map = StaticUserMap(USER_MAP)
+        self.issues[1].reviewers = {User(user_map, tracker_user="user1@example.com")}
+        tracker = IssueTestTracker(issues=self.issues, user_map=user_map)
+
+        await self.synchronize_project(tracker)
+
+        self.expect_call("pages_create", 1)
+        create_content = json.loads(self.respx.routes["pages_create"].calls.last.request.content)
+        self.assertNotIn("Peer Reviewer", create_content["properties"])
 
     async def test_milestone_sync_with_task_sync_body(self):
         # Remove 234

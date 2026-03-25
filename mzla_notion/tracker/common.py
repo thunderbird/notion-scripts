@@ -36,6 +36,7 @@ class Issue(IssueRef):
     issue_type: str = None
     url: str
     review_url: str = ""
+    reviewers: set = field(default_factory=set)
     notion_url: str = ""
     created_date: datetime.datetime = None
     closed_date: datetime.datetime = None
@@ -97,6 +98,7 @@ class IssueTracker:
         "notion_tasks_sprint_relation": "Sprint",
         "notion_tasks_text_assignee": "",  # Default is disabled
         "notion_tasks_review_url": "",  # Default is disabled
+        "notion_tasks_reviewers": "",  # Default is disabled
         "notion_tasks_labels": "",  # Default is disabled
         "notion_tasks_whiteboard": "",  # Default is disabled
         "notion_tasks_repository": "",  # Default is disabled

@@ -48,6 +48,17 @@ source {
 __typename
 ... on PullRequest {
 url
+reviewRequests(first: 10) {
+nodes {
+requestedReviewer {
+__typename
+... on User {
+id
+login
+}
+}
+}
+}
 }
 }
 }
@@ -212,6 +223,17 @@ source {
 __typename
 ... on PullRequest {
 url
+reviewRequests(first: 10) {
+nodes {
+requestedReviewer {
+__typename
+... on User {
+id
+login
+}
+}
+}
+}
 }
 }
 }

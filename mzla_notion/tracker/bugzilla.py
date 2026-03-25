@@ -25,13 +25,32 @@ class PhabReview:
     reviewers: list = field(default_factory=list)
 
 
+@dataclass(kw_only=True)
+class PhabReviewReviewer:
+    """An class to contain the relevant fields of a phab review."""
+
+    phid: str = None
+    group: str = None
+
+
 class BugzillaUserMap(UserMap):
     """This is a map between different types of user ids to avoid mental gymnastics."""
+
+    @classmethod
+    async def create(cls, bzclient, phabclient, trk_to_notion, **kwargs):
+        """Instanciate the user map and run async init."""
+        self = cls(bzclient, trk_to_notion, **kwargs)
+        await self._init_userid_logins(phabclient, trk_to_notion)
+        return self
 
     def __init__(self, client, trk_to_notion):
         """Initialize."""
         super().__init__(trk_to_notion)
         self._client = client
+
+    async def _init_userid_logins(self, phabclient, trk_to_notion):
+        self._trk_to_phid = await phabclient.get_user_phids(trk_to_notion.keys())
+        self._phid_to_trk = {phid: trk for trk, phid in self._trk_to_phid.items()}
 
     @cache
     def tracker_mention(self, username):
@@ -39,6 +58,14 @@ class BugzillaUserMap(UserMap):
         response = self._client.get("/user", params={"names": username})
         user = response.json()
         return user["real_name"] or user["name"]
+
+    def trk_to_phid(self, bzmail):
+        """Convert a tracker username to a Phabricator PHID."""
+        return self._trk_to_phid.get(bzmail)
+
+    def phid_to_trk(self, phid):
+        """Convert a Phabricator PHID to a tracker username."""
+        return self._phid_to_trk.get(phid)
 
 
 class PhabClient(AsyncRetryingClient):
@@ -54,6 +81,20 @@ class PhabClient(AsyncRetryingClient):
         """Make a post request, but add the api token."""
         kwargs["data"]["api.token"] = self.phab_token
         return super().post(*args, **kwargs)
+
+    async def get_user_phids(self, users):
+        """Get the PHIDs for the list of users."""
+        data = {f"emails[{idx}]": email for idx, email in enumerate(users)}
+
+        response = await self.post("user.query", data=data)
+        payload = response.json()
+
+        if error := payload.get("error_code"):
+            raise Exception("Phabricator Error: " + error)
+
+        resdata = payload.get("result", [])
+
+        return {email: resdata[idx]["phid"] for idx, email in enumerate(users)}
 
     async def get_phab_reviews(self, urls):
         """Get phabricator reviews for the respective urls."""
@@ -77,10 +118,11 @@ class PhabClient(AsyncRetryingClient):
             res["fields"]["uri"]: PhabReview(
                 status=res["fields"]["status"]["value"],
                 reviewers=[
-                    tb_reviewer
+                    PhabReviewReviewer(
+                        phid=reviewer["reviewerPHID"], group=reviewer_groups.get(reviewer["reviewerPHID"])
+                    )
                     for reviewer in res["attachments"]["reviewers"]["reviewers"]
-                    if (tb_reviewer := reviewer_groups.get(reviewer["reviewerPHID"]))
-                    and reviewer["status"] in ("added", "blocking")
+                    if reviewer["status"] in ("added", "blocking")
                 ],
             )
             for res in resdata
@@ -161,7 +203,10 @@ class Bugzilla(IssueTracker):
             autoraise=True,
         )
 
-        self.user_map = BugzillaUserMap(self.sync_client, user_map)
+        self._raw_user_map = user_map
+
+    async def _async_init(self):
+        self.user_map = await BugzillaUserMap.create(self.sync_client, self.phab_client, self._raw_user_map)
 
     def parse_issueref(self, ref):
         """Parse an issue identifier (e.g. bugzilla url) to an IssueRef."""
@@ -352,8 +397,14 @@ class Bugzilla(IssueTracker):
             if not issue:
                 continue
 
+            issue.reviewers = [
+                self.new_user(tracker_user=trk)
+                for reviewer in review.reviewers
+                if (trk := self.user_map.phid_to_trk(reviewer.phid))
+            ]
+
             if review.status == "needs-review":
-                issue.labels.update([f"reviewer:{reviewer}" for reviewer in review.reviewers])
+                issue.labels.update([f"reviewer:{reviewer.group}" for reviewer in review.reviewers if reviewer.group])
             elif review.status == "accepted":
                 if "checkin-needed-tb" in issue.labels:
                     issue.state = statemap.get("CHECKIN") or "CHECKIN"
