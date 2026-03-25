@@ -7,14 +7,12 @@ import httpx
 from mzla_notion.tracker.bugzilla import Bugzilla, BugzillaUserMap, BugzillaAsyncRetryingClient
 from mzla_notion.tracker.common import IssueRef, Issue, User
 
-from .handlers import BaseTestCase
+from .handlers import BaseTestCase, load_fixture
 
 
 class BugzillaProjectTest(BaseTestCase):
     def setUp(self):
         super().setUp()
-
-        self.bugzilla = Bugzilla(base_url="https://bugzilla.dev", token="BUGZILLA_TOKEN", dry=False, user_map={})
 
         day1 = datetime.date.fromisoformat("2025-07-05")
         self.issue = Issue(
@@ -32,6 +30,12 @@ class BugzillaProjectTest(BaseTestCase):
             end_date=day1,
             sprint=None,
             sub_issues=[],
+        )
+
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
+        self.bugzilla = await Bugzilla.create(
+            base_url="https://bugzilla.dev", token="BUGZILLA_TOKEN", dry=False, user_map={}
         )
 
     async def test_bugzilla_update_milestone_issue(self):
@@ -148,6 +152,27 @@ class BugzillaProjectTest(BaseTestCase):
         self.assertEqual(issue.state, "IN REVIEW")
         self.assertEqual(issue.review_url, "https://phabricator.services.mozilla.com/D248065")
         self.assertEqual(issue.notion_url, "https://www.notion.so/mzthunderbird/b183c949289f4282864cd373cb8b2cb7")
+
+    async def test_bugzilla_get_issues_reviewers(self):
+        reviewer = "reviewer@example.com"
+        notion_user = "a5fba708-e170-4a68-8392-ba6894272c70"
+        self.phab_handler.users = {reviewer: {"phid": "PHID-USER-reviewer"}}
+        self.phab_handler.project_response = load_fixture("phabricator/project_search_reviewers.json")
+        self.phab_handler.review_response = load_fixture("phabricator/revision_search_reviewers.json")
+        self.bugzilla = await Bugzilla.create(
+            base_url="https://bugzilla.dev",
+            token="BUGZILLA_TOKEN",
+            dry=False,
+            user_map={reviewer: notion_user},
+        )
+
+        got_issues = self.bugzilla.get_issues_by_number([IssueRef(repo="bugzilla.dev", id="1944885")], True)
+        issues = {issue.id: issue async for issue in got_issues}
+        issue = issues["1944885"]
+
+        self.assertEqual({user.tracker_user for user in issue.reviewers}, {reviewer})
+        self.assertEqual({user.notion_user for user in issue.reviewers}, {notion_user})
+        self.assertIn("reviewer:front-end", issue.labels)
 
     async def test_bugzilla_resolved_state(self):
         got_issues = self.bugzilla.get_issues_by_number(
