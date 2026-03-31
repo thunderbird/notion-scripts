@@ -30,11 +30,16 @@ class LabelSync(BaseSync):
         async with asyncio.TaskGroup() as tg:
             tg.create_task(super()._async_init())
 
-            query_filter = {"property": self.propnames["notion_milestones_team"], "relation": {"contains": self.team}}
+            query_filter = None
+            if self.configured_team_ids:
+                query_filter = {
+                    "or": [
+                        {"property": self.propnames["notion_milestones_team"], "relation": {"contains": team}}
+                        for team in self.configured_team_ids
+                    ]
+                }
 
-            milestone_pages = tg.create_task(
-                self.milestones_db.get_all_pages(query_filter=query_filter if self.team else None)
-            )
+            milestone_pages = tg.create_task(self.milestones_db.get_all_pages(query_filter=query_filter))
 
         self._all_milestone_pages = milestone_pages.result()
 
@@ -47,15 +52,15 @@ class LabelSync(BaseSync):
         }
 
     def _find_task_parents(self, issue):
-        parent_ids = []
+        parent_pages = []
 
         for label in issue.labels:
             if label.startswith(self.milestone_label_prefix):
                 clean_label = label[len(self.milestone_label_prefix) :].strip()
                 if page := self._milestone_pages_by_title.get(clean_label):
-                    parent_ids.append(page["id"])
+                    parent_pages.append(page)
 
-        return parent_ids
+        return parent_pages
 
     async def synchronize(self):
         """Synchronize all the issues!"""

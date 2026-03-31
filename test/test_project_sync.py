@@ -187,6 +187,83 @@ class ProjectSyncTest(BaseTestCase):
         self.project_sync = ProjectSync(**{**sync_kwargs_defaults, **kwargs})
         await self.project_sync.synchronize()
 
+    async def test_task_team_resolution(self):
+        tracker = IssueTestTracker(
+            issues=self.issues,
+            property_names={
+                "notion_tasks_team": "Team",
+                "notion_milestones_team": "Team",
+            },
+        )
+        sync = ProjectSync(
+            project_key="test",
+            tracker=tracker,
+            notion_token="NOTION_TOKEN",
+            milestones_id="milestones_id",
+            tasks_id="tasks_id",
+            team_id="team_db_id",
+            team_association=["team-a", "team-b"],
+            dry=True,
+        )
+
+        with self.subTest(msg="existing configured task team preserved"):
+            old_page = {
+                "properties": {
+                    "Team": {
+                        "type": "relation",
+                        "relation": [{"id": "team-b"}, {"id": "existing-team"}],
+                    }
+                }
+            }
+            parent_page = {
+                "id": "milestone-1",
+                "properties": {"Team": {"type": "relation", "relation": [{"id": "team-a"}, {"id": "other-team"}]}},
+            }
+            notion_data = await sync._get_task_notion_data(
+                tracker_issue=self.issues[1],
+                parent_milestone_pages=[parent_page],
+                old_page=old_page,
+            )
+            self.assertEqual(notion_data["Team"], ["teamb", "existingteam"])
+            self.assertEqual(notion_data["Project"], ["milestone-1"])
+
+        with self.subTest(msg="inherit configured subset from parent"):
+            parent_page = {
+                "id": "milestone-1",
+                "properties": {
+                    "Team": {
+                        "type": "relation",
+                        "relation": [{"id": "team-b"}, {"id": "other-team"}, {"id": "team-a"}],
+                    }
+                },
+            }
+            notion_data = await sync._get_task_notion_data(
+                tracker_issue=self.issues[1],
+                parent_milestone_pages=[parent_page],
+                old_page=None,
+            )
+            self.assertEqual(notion_data["Team"], ["teama", "teamb"])
+
+        with self.subTest(msg="fallback when parent has only non-configured teams"):
+            parent_page = {
+                "id": "milestone-1",
+                "properties": {"Team": {"type": "relation", "relation": [{"id": "other-team"}]}},
+            }
+            notion_data = await sync._get_task_notion_data(
+                tracker_issue=self.issues[1],
+                parent_milestone_pages=[parent_page],
+                old_page=None,
+            )
+            self.assertEqual(notion_data["Team"], ["teama", "teamb"])
+
+        with self.subTest(msg="fallback when no parent teams exist"):
+            notion_data = await sync._get_task_notion_data(
+                tracker_issue=self.issues[1],
+                parent_milestone_pages=[],
+                old_page=None,
+            )
+            self.assertEqual(notion_data["Team"], ["teama", "teamb"])
+
     async def test_update_sync_stamp(self):
         self.notion_handler.milestones_handler.pages = []
         tracker = IssueTestTracker(dry=True)

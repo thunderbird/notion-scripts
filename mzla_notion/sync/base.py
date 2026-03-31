@@ -77,7 +77,7 @@ class BaseSync:
             tasks_notion_prefix (str): Optional prefix for Notion tasks synchronized from the issue
                 tracker.
             team_id (str): The Notion database id for the "Teams" database. Optional, used with the team property.
-            team_association (str): The id of the team for this sync. Optional, used with notion_tasks_team property.
+            team_association (str|list): The id of the team for this sync. Optional, used with notion_tasks_team property.
             dry (bool): If true, only query operations are done. Mutations are disabled for both
                 the issue tracker and Notion.
             synchronous (bool): If true, run any async tasks sequentially.
@@ -149,6 +149,7 @@ class BaseSync:
 
         # Other settings
         self.team = team_association
+        self.configured_team_ids = self._normalize_relation_ids(team_association)
         self.dry = dry
         self.synchronous = synchronous
         self.project_key = project_key
@@ -217,7 +218,37 @@ class BaseSync:
             else:
                 obj[propname] = {"start": start, "end": end} if start or end else None
 
-    async def _discover_notion_issues(self, notion_db_id, filter_team=None, filter_issue_type="url"):
+    def _normalize_relation_ids(self, relation_or_id):
+        if not relation_or_id:
+            return []
+
+        items = relation_or_id if isinstance(relation_or_id, list) else [relation_or_id]
+        return [item.replace("-", "") for item in items if item]
+
+    def _get_relation_ids(self, block_or_page, key_name):
+        rel = getnestedattr(lambda: self._get_prop(block_or_page, key_name), None) or []
+        return [item["id"].replace("-", "") for item in rel if item.get("id")]
+
+    def _resolve_task_teams(self, old_page, parent_milestone_pages):
+        if not self.configured_team_ids or not self.propnames.get("notion_tasks_team"):
+            return None
+
+        existing_teams = self._get_relation_ids(old_page, "notion_tasks_team")
+        if any(team in self.configured_team_ids for team in existing_teams):
+            # If any configured team is already set, keep all existing teams untouched.
+            return existing_teams
+
+        parent_teams = set()
+        for page in parent_milestone_pages or []:
+            parent_teams.update(self._get_relation_ids(page, "notion_milestones_team"))
+
+        matching_parent_teams = [team for team in self.configured_team_ids if team in parent_teams]
+        if matching_parent_teams:
+            return matching_parent_teams
+
+        return self.configured_team_ids
+
+    async def _discover_notion_issues(self, notion_db_id, filter_team_prop=None, filter_issue_type="url"):
         repos = defaultdict(dict)
 
         query_filter = {
@@ -225,10 +256,16 @@ class BaseSync:
             filter_issue_type: {"is_not_empty": True},
         }
 
-        if filter_team and self.team:
+        if filter_team_prop and self.configured_team_ids:
+            team_filter = {
+                "or": [
+                    {"property": filter_team_prop, "relation": {"contains": team}} for team in self.configured_team_ids
+                ]
+            }
+
             query_filter = {
                 "and": [
-                    {"property": filter_team, "relation": {"contains": self.team}},
+                    team_filter,
                     query_filter,
                 ]
             }
@@ -259,7 +296,7 @@ class BaseSync:
             if (content := self._get_richtext_prop(page, "notion_sprint_title"))
         }
 
-    async def _get_task_notion_data(self, tracker_issue, parent_milestone_ids=[], old_page=None):
+    async def _get_task_notion_data(self, tracker_issue, parent_milestone_pages=None, old_page=None):
         # Base data
         title = self.tracker.notion_tasks_title(self.tasks_notion_prefix, tracker_issue)
         notion_data = {
@@ -276,11 +313,9 @@ class BaseSync:
         self._set_if_prop(notion_data, "notion_tasks_assignee", assignees or None)
         self._set_if_prop(notion_data, "notion_tasks_text_assignee", " ".join(text_assignees))
 
-        if self.team and self.propnames.get("notion_tasks_team"):
-            teams = getnestedattr(lambda: self._get_prop(old_page, "notion_tasks_team"), None)
-            teams = {team["id"].replace("-", "") for team in (teams or [])}
-            teams.add(self.team)
-            self._set_if_prop(notion_data, "notion_tasks_team", list(teams))
+        resolved_teams = self._resolve_task_teams(old_page, parent_milestone_pages)
+        if resolved_teams is not None:
+            self._set_if_prop(notion_data, "notion_tasks_team", resolved_teams)
 
         # Status and Priority
         self._set_if_prop(notion_data, "notion_tasks_priority", tracker_issue.priority)
@@ -376,7 +411,9 @@ class BaseSync:
                 notion_data[self.propnames["notion_tasks_sprint_relation"]] = []
 
         # Milestone relation
-        notion_data[self.propnames["notion_tasks_milestone_relation"]] = parent_milestone_ids
+        notion_data[self.propnames["notion_tasks_milestone_relation"]] = [
+            milestone_page["id"] for milestone_page in (parent_milestone_pages or [])
+        ]
 
         return notion_data
 
@@ -414,9 +451,11 @@ class BaseSync:
                     f"Task URL changed for {tracker_issue.repo}#{tracker_issue.id}: {old_issue_url} -> {tracker_issue.url}"
                 )
 
-        parents = self._find_task_parents(tracker_issue)
+        parent_pages = self._find_task_parents(tracker_issue) or []
         notion_data = await self._get_task_notion_data(
-            tracker_issue=tracker_issue, parent_milestone_ids=parents, old_page=page
+            tracker_issue=tracker_issue,
+            parent_milestone_pages=parent_pages,
+            old_page=page,
         )
 
         if page:

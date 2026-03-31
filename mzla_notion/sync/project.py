@@ -36,7 +36,7 @@ class ProjectSync(BaseSync):
         milestone_issues = self._notion_milestone_issues
 
         found_milestone_parents = [
-            milestone_parent["id"]
+            milestone_parent
             for parent in tracker_issue.parents
             if (milestone_parent := milestone_issues.get(parent.repo, {}).get(parent.id, None)) is not None
         ]
@@ -67,7 +67,7 @@ class ProjectSync(BaseSync):
             pass
 
         # Team
-        self._set_if_prop(notion_data, "notion_milestones_team", [self.team] if self.team else None)
+        self._set_if_prop(notion_data, "notion_milestones_team", self.configured_team_ids or None)
 
         # Priority
         self._set_if_prop(notion_data, "notion_milestones_priority", tracker_issue.priority)
