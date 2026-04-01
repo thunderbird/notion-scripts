@@ -206,7 +206,7 @@ class ProjectSyncTest(BaseTestCase):
             dry=True,
         )
 
-        with self.subTest(msg="existing configured task team preserved"):
+        with self.subTest(msg="existing configured task team resolves to first configured match"):
             old_page = {
                 "properties": {
                     "Team": {
@@ -224,7 +224,7 @@ class ProjectSyncTest(BaseTestCase):
                 parent_milestone_pages=[parent_page],
                 old_page=old_page,
             )
-            self.assertEqual(notion_data["Team"], ["teamb", "existingteam"])
+            self.assertEqual(notion_data["Team"], ["teamb"])
             self.assertEqual(notion_data["Project"], ["milestone-1"])
 
         with self.subTest(msg="inherit configured subset from parent"):
@@ -242,7 +242,7 @@ class ProjectSyncTest(BaseTestCase):
                 parent_milestone_pages=[parent_page],
                 old_page=None,
             )
-            self.assertEqual(notion_data["Team"], ["teama", "teamb"])
+            self.assertEqual(notion_data["Team"], ["teama"])
 
         with self.subTest(msg="fallback when parent has only non-configured teams"):
             parent_page = {
@@ -254,7 +254,7 @@ class ProjectSyncTest(BaseTestCase):
                 parent_milestone_pages=[parent_page],
                 old_page=None,
             )
-            self.assertEqual(notion_data["Team"], ["teama", "teamb"])
+            self.assertEqual(notion_data["Team"], ["teama"])
 
         with self.subTest(msg="fallback when no parent teams exist"):
             notion_data = await sync._get_task_notion_data(
@@ -262,7 +262,7 @@ class ProjectSyncTest(BaseTestCase):
                 parent_milestone_pages=[],
                 old_page=None,
             )
-            self.assertEqual(notion_data["Team"], ["teama", "teamb"])
+            self.assertEqual(notion_data["Team"], ["teama"])
 
     async def test_update_sync_stamp(self):
         self.notion_handler.milestones_handler.pages = []

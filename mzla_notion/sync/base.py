@@ -234,19 +234,19 @@ class BaseSync:
             return None
 
         existing_teams = self._get_relation_ids(old_page, "notion_tasks_team")
-        if any(team in self.configured_team_ids for team in existing_teams):
-            # If any configured team is already set, keep all existing teams untouched.
-            return existing_teams
+        for configured_team in self.configured_team_ids:
+            if configured_team in existing_teams:
+                return [configured_team]
 
         parent_teams = set()
         for page in parent_milestone_pages or []:
             parent_teams.update(self._get_relation_ids(page, "notion_milestones_team"))
 
-        matching_parent_teams = [team for team in self.configured_team_ids if team in parent_teams]
-        if matching_parent_teams:
-            return matching_parent_teams
+        for configured_team in self.configured_team_ids:
+            if configured_team in parent_teams:
+                return [configured_team]
 
-        return self.configured_team_ids
+        return [self.configured_team_ids[0]]
 
     async def _discover_notion_issues(self, notion_db_id, filter_team_prop=None, filter_issue_type="url"):
         repos = defaultdict(dict)
