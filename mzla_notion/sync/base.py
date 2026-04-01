@@ -117,6 +117,7 @@ class BaseSync:
             self._setup_prop(tasks_properties, "notion_tasks_team", "relation", team_id, False)
 
         self._setup_prop(tasks_properties, "notion_tasks_priority", "select")
+        self._setup_prop(tasks_properties, "notion_tasks_estimate", "select")
         self._setup_prop(tasks_properties, "notion_tasks_assignee", "people")
         self._setup_prop(tasks_properties, "notion_tasks_review_url", "files")
         self._setup_prop(tasks_properties, "notion_tasks_reviewers", "people")
@@ -319,6 +320,8 @@ class BaseSync:
 
         # Status and Priority
         self._set_if_prop(notion_data, "notion_tasks_priority", tracker_issue.priority)
+        if tracker_issue.estimate not in (None, ""):
+            self._set_if_prop(notion_data, "notion_tasks_estimate", tracker_issue.estimate)
 
         final_status = tracker_issue.state
         if not tracker_issue.state:

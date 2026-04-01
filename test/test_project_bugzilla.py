@@ -143,6 +143,7 @@ class BugzillaProjectTest(BaseTestCase):
         self.assertEqual(issue.description, "Rebuild the Read Event dialog based on designs in blabla")
         self.assertEqual(issue.assignees, set())
         self.assertEqual(issue.priority, None)
+        self.assertEqual(issue.estimate, "")
         self.assertEqual(issue.parents, [IssueRef(repo="bugzilla.dev", id="1944847")])
         self.assertEqual(len(issue.sub_issues), 1)
         self.assertEqual(issue.sub_issues[0].id, "1944885")
@@ -152,6 +153,7 @@ class BugzillaProjectTest(BaseTestCase):
         self.assertEqual(issue.state, "IN REVIEW")
         self.assertEqual(issue.review_url, "https://phabricator.services.mozilla.com/D248065")
         self.assertEqual(issue.notion_url, "https://www.notion.so/mzthunderbird/b183c949289f4282864cd373cb8b2cb7")
+        self.assertEqual(issue.estimate, "8")
 
     async def test_bugzilla_get_issues_reviewers(self):
         reviewer = "reviewer@example.com"

@@ -264,6 +264,40 @@ class ProjectSyncTest(BaseTestCase):
             )
             self.assertEqual(notion_data["Team"], ["teama"])
 
+    async def test_task_estimate_sync(self):
+        tracker = IssueTestTracker(
+            issues=self.issues,
+            property_names={
+                "notion_tasks_estimate": "Estimate",
+            },
+        )
+        sync = ProjectSync(
+            project_key="test",
+            tracker=tracker,
+            notion_token="NOTION_TOKEN",
+            milestones_id="milestones_id",
+            tasks_id="tasks_id",
+            dry=True,
+        )
+
+        with self.subTest(msg="set estimate when available"):
+            self.issues[1].estimate = "5"
+            notion_data = await sync._get_task_notion_data(
+                tracker_issue=self.issues[1],
+                parent_milestone_pages=[],
+                old_page=None,
+            )
+            self.assertEqual(notion_data["Estimate"], "5")
+
+        with self.subTest(msg="skip estimate updates when empty"):
+            self.issues[1].estimate = ""
+            notion_data = await sync._get_task_notion_data(
+                tracker_issue=self.issues[1],
+                parent_milestone_pages=[],
+                old_page=None,
+            )
+            self.assertNotIn("Estimate", notion_data)
+
     async def test_update_sync_stamp(self):
         self.notion_handler.milestones_handler.pages = []
         tracker = IssueTestTracker(dry=True)
