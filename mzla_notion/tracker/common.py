@@ -31,6 +31,7 @@ class Issue(IssueRef):
     description: str
     state: str
     priority: str
+    estimate: str = None
     assignees: set = field(default_factory=set)
     labels: set = field(default_factory=set)
     issue_type: str = None
@@ -93,6 +94,7 @@ class IssueTracker:
         "notion_tasks_planned_dates": "",  # Default is disabled
         "notion_tasks_team": "",  # Default is disabled
         "notion_tasks_priority": "Priority",
+        "notion_tasks_estimate": "",  # Default is disabled
         "notion_tasks_status": "Status",
         "notion_tasks_milestone_relation": "Project",
         "notion_tasks_sprint_relation": "Sprint",
