@@ -858,3 +858,46 @@ class ProjectSyncTest(BaseTestCase):
                 ]["name"],
                 "NEW",
             )
+
+    async def test_closed_task_with_string_planned_start(self):
+        tracker = IssueTestTracker(
+            issues=self.issues,
+            property_names={
+                "notion_tasks_planned_dates": "Planned Dates",
+                "notion_closed_states": ["NEW"],
+            },
+        )
+        sync = ProjectSync(
+            project_key="test",
+            tracker=tracker,
+            notion_token="NOTION_TOKEN",
+            milestones_id="milestones_id",
+            tasks_id="tasks_id",
+            dry=True,
+        )
+
+        issue = self.issues[1]
+        issue.start_date = None
+        issue.end_date = None
+        issue.closed_date = datetime.datetime(2026, 3, 15, 12, 0, 0, tzinfo=datetime.timezone.utc)
+        issue.state = "NEW"
+
+        old_page = {
+            "properties": {
+                "Planned Dates": {
+                    "type": "date",
+                    "date": {"start": "2026-03-01T00:00:00.000+00:00", "end": None},
+                }
+            }
+        }
+
+        notion_data = await sync._get_task_notion_data(
+            tracker_issue=issue,
+            parent_milestone_pages=[],
+            old_page=old_page,
+        )
+
+        self.assertEqual(
+            notion_data["Dates"]["start"],
+            datetime.datetime(2026, 3, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
+        )

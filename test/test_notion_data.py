@@ -53,6 +53,12 @@ class NotionDateDiffTest(unittest.TestCase):
         content = datetime.date(2026, 4, 27)
         self.assertFalse(prop.is_prop_diff(property_data, content))
 
+    def test_dates_treats_date_only_notion_strings_as_equal_to_dates(self):
+        prop = dates("Dates")
+        property_data = {"date": {"start": "2025-03-10", "end": "2025-03-16"}}
+        content = {"start": datetime.date(2025, 3, 10), "end": datetime.date(2025, 3, 16)}
+        self.assertFalse(prop.is_prop_diff(property_data, content))
+
     def test_dates_update_preserves_date_without_time(self):
         prop = dates("Dates")
         updated = prop.update_content({"start": datetime.date(2026, 4, 27), "end": datetime.date(2026, 4, 28)})

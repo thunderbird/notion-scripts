@@ -280,8 +280,8 @@ def ensure_date(value):
     """Ensure the passed value is a date."""
     if value is None:
         return None
-    if isinstance(value, datetime.date):
-        return value
     if isinstance(value, datetime.datetime):
         return value.date()
+    if isinstance(value, datetime.date):
+        return value
     raise TypeError(f"Expected date or datetime, got {type(value)}")

@@ -17,7 +17,7 @@ from notion_client.helpers import async_iterate_paginated_api
 
 from .. import notion_data as p
 from ..notion_data import NotionDatabase
-from ..util import getnestedattr, AsyncRetryingClient, ensure_datetime
+from ..util import getnestedattr, AsyncRetryingClient, ensure_datetime, from_isoformat
 
 logger = logging.getLogger("project_sync")
 
@@ -181,7 +181,7 @@ class BaseSync:
             typefunc = getattr(p, type_name)
             properties.append(typefunc(prop, *extra_args, **extra_kwargs))
 
-    def _get_date_prop(self, block_or_page, key_name, default=None):
+    def _get_date_prop(self, block_or_page, key_name, default=None, parse=True):
         propinfo = self.propnames[key_name]
         if isinstance(propinfo, list):
             start_prop_name, end_prop_name = propinfo
@@ -194,10 +194,16 @@ class BaseSync:
         start_prop = getnestedattr(lambda: block_or_page["properties"][start_prop_name], default)
         end_prop = getnestedattr(lambda: block_or_page["properties"][end_prop_name], default)
 
-        return (
-            getnestedattr(lambda: start_prop[start_prop["type"]][start_prop_key], default),
-            getnestedattr(lambda: end_prop[end_prop["type"]][end_prop_key], default),
-        )
+        start_value = getnestedattr(lambda: start_prop[start_prop["type"]][start_prop_key], default)
+        end_value = getnestedattr(lambda: end_prop[end_prop["type"]][end_prop_key], default)
+
+        if parse:
+            if isinstance(start_value, str):
+                start_value = from_isoformat(start_value)
+            if isinstance(end_value, str):
+                end_value = from_isoformat(end_value)
+
+        return (start_value, end_value)
 
     def _get_richtext_prop(self, block_or_page, key_name, default=None):
         prop = self._get_prop(block_or_page, key_name, default)
@@ -371,6 +377,7 @@ class BaseSync:
         old_planned_start, old_planned_target = getnestedattr(
             lambda: self._get_date_prop(old_page, "notion_tasks_planned_dates"), (None, None)
         )
+
         utc_min = datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
         if tracker_issue.sprint:
             final_start = tracker_issue.sprint.start_date
@@ -386,7 +393,10 @@ class BaseSync:
             final_end = tracker_issue.end_date or tracker_issue.closed_date
         elif final_status in self.propnames["notion_closed_states"]:
             # No dates set otherwise, and the issue is closed
-            final_start = max(tracker_issue.created_date, old_planned_start or utc_min)
+            final_start = max(
+                ensure_datetime(tracker_issue.created_date),
+                ensure_datetime(old_planned_start) or utc_min,
+            )
             final_end = tracker_issue.closed_date
         else:
             final_start = None
