@@ -23,14 +23,15 @@ def _parse_notion_date_value(value: Any) -> Any:
     if not isinstance(value, str):
         return value
 
-    normalized = value.replace("Z", "+00:00")
+    # Parse date-only strings as date first so they don't become midnight datetimes.
     try:
-        return datetime.datetime.fromisoformat(normalized)
+        return datetime.date.fromisoformat(value)
     except ValueError:
         pass
 
+    normalized = value.replace("Z", "+00:00")
     try:
-        return datetime.date.fromisoformat(value)
+        return datetime.datetime.fromisoformat(normalized)
     except ValueError:
         return value
 
