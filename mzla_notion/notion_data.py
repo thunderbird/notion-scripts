@@ -18,6 +18,56 @@ from .util import getnestedattr
 logger = logging.getLogger("notion_database")
 
 
+def _parse_notion_date_value(value: Any) -> Any:
+    """Parse a Notion date string into a date/datetime object when possible."""
+    if not isinstance(value, str):
+        return value
+
+    normalized = value.replace("Z", "+00:00")
+    try:
+        return datetime.datetime.fromisoformat(normalized)
+    except ValueError:
+        pass
+
+    try:
+        return datetime.date.fromisoformat(value)
+    except ValueError:
+        return value
+
+
+def _normalize_notion_date_compare_value(value: Any) -> Any:
+    """Normalize date-like values for comparison.
+
+    Rules:
+    - Datetimes are compared down to the minute.
+    - A date and a UTC datetime at 00:00 are treated as equal.
+    """
+    value = _parse_notion_date_value(value)
+
+    if value is None:
+        return None
+
+    if isinstance(value, datetime.datetime):
+        if value.tzinfo is not None:
+            value = value.astimezone(datetime.timezone.utc)
+
+        value = value.replace(second=0, microsecond=0)
+        if (
+            value.tzinfo is not None
+            and value.utcoffset() == datetime.timedelta(0)
+            and value.hour == 0
+            and value.minute == 0
+        ):
+            return value.date().isoformat()
+
+        return value.isoformat(timespec="minutes")
+
+    if isinstance(value, datetime.date):
+        return value.isoformat()
+
+    return value
+
+
 @dataclass
 class NotionProperty:
     """Defines a generic Notion database property.
@@ -389,22 +439,11 @@ def dates(name: str) -> NotionProperty:
             return {name: {"date": None}}
 
     def _diff(property_data: Dict[str, Any], content: datetime.datetime) -> bool:
-        start_data = getnestedattr(lambda: property_data["date"]["start"], None)
-        end_data = getnestedattr(lambda: property_data["date"]["end"], None)
+        start_data = _normalize_notion_date_compare_value(getnestedattr(lambda: property_data["date"]["start"], None))
+        end_data = _normalize_notion_date_compare_value(getnestedattr(lambda: property_data["date"]["end"], None))
 
-        content_start = content.get("start") if content else None
-        content_end = content.get("end") if content else None
-
-        # Notion only saves datetimes up to the minute.
-        if isinstance(content_start, datetime.datetime):
-            content_start = content_start.replace(second=0, microsecond=0).isoformat(timespec="milliseconds")
-        elif isinstance(content_start, datetime.date):
-            content_start = content_start.isoformat()
-
-        if isinstance(content_end, datetime.datetime):
-            content_end = content_end.replace(second=0, microsecond=0).isoformat(timespec="milliseconds")
-        elif isinstance(content_end, datetime.date):
-            content_end = content_end.isoformat()
+        content_start = _normalize_notion_date_compare_value(content.get("start") if content else None)
+        content_end = _normalize_notion_date_compare_value(content.get("end") if content else None)
 
         if content_start != start_data or content_end != end_data:
             return True
@@ -423,13 +462,10 @@ def date(name: str) -> NotionProperty:
             return {name: {"date": None}}
 
     def _diff(property_data: Dict[str, Any], content: datetime.datetime) -> bool:
-        property_data = getnestedattr(lambda: property_data["date"]["start"], None)
-
-        # Notion only saves up to the minute
-        if isinstance(content, datetime.datetime):
-            content = content.replace(second=0, microsecond=0).isoformat(timespec="milliseconds")
-        elif isinstance(content, datetime.date):
-            content = content.isoformat()
+        property_data = _normalize_notion_date_compare_value(
+            getnestedattr(lambda: property_data["date"]["start"], None)
+        )
+        content = _normalize_notion_date_compare_value(content)
 
         if property_data != content:
             return True
