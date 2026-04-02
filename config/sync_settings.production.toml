@@ -40,7 +40,7 @@ notion_milestones_dates = "Original Due Date"
 notion_issue_field = "Bug URL"
 notion_default_open_state = "Backlog"
 notion_inprogress_state = "In progress"
-notion_closed_states = ["Done"]
+notion_closed_states = ["Done", "Canceled"]
 notion_tasks_repository = "Ecosystem (Mobile)"
 
 [sync.mobile.properties.notion_tasks_repository_map]
@@ -102,7 +102,7 @@ notion_milestones_dates = ""
 notion_issue_field = "Bug URL"
 notion_default_open_state = "Backlog"
 notion_inprogress_state = "In progress"
-notion_closed_states = ["Done"]
+notion_closed_states = ["Done", "Canceled"]
 
 [sync.desktop]
 method = "bugzilla_project"
@@ -141,7 +141,7 @@ notion_milestones_dates = ""
 notion_issue_field = "Bug URL"
 notion_default_open_state = "Backlog"
 notion_inprogress_state = "In progress"
-notion_closed_states = ["Done"]
+notion_closed_states = ["Done", "Canceled"]
 
 [sync.desktop.properties.bugzilla_map_state]
 NEW = "Backlog"
@@ -230,7 +230,7 @@ notion_milestones_dates = "Original Due Date"
 notion_issue_field = "Bug URL"
 notion_default_open_state = "Backlog"
 notion_inprogress_state = "In progress"
-notion_closed_states = ["Done"]
+notion_closed_states = ["Done", "Canceled"]
 notion_tasks_repository = "Product (Services)"
 
 [sync.services.properties.notion_tasks_repository_map]
