@@ -38,32 +38,23 @@ GITHUB_TOKEN=<your github integration token>
 BZ_KEY=<your bugzilla API key>
 ```
 
-The following variable can optionally be set instead of the `usermap.github` configuration option.
-
-```shell
-NOTION_SYNC_GITHUB_USERMAP=`cat users.toml`
-```
-
-Your `users.toml` from the above example cab look like this. The UUID is the id from the notion API.
-There are instructions on how to get this id in notion_sync.py
-
-```toml
-kewisch = "8e664893-abc5-4700-b805-8e0facecce99"
-wmontwe = "0259eb9f-353f-4b1b-af8f-e25f5bf06a59"
-```
-
 ### sync_settings.toml
 
 This is the main configuration file. Here is a verbose example:
 
 ```toml
 # This is the configuration file. It is more verbose than it needs to be so you can see all options
-[usermap]
 
-[usermap.github]
-# This section maps github username to the id of the notion user.
-# Use it to ensure that mentions are correctly translated.
-kewisch = "8e664893-abc5-4700-b805-8e0facecce99"
+[people]
+# Optional: load user mapping from a Notion People directory database.
+# If configured, entries from this directory are merged into github/bugzilla user maps.
+# For bugzilla mapping, an empty bugzilla email falls back to Email.
+notion_people_id = "18adea4adcdf807c8fabcc9c11b61777"
+notion_people_uuid = "User"
+notion_people_email = "Email"
+notion_people_github = "GitHub Profile"
+notion_people_bugzilla = "Bugzilla Email"
+notion_people_phabricator = "Phabricator Username"
 
 [sync]
 # There are three supported synchronization engines: github_labels, github_project and bugzilla They

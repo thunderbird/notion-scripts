@@ -285,3 +285,19 @@ def ensure_date(value):
     if isinstance(value, datetime.date):
         return value
     raise TypeError(f"Expected date or datetime, got {type(value)}")
+
+
+def print_table(headers, rows):
+    """Print a table, for debugging purposes."""
+    widths = [len(header) for header in headers]
+    for row in rows:
+        for idx, cell in enumerate(row):
+            widths[idx] = max(widths[idx], len(cell))
+
+    def _format_row(row):
+        return " | ".join(cell.ljust(widths[idx]) for idx, cell in enumerate(row))
+
+    print(_format_row(headers))
+    print(" | ".join("-" * width for width in widths))
+    for row in rows:
+        print(_format_row(row))

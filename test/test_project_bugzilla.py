@@ -156,23 +156,26 @@ class BugzillaProjectTest(BaseTestCase):
         self.assertEqual(issue.estimate, "8")
 
     async def test_bugzilla_get_issues_reviewers(self):
-        reviewer = "reviewer@example.com"
+        reviewer = "reviewer-user"
         notion_user = "a5fba708-e170-4a68-8392-ba6894272c70"
-        self.phab_handler.users = {reviewer: {"phid": "PHID-USER-reviewer"}}
+        self.phab_handler.user_search_users = {
+            reviewer: {"phid": "PHID-USER-reviewer", "fields": {"username": reviewer}}
+        }
         self.phab_handler.project_response = load_fixture("phabricator/project_search_reviewers.json")
         self.phab_handler.review_response = load_fixture("phabricator/revision_search_reviewers.json")
         self.bugzilla = await Bugzilla.create(
             base_url="https://bugzilla.dev",
             token="BUGZILLA_TOKEN",
             dry=False,
-            user_map={reviewer: notion_user},
+            user_map={},
+            phabricator_user_map={reviewer: notion_user},
         )
 
         got_issues = self.bugzilla.get_issues_by_number([IssueRef(repo="bugzilla.dev", id="1944885")], True)
         issues = {issue.id: issue async for issue in got_issues}
         issue = issues["1944885"]
 
-        self.assertEqual({user.tracker_user for user in issue.reviewers}, {reviewer})
+        self.assertEqual({user.tracker_user for user in issue.reviewers}, {None})
         self.assertEqual({user.notion_user for user in issue.reviewers}, {notion_user})
         self.assertIn("reviewer:front-end", issue.labels)
 

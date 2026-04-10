@@ -37,10 +37,10 @@ class BugzillaUserMap(UserMap):
     """This is a map between different types of user ids to avoid mental gymnastics."""
 
     @classmethod
-    async def create(cls, bzclient, phabclient, trk_to_notion, **kwargs):
+    async def create(cls, bzclient, phabclient, trk_to_notion, phabricator_to_notion=None, **kwargs):
         """Instanciate the user map and run async init."""
-        self = cls(bzclient, trk_to_notion, **kwargs)
-        await self._init_userid_logins(phabclient, trk_to_notion)
+        self = cls(bzclient, trk_to_notion or {}, **kwargs)
+        await self._init_userid_logins(phabclient, phabricator_to_notion or {})
         return self
 
     def __init__(self, client, trk_to_notion):
@@ -48,9 +48,13 @@ class BugzillaUserMap(UserMap):
         super().__init__(trk_to_notion)
         self._client = client
 
-    async def _init_userid_logins(self, phabclient, trk_to_notion):
-        self._trk_to_phid = await phabclient.get_user_phids(trk_to_notion.keys())
-        self._phid_to_trk = {phid: trk for trk, phid in self._trk_to_phid.items()}
+    async def _init_userid_logins(self, phabclient, phabricator_map):
+        phabricator_to_phid = await phabclient.get_user_phids_by_username(phabricator_map.keys())
+        self._phid_to_notion = {
+            phid: notion
+            for phab_user, notion in phabricator_map.items()
+            if (phid := phabricator_to_phid.get(phab_user))
+        }
 
     @cache
     def tracker_mention(self, username):
@@ -59,13 +63,9 @@ class BugzillaUserMap(UserMap):
         user = response.json()
         return user["real_name"] or user["name"]
 
-    def trk_to_phid(self, bzmail):
-        """Convert a tracker username to a Phabricator PHID."""
-        return self._trk_to_phid.get(bzmail)
-
-    def phid_to_trk(self, phid):
-        """Convert a Phabricator PHID to a tracker username."""
-        return self._phid_to_trk.get(phid)
+    def phid_to_notion(self, phid):
+        """Convert a Phabricator PHID to a notion id."""
+        return self._phid_to_notion.get(phid)
 
 
 class PhabClient(AsyncRetryingClient):
@@ -82,19 +82,26 @@ class PhabClient(AsyncRetryingClient):
         kwargs["data"]["api.token"] = self.phab_token
         return super().post(*args, **kwargs)
 
-    async def get_user_phids(self, users):
-        """Get the PHIDs for the list of users."""
-        data = {f"emails[{idx}]": email for idx, email in enumerate(users)}
+    async def get_user_phids_by_username(self, usernames):
+        """Get PHIDs for a list of users by Phabricator username."""
+        usernames = list(usernames)
+        if not len(usernames):
+            return {}
 
-        response = await self.post("user.query", data=data)
+        data = {f"constraints[usernames][{idx}]": username for idx, username in enumerate(usernames)}
+
+        response = await self.post("user.search", data=data)
         payload = response.json()
 
         if error := payload.get("error_code"):
             raise Exception("Phabricator Error: " + error)
 
-        resdata = payload.get("result", [])
-
-        return {email: resdata[idx]["phid"] for idx, email in enumerate(users)}
+        users = payload.get("result", {}).get("data", payload.get("data", []))
+        return {
+            username: user["phid"]
+            for user in users
+            if (username := getnestedattr(lambda: user["fields"]["username"], None)) and user.get("phid")
+        }
 
     async def get_phab_reviews(self, urls):
         """Get phabricator reviews for the respective urls."""
@@ -167,7 +174,7 @@ class Bugzilla(IssueTracker):
 
     name = "Bugzilla"
 
-    def __init__(self, base_url, phab_token=None, token=None, user_map=None, **kwargs):
+    def __init__(self, base_url, phab_token=None, token=None, user_map=None, phabricator_user_map=None, **kwargs):
         """Initialize the Bugzilla issue tracker."""
         super().__init__(**kwargs)
 
@@ -204,9 +211,15 @@ class Bugzilla(IssueTracker):
         )
 
         self._raw_user_map = user_map
+        self._raw_phabricator_user_map = phabricator_user_map
 
     async def _async_init(self):
-        self.user_map = await BugzillaUserMap.create(self.sync_client, self.phab_client, self._raw_user_map)
+        self.user_map = await BugzillaUserMap.create(
+            self.sync_client,
+            self.phab_client,
+            self._raw_user_map,
+            self._raw_phabricator_user_map,
+        )
 
     def parse_issueref(self, ref):
         """Parse an issue identifier (e.g. bugzilla url) to an IssueRef."""
@@ -398,11 +411,11 @@ class Bugzilla(IssueTracker):
             if not issue:
                 continue
 
-            issue.reviewers = [
-                self.new_user(tracker_user=trk)
+            issue.reviewers = {
+                self.new_user(notion_user=notion_id)
                 for reviewer in review.reviewers
-                if (trk := self.user_map.phid_to_trk(reviewer.phid))
-            ]
+                if (notion_id := self.user_map.phid_to_notion(reviewer.phid))
+            }
 
             if review.status == "needs-review":
                 issue.labels.update([f"reviewer:{reviewer.group}" for reviewer in review.reviewers if reviewer.group])

@@ -1,5 +1,14 @@
 # MZLA Notion Scripts Configuration
 # See README for more information on the setup
+
+[people]
+notion_people_id = "33e2df5d45ae80b3ad01f6b4a1cb90d7"
+notion_people_uuid = "Person"
+notion_people_email = "Email"
+notion_people_github = "GitHub Profile"
+notion_people_bugzilla = "Bugzilla Email"
+notion_people_phabricator = "Phabricator Username"
+
 [sync.mobile]
 method = "github_project"
 
