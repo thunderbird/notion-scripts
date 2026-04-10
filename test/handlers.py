@@ -83,10 +83,14 @@ class PhabHandler:
         )
 
         respx_mock.route(name="phab_users", **PHAB_ROUTE, path="/api/user.query").mock(side_effect=self.user_handler)
+        respx_mock.route(name="phab_user_search", **PHAB_ROUTE, path="/api/user.search").mock(
+            side_effect=self.user_search_handler
+        )
 
         self.review_response = {"result": {"data": []}}
         self.project_response = {"result": {"data": []}}
         self.users = {}
+        self.user_search_users = {}
 
     def search_handler(self, req):
         return httpx.Response(200, json=self.review_response)
@@ -104,6 +108,17 @@ class PhabHandler:
                 result.append(self.users[email])
 
         return httpx.Response(200, json={"result": result})
+
+    def user_search_handler(self, req):
+        fields = urllib.parse.parse_qs(req.content.decode("utf-8"))
+        data = []
+
+        for index in range(len([key for key in fields if key.startswith("constraints[usernames][")])):
+            username = fields[f"constraints[usernames][{index}]"][0]
+            if username in self.user_search_users:
+                data.append(self.user_search_users[username])
+
+        return httpx.Response(200, json={"result": {"data": data}})
 
 
 class BugzillaHandler:

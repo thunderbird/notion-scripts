@@ -16,8 +16,9 @@ from .sync.project import synchronize as synchronize_project
 from .sync.board import synchronize as synchronize_board
 from .sync.deployments import synchronize as synchronize_deployments
 from .tracker.github import GitHub, GitHubProjectV2
-from .tracker.bugzilla import Bugzilla
-from .util import GitHubActionsFormatter
+from .tracker.bugzilla import Bugzilla, PhabClient
+from .people import load_notion_usermap, build_usermap_table_rows
+from .util import GitHubActionsFormatter, print_table
 
 logger = logging.getLogger("notion_sync")
 
@@ -60,6 +61,39 @@ def cmd_debug_db(dbid=None):
             pprint(block_info)
             print("\nChild blocks:")
             pprint(child_info)
+
+
+async def cmd_debug_usermap(config):
+    """Show a table with notion-to-tracker user mappings."""
+    with open(config, "rb") as fp:
+        settings = tomllib.load(fp)
+    if not settings.get("people"):
+        logger.info(f"No [people] section in {config}, user mapping table will be empty")
+    elif not os.environ.get("NOTION_TOKEN"):
+        logger.info("NOTION_TOKEN is not set, user mapping table will be empty")
+
+    user_map = await load_notion_usermap(settings, notion_token=os.environ.get("NOTION_TOKEN"))
+
+    phabricator_map = user_map.get("phabricator") or {}
+    phabricator_phids = {}
+    if phabricator_map and os.environ.get("PHAB_TOKEN"):
+        phab_client = PhabClient(
+            base_url="https://phabricator.services.mozilla.com/api/",
+            phab_token=os.environ["PHAB_TOKEN"],
+            http2=True,
+            autoraise=True,
+        )
+        phabricator_phids = await phab_client.get_user_phids_by_username(phabricator_map.keys())
+
+    headers = [
+        "notion user id",
+        "github tracker user id",
+        "bugzilla tracker user id",
+        "phabricator PHID",
+        "phabricator userName",
+    ]
+    rows = build_usermap_table_rows(user_map, phabricator_phids=phabricator_phids)
+    print_table(headers, rows)
 
 
 def cmd_list_synchronizers(config):
@@ -143,19 +177,12 @@ def setup_logging(verbose):
             logger.propagate = False
 
 
-async def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_run=False, synchronous=False):
+async def cmd_synchronize(projects, config, verbose=0, dry_run=False, synchronous=False):
     """This is the main cli. Please use --help on how to use it."""
     with open(config, "rb") as fp:
         settings = tomllib.load(fp)
 
-    if user_map_file and os.path.isfile(user_map_file):
-        with open(user_map_file, "rb") as fp:
-            user_map = tomllib.load(fp)
-    else:
-        user_map = {
-            "bugzilla": tomllib.loads(os.environ.get("NOTION_SYNC_BUGZILLA_USERMAP", "")),
-            "github": tomllib.loads(os.environ.get("NOTION_SYNC_GITHUB_USERMAP", "")),
-        }
+    user_map = await load_notion_usermap(settings, notion_token=os.environ.get("NOTION_TOKEN"))
 
     # This will list the GitHub project ids for you
     # import libs.ghhelper
@@ -197,6 +224,7 @@ async def cmd_synchronize(projects, config, verbose=0, user_map_file=None, dry_r
                     phab_token=os.environ["PHAB_TOKEN"],
                     dry=dry_run or project.get("tracker_dry_run", False),
                     user_map=user_map.get("bugzilla") or {},
+                    phabricator_user_map=user_map.get("phabricator") or {},
                     property_names=project.get("properties", {}),
                 )
             elif project["method"] == "github_project":
@@ -297,12 +325,6 @@ async def async_main():
         help="Use a different config file, defaults to sync_settings.toml.",
     )
     parser.add_argument(
-        "-u",
-        "--usermap",
-        default="sync_usermap.toml",
-        help="The usermap file to use if not specified via environment.",
-    )
-    parser.add_argument(
         "-v",
         "--verbose",
         action="count",
@@ -334,6 +356,7 @@ async def async_main():
     parser.add_argument("--debug-db", help="Show debug database view")
     parser.add_argument("--debug-project", help="Show debug project")
     parser.add_argument("--debug-users", action="store_true", help="Show users with their id")
+    parser.add_argument("--debug-usermap", action="store_true", help="Show user mapping table")
 
     args = parser.parse_args()
     setup_logging(args.verbose)
@@ -344,6 +367,8 @@ async def async_main():
         cmd_debug_db(dbid=args.debug_db)
     elif args.debug_users:
         cmd_debug_users()
+    elif args.debug_usermap:
+        await cmd_debug_usermap(config=args.config)
     elif args.repositories:
         cmd_list_repositories(args.projects, args.config)
     elif args.list:
@@ -354,7 +379,6 @@ async def async_main():
                 args.projects,
                 config=args.config,
                 verbose=args.verbose,
-                user_map_file=args.usermap,
                 dry_run=args.dry_run,
                 synchronous=args.synchronous,
             )
