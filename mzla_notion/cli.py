@@ -7,93 +7,17 @@ import logging
 import os
 import sys
 import tomllib
-import notion_client
-
-from pprint import pprint
 
 from .sync.label import synchronize as synchronize_gh_label
 from .sync.project import synchronize as synchronize_project
 from .sync.board import synchronize as synchronize_board
 from .sync.deployments import synchronize as synchronize_deployments
-from .tracker.github import GitHub, GitHubProjectV2
-from .tracker.bugzilla import Bugzilla, PhabClient
-from .people import load_notion_usermap, build_usermap_table_rows
-from .util import GitHubActionsFormatter, print_table
+from .tracker.github import GitHub
+from .tracker.bugzilla import Bugzilla
+from .people import load_notion_usermap
+from .util import GitHubActionsFormatter
 
 logger = logging.getLogger("notion_sync")
-
-
-def cmd_debug_users():
-    """Show a list of users."""
-    notion = notion_client.Client(auth=os.environ["NOTION_TOKEN"])
-    users = notion.users.list()
-    for user in users["results"]:
-        print(f'{user["person"]["email"]} = "{user["id"]}" # {user["name"]}')
-
-
-async def cmd_debug_project(orgrepo):
-    """Show project properties (e.g. to get the ID)."""
-    org, repo = orgrepo.split("/")
-
-    await GitHubProjectV2.list(org, repo)
-
-
-def cmd_debug_db(dbid=None):
-    """Show a debug view of a database, page, or block."""
-    notion = notion_client.Client(auth=os.environ["NOTION_TOKEN"])
-
-    try:
-        database_info = notion.databases.retrieve(database_id=dbid)
-        print("Database Information:")
-        pprint(database_info)
-    except notion_client.errors.APIResponseError:
-        try:
-            page_info = notion.pages.retrieve(dbid)
-            child_info = notion.blocks.children.list(block_id=dbid)
-            print("Page Information:")
-            pprint(page_info)
-            print("\nChild blocks:")
-            pprint(child_info)
-        except notion_client.errors.APIResponseError:
-            block_info = notion.blocks.retrieve(block_id=dbid)
-            child_info = notion.blocks.children.list(block_id=dbid)
-            print("Block Information:")
-            pprint(block_info)
-            print("\nChild blocks:")
-            pprint(child_info)
-
-
-async def cmd_debug_usermap(config):
-    """Show a table with notion-to-tracker user mappings."""
-    with open(config, "rb") as fp:
-        settings = tomllib.load(fp)
-    if not settings.get("people"):
-        logger.info(f"No [people] section in {config}, user mapping table will be empty")
-    elif not os.environ.get("NOTION_TOKEN"):
-        logger.info("NOTION_TOKEN is not set, user mapping table will be empty")
-
-    user_map = await load_notion_usermap(settings, notion_token=os.environ.get("NOTION_TOKEN"))
-
-    phabricator_map = user_map.get("phabricator") or {}
-    phabricator_phids = {}
-    if phabricator_map and os.environ.get("PHAB_TOKEN"):
-        phab_client = PhabClient(
-            base_url="https://phabricator.services.mozilla.com/api/",
-            phab_token=os.environ["PHAB_TOKEN"],
-            http2=True,
-            autoraise=True,
-        )
-        phabricator_phids = await phab_client.get_user_phids_by_username(phabricator_map.keys())
-
-    headers = [
-        "notion user id",
-        "github tracker user id",
-        "bugzilla tracker user id",
-        "phabricator PHID",
-        "phabricator userName",
-    ]
-    rows = build_usermap_table_rows(user_map, phabricator_phids=phabricator_phids)
-    print_table(headers, rows)
 
 
 def cmd_list_synchronizers(config):
@@ -182,12 +106,8 @@ async def cmd_synchronize(projects, config, verbose=0, dry_run=False, synchronou
     with open(config, "rb") as fp:
         settings = tomllib.load(fp)
 
-    user_map = await load_notion_usermap(settings, notion_token=os.environ.get("NOTION_TOKEN"))
-
-    # This will list the GitHub project ids for you
-    # import libs.ghhelper
-    # libs.ghhelper.GitHubProjectV2.list("thunderbird", "thunderbird-android")
-    # sys.exit()
+    notion_token = os.environ.get("NOTION_TOKEN")
+    user_map = await load_notion_usermap(settings, notion_token=notion_token)
 
     if settings.get("dry", False):
         if dry_run is None or dry_run is True:
@@ -243,7 +163,7 @@ async def cmd_synchronize(projects, config, verbose=0, dry_run=False, synchronou
             await synchronize_project(
                 project_key=key,
                 tracker=tracker,
-                notion_token=os.environ["NOTION_TOKEN"],
+                notion_token=notion_token,
                 milestones_id=project["notion_milestones_id"],
                 tasks_id=project["notion_tasks_id"],
                 sprint_id=project.get("notion_sprints_id", None),
@@ -271,7 +191,7 @@ async def cmd_synchronize(projects, config, verbose=0, dry_run=False, synchronou
             await synchronize_gh_label(
                 project_key=key,
                 tracker=tracker,
-                notion_token=os.environ["NOTION_TOKEN"],
+                notion_token=notion_token,
                 milestones_id=project["notion_milestones_id"],
                 tasks_id=project["notion_tasks_id"],
                 sprint_id=project.get("notion_sprints_id", None),
@@ -290,7 +210,7 @@ async def cmd_synchronize(projects, config, verbose=0, dry_run=False, synchronou
         elif project["method"] == "project_board":
             await synchronize_board(
                 project_key=key,
-                notion_token=os.environ["NOTION_TOKEN"],
+                notion_token=notion_token,
                 board_id=project["notion_board_id"],
                 properties=project.get("properties", {}),
                 dry=dry_run,
@@ -300,7 +220,7 @@ async def cmd_synchronize(projects, config, verbose=0, dry_run=False, synchronou
             await synchronize_deployments(
                 project_key=key,
                 blocks=project.get("blocks", {}),
-                notion_token=os.environ["NOTION_TOKEN"],
+                notion_token=notion_token,
                 github_token=os.environ["GITHUB_TOKEN"],
                 expected_columns=project["expected_columns"],
                 stage_column=project["stage_column"],
@@ -353,23 +273,10 @@ async def async_main():
         help="The keys of the projects to synchronize. Defaults to all projects.",
     )
 
-    parser.add_argument("--debug-db", help="Show debug database view")
-    parser.add_argument("--debug-project", help="Show debug project")
-    parser.add_argument("--debug-users", action="store_true", help="Show users with their id")
-    parser.add_argument("--debug-usermap", action="store_true", help="Show user mapping table")
-
     args = parser.parse_args()
     setup_logging(args.verbose)
 
-    if args.debug_project:
-        await cmd_debug_project(args.debug_project)
-    elif args.debug_db:
-        cmd_debug_db(dbid=args.debug_db)
-    elif args.debug_users:
-        cmd_debug_users()
-    elif args.debug_usermap:
-        await cmd_debug_usermap(config=args.config)
-    elif args.repositories:
+    if args.repositories:
         cmd_list_repositories(args.projects, args.config)
     elif args.list:
         cmd_list_synchronizers(args.config)

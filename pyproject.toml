@@ -66,6 +66,7 @@ ignore = ["D100", "D203", "D213"]
 
 [tool.ruff.lint.per-file-ignores]
 "test/**.py" = ["D"]
+"scripts/**.py" = ["D"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

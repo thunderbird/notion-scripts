@@ -2,7 +2,8 @@ import unittest
 
 from unittest.mock import patch
 
-from mzla_notion.people import load_notion_usermap, build_usermap_table_rows
+from mzla_notion.people import load_notion_usermap
+from scripts.notion_debug import build_usermap_table_rows
 
 
 class DummyNotion:
