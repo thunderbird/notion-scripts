@@ -137,35 +137,3 @@ async def load_notion_usermap(settings, notion_token):
     )
 
     return result
-
-
-def build_usermap_table_rows(user_map, phabricator_phids=None):
-    """Generate table data to debug the user map."""
-
-    def _reverse_user_map(mapping):
-        result = {}
-        for tracker_user, notion_user in (mapping or {}).items():
-            result.setdefault(notion_user, []).append(tracker_user)
-        return {key: sorted(values, key=str.casefold) for key, values in result.items()}
-
-    phabricator_phids = phabricator_phids or {}
-    github_map = _reverse_user_map(user_map.get("github"))
-    bugzilla_map = _reverse_user_map(user_map.get("bugzilla"))
-    phabricator_map = _reverse_user_map(user_map.get("phabricator"))
-    notion_ids = sorted(set(github_map.keys()) | set(bugzilla_map.keys()) | set(phabricator_map.keys()))
-
-    rows = []
-    for notion_user_id in notion_ids:
-        phabricator_usernames = phabricator_map.get(notion_user_id, [])
-        rows.append(
-            [
-                notion_user_id,
-                ", ".join(github_map.get(notion_user_id, [])),
-                ", ".join(bugzilla_map.get(notion_user_id, [])),
-                ", ".join(
-                    phabricator_phids[username] for username in phabricator_usernames if phabricator_phids.get(username)
-                ),
-                ", ".join(phabricator_usernames),
-            ]
-        )
-    return rows

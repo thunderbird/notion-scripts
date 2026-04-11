@@ -38,6 +38,17 @@ GITHUB_TOKEN=<your github integration token>
 BZ_KEY=<your bugzilla API key>
 ```
 
+### Debug scripts
+Debug helpers are available as standalone scripts instead of `mzla-notion --debug-*` flags:
+
+```shell
+uv run python scripts/notion_debug.py users
+uv run python scripts/notion_debug.py db <notion_id>
+uv run python scripts/notion_debug.py usermap --config config/sync_settings.toml
+uv run python scripts/notion_debug.py usersync --config config/sync_settings.toml --dry-run
+uv run python scripts/github_debug.py project thunderbird/thunderbird-android
+```
+
 ### sync_settings.toml
 
 This is the main configuration file. Here is a verbose example:
