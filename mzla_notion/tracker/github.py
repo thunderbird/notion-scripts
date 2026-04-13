@@ -311,8 +311,9 @@ class GitHub(IssueTracker, GitHubFixups):
         if new_issue.description != old_issue.description:
             issue_data["body"] = new_issue.description
 
+        op.update_issue(input=issue_data)
+
         if not self.dry:
-            op.update_issue(input=issue_data)
             await self.endpoint(op)
 
     async def _update_issue_assignees(self, old_issue, new_issue):
@@ -445,9 +446,10 @@ class GitHub(IssueTracker, GitHubFixups):
             print(await self.issue_planning_cache.get_issue_types(org))
             raise Exception(f"Could not find issue type {new_issue.issue_type}")
 
+        op = Operation(schema.mutation_type)
+        op.update_issue_issue_type(input={"issue_id": old_issue.gql.id, "issue_type_id": issue_type_id})
+
         if not self.dry:
-            op = Operation(schema.mutation_type)
-            op.update_issue_issue_type(input={"issue_id": old_issue.gql.id, "issue_type_id": issue_type_id})
             await self.endpoint(op)
 
     async def _parse_issue(self, ghissue, sub_issues=False):
