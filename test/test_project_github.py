@@ -362,7 +362,10 @@ class GitHubProjectTest(BaseTestCase):
         self.github.issue_planning_cache._issue_type_cache["kewisch"] = {}
         new_issue = dataclasses.replace(old_issue, priority="P3")
 
-        with self.assertRaisesRegex(Exception, r"Missing required GitHub issue field 'Priority'"):
+        with self.assertRaisesRegex(
+            Exception,
+            r"GitHub issue field 'Priority' in kewisch/test must be SINGLE_SELECT, got '\(missing\)'",
+        ):
             await self.github._update_issue_fields(old_issue, new_issue)
 
     def test_field_value_changed_normalized_date(self):

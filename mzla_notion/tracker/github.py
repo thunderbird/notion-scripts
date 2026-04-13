@@ -395,39 +395,26 @@ class GitHub(IssueTracker, GitHubFixups):
 
         org, _ = new_issue.repo.split("/")
         issue_field = await self.issue_planning_cache.get_issue_field(org, GITHUB_ISSUE_FIELD_PRIORITY)
-        if not issue_field:
-            raise Exception(
-                f"Missing required GitHub issue field '{GITHUB_ISSUE_FIELD_PRIORITY}' for {new_issue.repo} while syncing issue"
-            )
-
-        new_value = new_issue.priority
-        if not field_value_changed(old_issue.priority, new_value):
-            return
-
-        issue_field_node_id = issue_field.id
-
-        if not issue_field_node_id or not issue_field.data_type:
-            raise Exception(
-                f"Missing typed metadata on GitHub issue field '{GITHUB_ISSUE_FIELD_PRIORITY}' in {new_issue.repo}"
-            )
-        if issue_field.data_type != "SINGLE_SELECT":
+        if not issue_field or issue_field.data_type != "SINGLE_SELECT":
+            data_type = "(missing)" if not issue_field else issue_field.data_type
             raise Exception(
                 f"GitHub issue field '{GITHUB_ISSUE_FIELD_PRIORITY}' in {new_issue.repo} "
-                f"must be SINGLE_SELECT, got '{issue_field.data_type}'"
+                f"must be SINGLE_SELECT, got '{data_type}'"
             )
 
-        option_id = (
-            await self.issue_planning_cache.get_issue_field_option_id(org, GITHUB_ISSUE_FIELD_PRIORITY, str(new_value))
-            if new_value not in (None, "")
-            else None
+        if not field_value_changed(old_issue.priority, new_issue.priority):
+            return
+
+        option_id = await self.issue_planning_cache.get_issue_field_option_id(
+            org, GITHUB_ISSUE_FIELD_PRIORITY, str(new_issue.priority)
         )
-        if new_value not in (None, "") and not option_id:
-            raise Exception(
-                f"Could not find option '{new_value}' on GitHub issue field '{GITHUB_ISSUE_FIELD_PRIORITY}' in {new_issue.repo}"
-            )
-        field_update = {"delete": True} if new_value in (None, "") else {"single_select_option_id": option_id}
 
-        field_input = {"field_id": issue_field_node_id, **field_update}
+        if new_issue.priority and not option_id:
+            raise Exception(
+                f"Could not find option '{new_issue.priority}' on GitHub issue field '{GITHUB_ISSUE_FIELD_PRIORITY}' in {new_issue.repo}"
+            )
+        field_update = {"single_select_option_id": option_id} if new_issue.priority else {"delete": True}
+        field_input = {"field_id": issue_field.id, **field_update}
 
         op = Operation(schema.mutation_type)
         op.set_issue_field_value(input={"issue_id": new_issue.gql.id, "issue_fields": [field_input]})
@@ -827,7 +814,7 @@ class IssuePlanningCache:
     async def get_issue_field_option_id(self, org, field_name, option_name):
         """Get single-select option id for the given issue field and option name."""
         issue_field = await self.get_issue_field(org, field_name)
-        if not issue_field or issue_field.data_type != "SINGLE_SELECT":
+        if not option_name or not issue_field or issue_field.data_type != "SINGLE_SELECT":
             return None
         return find_option_id(issue_field.options, option_name)
 
