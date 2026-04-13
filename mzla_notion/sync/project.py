@@ -165,8 +165,7 @@ class ProjectSync(BaseSync):
             )
             diff_dataclasses(tracker_issue, new_issue, log=logger.debug)
 
-            if not self.dry:
-                await self.tracker.update_milestone_issue(tracker_issue, new_issue)
+            await self.tracker.update_milestone_issue(tracker_issue, new_issue)
         elif not skip_unchanged_msg:
             logger.info(
                 f"Unchanged milestone {tracker_issue.id} - {tracker_issue.title} ({tracker_issue.url} / {new_issue.notion_url})"
