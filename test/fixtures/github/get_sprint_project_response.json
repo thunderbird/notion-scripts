@@ -29,26 +29,6 @@
           }
         ]
       },
-      "priority": {
-        "__typename": "ProjectV2SingleSelectField",
-        "id": "PVTSSF_lAHOAAlD3s4AxVFWzgndSP0",
-        "name": "Priority",
-        "dataType": "SINGLE_SELECT",
-        "options": [
-          {
-            "id": "09a377fd",
-            "name": "P1"
-          },
-          {
-            "id": "0c858f8d",
-            "name": "P2"
-          },
-          {
-            "id": "e93753cb",
-            "name": "P3"
-          }
-        ]
-      },
       "sprint": {
         "__typename": "ProjectV2IterationField",
         "id": "PVTIF_lAHOAAlD3s4AxVFWzgndSWI",

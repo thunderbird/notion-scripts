@@ -46,15 +46,6 @@
                     "number": 1,
                     "title": "Test Roadmap - Readonly"
                   },
-                  "priority": {
-                    "__typename": "ProjectV2ItemFieldSingleSelectValue",
-                    "name": "P3",
-                    "optionId": "c82ffbcf",
-                    "field": {
-                      "__typename": "ProjectV2SingleSelectField",
-                      "id": "PVTSSF_lAHOAAlD3s4AxVDIzgndQGw"
-                    }
-                  },
                   "start_date": {
                     "__typename": "ProjectV2ItemFieldDateValue",
                     "date": "2025-02-19",
@@ -94,6 +85,20 @@
             },
             "timelineItems": {
               "nodes": []
+            },
+            "issueFieldValues": {
+              "nodes": [
+                {
+                  "__typename": "IssueFieldSingleSelectValue",
+                  "field": {
+                    "__typename": "IssueFieldSingleSelect",
+                    "id": "IF_kwDOMwGgpM4AABCD"
+                  },
+                  "name": "P3",
+                  "value": "P3",
+                  "optionId": "c82ffbcf"
+                }
+              ]
             }
           },
           {
@@ -113,6 +118,20 @@
               "number": 2,
               "repository": {
                 "nameWithOwner": "kewisch/test"
+              },
+              "issueFieldValues": {
+                "nodes": [
+                  {
+                    "__typename": "IssueFieldSingleSelectValue",
+                    "field": {
+                      "__typename": "IssueFieldSingleSelect",
+                      "id": "IF_kwDOMwGgpM4AABCD"
+                    },
+                    "name": "P3",
+                    "value": "P3",
+                    "optionId": "c82ffbcf"
+                  }
+                ]
               }
             },
             "repository": {
@@ -142,15 +161,6 @@
                     "number": 2,
                     "title": "Test Sprints"
                   },
-                  "priority": {
-                    "__typename": "ProjectV2ItemFieldSingleSelectValue",
-                    "name": "P2",
-                    "optionId": "0c858f8d",
-                    "field": {
-                      "__typename": "ProjectV2SingleSelectField",
-                      "id": "PVTSSF_lAHOAAlD3s4AxVFWzgndSP0"
-                    }
-                  },
                   "start_date": null,
                   "target_date": null,
                   "status": {
@@ -179,6 +189,20 @@
             },
             "timelineItems": {
               "nodes": []
+            },
+            "issueFieldValues": {
+              "nodes": [
+                {
+                  "__typename": "IssueFieldSingleSelectValue",
+                  "field": {
+                    "__typename": "IssueFieldSingleSelect",
+                    "id": "IF_kwDOMwGgpM4AABCD"
+                  },
+                  "name": "P2",
+                  "value": "P2",
+                  "optionId": "0c858f8d"
+                }
+              ]
             }
           },
           {
@@ -210,6 +234,9 @@
               "nodes": []
             },
             "timelineItems": {
+              "nodes": []
+            },
+            "issueFieldValues": {
               "nodes": []
             }
           },
@@ -243,6 +270,9 @@
             },
             "timelineItems": {
               "nodes": []
+            },
+            "issueFieldValues": {
+              "nodes": []
             }
           },
           {
@@ -262,6 +292,20 @@
               "number": 2,
               "repository": {
                 "nameWithOwner": "kewisch/test"
+              },
+              "issueFieldValues": {
+                "nodes": [
+                  {
+                    "__typename": "IssueFieldSingleSelectValue",
+                    "field": {
+                      "__typename": "IssueFieldSingleSelect",
+                      "id": "IF_kwDOMwGgpM4AABCD"
+                    },
+                    "name": "P3",
+                    "value": "P3",
+                    "optionId": "c82ffbcf"
+                  }
+                ]
               }
             },
             "repository": {
@@ -285,15 +329,6 @@
                     "id": "PVT_kwHOAAlD3s4AxVFW",
                     "number": 2,
                     "title": "Test Sprints"
-                  },
-                  "priority": {
-                    "__typename": "ProjectV2ItemFieldSingleSelectValue",
-                    "name": "P1",
-                    "optionId": "09a377fd",
-                    "field": {
-                      "__typename": "ProjectV2SingleSelectField",
-                      "id": "PVTSSF_lAHOAAlD3s4AxVFWzgndSP0"
-                    }
                   },
                   "start_date": null,
                   "target_date": null,
@@ -322,6 +357,9 @@
               ]
             },
             "timelineItems": {
+              "nodes": []
+            },
+            "issueFieldValues": {
               "nodes": []
             }
           }

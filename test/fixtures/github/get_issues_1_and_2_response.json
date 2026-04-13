@@ -35,6 +35,28 @@
             }
           ]
         },
+        "issueFieldValues": {
+          "nodes": [
+            {
+              "__typename": "IssueFieldSingleSelectValue",
+              "field": {
+                "__typename": "IssueFieldSingleSelect",
+                "id": "IF_kwDOMwGgpM4AABCD"
+              },
+              "name": "P2",
+              "value": "P2",
+              "optionId": "f993bd2e"
+            },
+            {
+              "__typename": "IssueFieldNumberValue",
+              "field": {
+                "__typename": "IssueFieldNumber",
+                "id": "IF_kwDOMwGgpM4AABCE"
+              },
+              "value": 5.0
+            }
+          ]
+        },
         "projectItems": {
           "nodes": [
             {
@@ -44,15 +66,6 @@
                 "id": "PVT_kwHOAAlD3s4AxVDI",
                 "number": 1,
                 "title": "Test Roadmap - Readonly"
-              },
-              "priority": {
-                "__typename": "ProjectV2ItemFieldSingleSelectValue",
-                "name": "P2",
-                "optionId": "f993bd2e",
-                "field": {
-                  "__typename": "ProjectV2SingleSelectField",
-                  "id": "PVTSSF_lAHOAAlD3s4AxVDIzgndQGw"
-                }
               },
               "start_date": {
                 "__typename": "ProjectV2ItemFieldDateValue",
@@ -127,6 +140,20 @@
         "assignees": {
           "nodes": []
         },
+        "issueFieldValues": {
+          "nodes": [
+            {
+              "__typename": "IssueFieldSingleSelectValue",
+              "field": {
+                "__typename": "IssueFieldSingleSelect",
+                "id": "IF_kwDOMwGgpM4AABCD"
+              },
+              "name": "P3",
+              "value": "P3",
+              "optionId": "c82ffbcf"
+            }
+          ]
+        },
         "projectItems": {
           "nodes": [
             {
@@ -136,15 +163,6 @@
                 "id": "PVT_kwHOAAlD3s4AxVDI",
                 "number": 1,
                 "title": "Test Roadmap - Readonly"
-              },
-              "priority": {
-                "__typename": "ProjectV2ItemFieldSingleSelectValue",
-                "name": "P3",
-                "optionId": "c82ffbcf",
-                "field": {
-                  "__typename": "ProjectV2SingleSelectField",
-                  "id": "PVTSSF_lAHOAAlD3s4AxVDIzgndQGw"
-                }
               },
               "start_date": {
                 "__typename": "ProjectV2ItemFieldDateValue",

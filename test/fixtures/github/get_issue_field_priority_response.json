@@ -1,0 +1,45 @@
+{
+  "data": {
+    "organization": {
+      "issueTypes": {
+        "nodes": [
+          {"id": "IT_kwDOMwGgpM4AAAE1", "name": "Task"},
+          {"id": "IT_kwDOMwGgpM4AAAE2", "name": "Milestone"}
+        ],
+        "pageInfo": {
+          "hasNextPage": false,
+          "endCursor": null
+        }
+      },
+      "issueFields": {
+        "pageInfo": {
+          "hasNextPage": false,
+          "endCursor": null
+        },
+        "nodes": [
+          {
+            "__typename": "IssueFieldSingleSelect",
+            "id": "IF_kwDOMwGgpM4AABCD",
+            "name": "Priority",
+            "dataType": "SINGLE_SELECT",
+            "options": [
+              {"id": "a7f7f111", "name": "P1"},
+              {"id": "f993bd2e", "name": "P2"},
+              {"id": "c82ffbcf", "name": "P3"}
+            ]
+          },
+          {
+            "__typename": "IssueFieldSingleSelect",
+            "id": "IF_kwDOMwGgpM4AABCE",
+            "name": "Estimate",
+            "dataType": "SINGLE_SELECT",
+            "options": [
+              {"id": "e1", "name": "3"},
+              {"id": "e2", "name": "5"}
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

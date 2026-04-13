@@ -41,15 +41,6 @@
                 "number": 2,
                 "title": "Test Sprints"
               },
-              "priority": {
-                "__typename": "ProjectV2ItemFieldSingleSelectValue",
-                "name": "P2",
-                "optionId": "0c858f8d",
-                "field": {
-                  "__typename": "ProjectV2SingleSelectField",
-                  "id": "PVTSSF_lAHOAAlD3s4AxVFWzgndSP0"
-                }
-              },
               "start_date": null,
               "target_date": null,
               "status": {
@@ -82,15 +73,6 @@
                 "number": 1,
                 "title": "Test Roadmap - Readonly"
               },
-              "priority": {
-                "__typename": "ProjectV2ItemFieldSingleSelectValue",
-                "name": "P2",
-                "optionId": "f993bd2e",
-                "field": {
-                  "__typename": "ProjectV2SingleSelectField",
-                  "id": "PVTSSF_lAHOAAlD3s4AxVDIzgndQGw"
-                }
-              },
               "start_date": {
                 "__typename": "ProjectV2ItemFieldDateValue",
                 "date": "2025-01-24",
@@ -122,6 +104,9 @@
           ]
         },
         "timelineItems": {
+          "nodes": []
+        },
+        "issueFieldValues": {
           "nodes": []
         }
       }

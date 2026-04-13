@@ -25,26 +25,6 @@
           }
         ]
       },
-      "priority": {
-        "__typename": "ProjectV2SingleSelectField",
-        "id": "PVTSSF_lAHOAAlD3s4AxVDIzgndQGw",
-        "name": "Priority",
-        "dataType": "SINGLE_SELECT",
-        "options": [
-          {
-            "id": "c117565e",
-            "name": "P1"
-          },
-          {
-            "id": "f993bd2e",
-            "name": "P2"
-          },
-          {
-            "id": "c82ffbcf",
-            "name": "P3"
-          }
-        ]
-      },
       "start_date": {
         "__typename": "ProjectV2Field",
         "id": "PVTF_lAHOAAlD3s4AxVDIzgndQIs",

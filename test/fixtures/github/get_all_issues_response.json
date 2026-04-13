@@ -54,15 +54,6 @@
                     "number": 1,
                     "title": "Test Roadmap - Readonly"
                   },
-                  "priority": {
-                    "__typename": "ProjectV2ItemFieldSingleSelectValue",
-                    "name": "P2",
-                    "optionId": "f993bd2e",
-                    "field": {
-                      "__typename": "ProjectV2SingleSelectField",
-                      "id": "PVTSSF_lAHOAAlD3s4AxVDIzgndQGw"
-                    }
-                  },
                   "start_date": {
                     "__typename": "ProjectV2ItemFieldDateValue",
                     "date": "2025-01-24",
@@ -102,6 +93,28 @@
             },
             "timelineItems": {
               "nodes": []
+            },
+            "issueFieldValues": {
+              "nodes": [
+                {
+                  "__typename": "IssueFieldSingleSelectValue",
+                  "field": {
+                    "__typename": "IssueFieldSingleSelect",
+                    "id": "IF_kwDOMwGgpM4AABCD"
+                  },
+                  "name": "P2",
+                  "value": "P2",
+                  "optionId": "f993bd2e"
+                },
+                {
+                  "__typename": "IssueFieldNumberValue",
+                  "field": {
+                    "__typename": "IssueFieldNumber",
+                    "id": "IF_kwDOMwGgpM4AABCE"
+                  },
+                  "value": 5.0
+                }
+              ]
             }
           },
           {
@@ -139,7 +152,6 @@
                     "number": 2,
                     "title": "Test Sprints"
                   },
-                  "priority": null,
                   "start_date": null,
                   "target_date": null,
                   "status": {
@@ -167,6 +179,9 @@
               ]
             },
             "timelineItems": {
+              "nodes": []
+            },
+            "issueFieldValues": {
               "nodes": []
             }
           }

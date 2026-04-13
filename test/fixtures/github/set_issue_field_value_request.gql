@@ -1,0 +1,52 @@
+mutation {
+setIssueFieldValue(input: {issueId: "I_kwDOMwGgpM6WLTqc", issueFields: [{fieldId: "IF_kwDOMwGgpM4AABCD", singleSelectOptionId: "c82ffbcf"}]}) {
+clientMutationId
+issue {
+closed
+closedAt
+viewerCanClose
+viewerCanReopen
+authorAssociation
+body
+bodyHTML
+bodyText
+createdAt
+createdViaEmail
+id
+includesCreatedEdit
+lastEditedAt
+publishedAt
+updatedAt
+viewerDidAuthor
+viewerCanDelete
+viewerCanLabel
+activeLockReason
+locked
+databaseId
+viewerCanReact
+viewerCanSubscribe
+viewerSubscription
+viewerThreadSubscriptionFormAction
+viewerThreadSubscriptionStatus
+resourcePath
+url
+viewerCanUpdate
+viewerCannotUpdateReasons
+bodyResourcePath
+bodyUrl
+fullDatabaseId
+isPinned
+isReadByViewer
+number
+state
+stateReason
+title
+titleHTML
+trackedIssuesCount
+viewerCanSetFields
+}
+issueFieldValues {
+__typename
+}
+}
+}

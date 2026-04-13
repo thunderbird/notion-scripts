@@ -21,17 +21,6 @@ type
 updatedAt
 }
 }
-updatepriority: updateProjectV2ItemFieldValue(input: {projectId: "PVT_kwHOAAlD3s4AxVDI", itemId: "PVTI_lAHOAAlD3s4AxVDIzgXcyAk", fieldId: "PVTSSF_lAHOAAlD3s4AxVDIzgndQGw", value: {singleSelectOptionId: "c82ffbcf"}}) {
-clientMutationId
-projectV2Item {
-id
-createdAt
-fullDatabaseId
-isArchived
-type
-updatedAt
-}
-}
 updatestatus: updateProjectV2ItemFieldValue(input: {projectId: "PVT_kwHOAAlD3s4AxVDI", itemId: "PVTI_lAHOAAlD3s4AxVDIzgXcyAk", fieldId: "PVTSSF_lAHOAAlD3s4AxVDIzgndP5s", value: {singleSelectOptionId: null}}) {
 clientMutationId
 projectV2Item {

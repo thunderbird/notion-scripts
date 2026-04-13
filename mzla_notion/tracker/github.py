@@ -17,17 +17,27 @@ from ..util import getnestedattr, AsyncRetryingClient
 
 from .common import UserMap, Sprint, IssueRef, Issue, User, IssueTracker
 from .github_fixups import GitHubFixups
+from .github_utils import (
+    build_scalar_field_update,
+    extract_project_item_old_value,
+    field_value_changed,
+    find_option_id,
+    issue_field_ops,
+    normalize_outbound_field_value,
+    project_field_value_from_update,
+)
 
 logger = logging.getLogger("project_sync")
 
-GITHUB_PROJECT_TASKS_FIELDS = ["Status", "Priority", "Sprint"]
+GITHUB_PROJECT_TASKS_FIELDS = ["Status", "Sprint"]
 GITHUB_PROJECT_MILESTONE_FIELDS = [
     "Status",
-    "Priority",
     "Start Date",
     "Target Date",
     "Link",
 ]
+GITHUB_ISSUE_FIELD_PRIORITY = "Priority"
+GITHUB_ISSUE_FIELD_ESTIMATE = "Estimate"
 
 
 class GitHubUserMap(UserMap):
@@ -120,7 +130,7 @@ class GitHub(IssueTracker, GitHubFixups):
         )
 
         self.label_cache = LabelCache(self.endpoint)
-        self.issue_type_cache = IssueTypeCache(self.endpoint)
+        self.issue_planning_cache = IssuePlanningCache(self.endpoint)
         self.milestones_issue_type = milestones_issue_type
 
         self._init_repository_settings(repositories)
@@ -274,6 +284,7 @@ class GitHub(IssueTracker, GitHubFixups):
             self._update_issue_assignees(old_issue, new_issue),
             self._update_issue_labels(old_issue, new_issue),
             self._update_issue_project(old_issue, new_issue),
+            self._update_issue_fields(old_issue, new_issue),
             self._update_issue_type(old_issue, new_issue),
         )
 
@@ -357,7 +368,6 @@ class GitHub(IssueTracker, GitHubFixups):
         old_state = getnestedattr(lambda: gh_project_item.status.name, None)
         old_start_date = getnestedattr(lambda: gh_project_item.start_date.date, None)
         old_end_date = getnestedattr(lambda: gh_project_item.target_date.date, None)
-        old_priority = getnestedattr(lambda: gh_project_item.priority.name, None)
         old_link = getnestedattr(lambda: gh_project_item.link.text, None)
 
         if (
@@ -365,7 +375,6 @@ class GitHub(IssueTracker, GitHubFixups):
             or old_state != new_issue.state
             or old_start_date != new_issue.start_date
             or old_end_date != new_issue.end_date
-            or old_priority != new_issue.priority
             or old_link != new_issue.notion_url
         ):
             await self.github_milestones_projects[new_issue.repo].update_project_for_issue(
@@ -373,22 +382,67 @@ class GitHub(IssueTracker, GitHubFixups):
                 {
                     "start_date": new_issue.start_date,
                     "target_date": new_issue.end_date,
-                    "priority": new_issue.priority,
                     "status": new_issue.state,
                     "link": new_issue.notion_url,
                 },
                 add=True,
             )
 
+    async def _update_issue_fields(self, old_issue, new_issue):
+        if not self.property_names.get("notion_milestones_priority"):
+            return
+
+        org, _ = new_issue.repo.split("/")
+        issue_field = await self.issue_planning_cache.get_issue_field(org, GITHUB_ISSUE_FIELD_PRIORITY)
+        if not issue_field:
+            raise Exception(
+                f"Missing required GitHub issue field '{GITHUB_ISSUE_FIELD_PRIORITY}' for {new_issue.repo} while syncing issue"
+            )
+
+        new_value = new_issue.priority
+        if not field_value_changed(old_issue.priority, new_value):
+            return
+
+        issue_field_node_id = issue_field.id
+
+        if not issue_field_node_id or not issue_field.data_type:
+            raise Exception(
+                f"Missing typed metadata on GitHub issue field '{GITHUB_ISSUE_FIELD_PRIORITY}' in {new_issue.repo}"
+            )
+        if issue_field.data_type != "SINGLE_SELECT":
+            raise Exception(
+                f"GitHub issue field '{GITHUB_ISSUE_FIELD_PRIORITY}' in {new_issue.repo} "
+                f"must be SINGLE_SELECT, got '{issue_field.data_type}'"
+            )
+
+        option_id = (
+            await self.issue_planning_cache.get_issue_field_option_id(org, GITHUB_ISSUE_FIELD_PRIORITY, str(new_value))
+            if new_value not in (None, "")
+            else None
+        )
+        if new_value not in (None, "") and not option_id:
+            raise Exception(
+                f"Could not find option '{new_value}' on GitHub issue field '{GITHUB_ISSUE_FIELD_PRIORITY}' in {new_issue.repo}"
+            )
+        field_update = {"delete": True} if new_value in (None, "") else {"single_select_option_id": option_id}
+
+        field_input = {"field_id": issue_field_node_id, **field_update}
+
+        op = Operation(schema.mutation_type)
+        op.set_issue_field_value(input={"issue_id": new_issue.gql.id, "issue_fields": [field_input]})
+
+        if not self.dry:
+            await self.endpoint(op)
+
     async def _update_issue_type(self, old_issue, new_issue):
         if old_issue.issue_type == new_issue.issue_type:
             return
 
-        org, repo = old_issue.repo.split("/")
-        issue_type_id = await self.issue_type_cache.get(org, repo, new_issue.issue_type)
+        org, _ = old_issue.repo.split("/")
+        issue_type_id = await self.issue_planning_cache.get_issue_type(org, new_issue.issue_type)
 
         if not issue_type_id:
-            print(await self.issue_type_cache.get_all(org, repo))
+            print(await self.issue_planning_cache.get_issue_types(org))
             raise Exception(f"Could not find issue type {new_issue.issue_type}")
 
         if not self.dry:
@@ -417,6 +471,14 @@ class GitHub(IssueTracker, GitHubFixups):
         )
 
         gh_project_item = tasks_project_item or milestones_project_item
+        org, _ = repo.split("/")
+        known_issue_fields = await self.issue_planning_cache.get_issue_fields(org)
+        issue_field_names_by_id = {
+            str(issue_field.id): issue_field_name
+            for issue_field_name, issue_field in known_issue_fields.items()
+            if getattr(issue_field, "id", None)
+        }
+        issue_fields = self.issue_planning_cache.parse_issue_fields(ghissue, issue_field_names_by_id)
 
         review_url = None
         reviewers = set()
@@ -460,7 +522,8 @@ class GitHub(IssueTracker, GitHubFixups):
             closed_date=ghissue.closed_at,
             start_date=getnestedattr(lambda: gh_project_item.start_date.date, None),
             end_date=getnestedattr(lambda: gh_project_item.target_date.date, None),
-            priority=getnestedattr(lambda: gh_project_item.priority.name, None),
+            priority=issue_fields.get(GITHUB_ISSUE_FIELD_PRIORITY),
+            estimate=issue_fields.get(GITHUB_ISSUE_FIELD_ESTIMATE),
             notion_url=getnestedattr(lambda: gh_project_item.link.text, None),
             labels={label.name for label in ghissue.labels.nodes},
             review_url=review_url,
@@ -657,60 +720,146 @@ class GitHub(IssueTracker, GitHubFixups):
                 yield issue
 
 
-class IssueTypeCache:
-    """A cache for retrieving the issue type ids from GitHub."""
+class IssuePlanningCache:
+    """A cache for issue planning metadata from a GitHub organization."""
 
     def __init__(self, endpoint):
-        """Initialize the label cache with an endpoint."""
-        self._cache = defaultdict(dict)
+        """Initialize the issue planning cache with an endpoint."""
         self.endpoint = endpoint
-        self.lock = asyncio.Lock()
+        self._issue_type_cache = defaultdict(dict)
+        self._issue_field_cache = defaultdict(dict)
+        self._locks = defaultdict(asyncio.Lock)
 
-    async def get(self, org, repo, name):
-        """Retrieve the issue type id for a specific issue type name."""
-        orgrepo = org + "/" + repo
-        if orgrepo in self._cache:
-            orgcache = self._cache[orgrepo]
-        else:
-            orgcache = await self.get_all(org, repo)
+    async def _ensure_org_loaded(self, org):
+        """Load issue types and issue fields for an organization."""
+        async with self._locks[org]:
+            if org in self._issue_type_cache and org in self._issue_field_cache:
+                return
 
-        return orgcache.get(name)
+            issue_types = {}
+            issue_fields = {}
+            issue_types_cursor = None
+            issue_fields_cursor = None
+            has_next_issue_types = True
+            has_next_issue_fields = True
 
-    async def get_all(self, org, repo):
-        """Get all issue types in the repository."""
-        orgrepocache = {}
-        orgrepo = org + "/" + repo
-
-        async with self.lock:
-            has_next_page = True
-            cursor = None
-
-            if orgrepo in self._cache:
-                return self._cache[orgrepo]
-
-            while has_next_page:
+            while has_next_issue_types or has_next_issue_fields:
                 op = Operation(schema.query_type)
-                repo = op.repository(owner=org, name=repo)
+                orgnode = op.organization(login=org)
 
-                issue_types = repo.issue_types(first=100, after=cursor)
-                issue_types.nodes.id()
-                issue_types.nodes.name()
+                if has_next_issue_types:
+                    issue_types_data = orgnode.issue_types(first=100, after=issue_types_cursor)
+                    issue_types_data.nodes.id()
+                    issue_types_data.nodes.name()
+                    issue_types_data.page_info.__fields__(has_next_page=True)
+                    issue_types_data.page_info.__fields__(end_cursor=True)
 
-                issue_types.page_info.__fields__(has_next_page=True)
-                issue_types.page_info.__fields__(end_cursor=True)
+                if has_next_issue_fields:
+                    issue_fields_data = orgnode.issue_fields(first=100, after=issue_fields_cursor)
+                    issue_fields_data.page_info.__fields__(has_next_page=True)
+                    issue_fields_data.page_info.__fields__(end_cursor=True)
+
+                    issue_field_nodes = issue_fields_data.nodes
+                    single_select = issue_field_nodes.__as__(schema.IssueFieldSingleSelect)
+                    single_select.id()
+                    single_select.name()
+                    single_select.data_type()
+                    single_select.options.id()
+                    single_select.options.name()
+
+                    number_field = issue_field_nodes.__as__(schema.IssueFieldNumber)
+                    number_field.id()
+                    number_field.name()
+                    number_field.data_type()
+
+                    text_field = issue_field_nodes.__as__(schema.IssueFieldText)
+                    text_field.id()
+                    text_field.name()
+                    text_field.data_type()
+
+                    date_field = issue_field_nodes.__as__(schema.IssueFieldDate)
+                    date_field.id()
+                    date_field.name()
+                    date_field.data_type()
 
                 data = await self.endpoint(op)
-                datarepo = (op + data).repository
+                dataorg = (op + data).organization
 
-                for issue_type in datarepo.issue_types.nodes:
-                    orgrepocache[issue_type.name] = issue_type.id
+                if has_next_issue_types:
+                    for issue_type in dataorg.issue_types.nodes:
+                        issue_types[issue_type.name] = issue_type.id
 
-                has_next_page = datarepo.issue_types.page_info.has_next_page
-                cursor = datarepo.issue_types.page_info.end_cursor
+                    has_next_issue_types = dataorg.issue_types.page_info.has_next_page
+                    issue_types_cursor = dataorg.issue_types.page_info.end_cursor
 
-            self._cache[orgrepo] = orgrepocache
+                if has_next_issue_fields:
+                    for issue_field in dataorg.issue_fields.nodes:
+                        issue_fields[issue_field.name] = issue_field
 
-        return orgrepocache
+                    has_next_issue_fields = dataorg.issue_fields.page_info.has_next_page
+                    issue_fields_cursor = dataorg.issue_fields.page_info.end_cursor
+
+            self._issue_type_cache[org] = issue_types
+            self._issue_field_cache[org] = issue_fields
+
+    async def get_issue_type(self, org, name):
+        """Retrieve issue type id for the given issue type name."""
+        await self._ensure_org_loaded(org)
+        return self._issue_type_cache[org].get(name)
+
+    async def get_issue_types(self, org):
+        """Get all issue types in the organization."""
+        await self._ensure_org_loaded(org)
+        return self._issue_type_cache[org]
+
+    async def get_issue_field(self, org, field_name):
+        """Get issue field metadata by name."""
+        await self._ensure_org_loaded(org)
+        return self._issue_field_cache[org].get(field_name)
+
+    async def get_issue_fields(self, org):
+        """Get all issue fields keyed by field name."""
+        await self._ensure_org_loaded(org)
+        return self._issue_field_cache[org]
+
+    async def get_issue_field_option_id(self, org, field_name, option_name):
+        """Get single-select option id for the given issue field and option name."""
+        issue_field = await self.get_issue_field(org, field_name)
+        if not issue_field or issue_field.data_type != "SINGLE_SELECT":
+            return None
+        return find_option_id(issue_field.options, option_name)
+
+    def parse_issue_fields(self, ghissue, field_names_by_id=None):
+        """Parse issue custom field values by field name."""
+        values = {}
+        issue_field_values = getnestedattr(lambda: ghissue.issue_field_values.nodes, None) or []
+        for issue_field_value in issue_field_values:
+            issue_field_id = getnestedattr(lambda: issue_field_value.field.id, None)
+            issue_field_name = None
+            if field_names_by_id and issue_field_id:
+                issue_field_name = field_names_by_id.get(str(issue_field_id))
+            elif getnestedattr(lambda: issue_field_value.field.name, None):
+                issue_field_name = issue_field_value.field.name
+
+            if not issue_field_name:
+                continue
+
+            value = None
+            if isinstance(issue_field_value, schema.IssueFieldSingleSelectValue):
+                value = issue_field_value.name or issue_field_value.value
+            elif isinstance(issue_field_value, schema.IssueFieldNumberValue):
+                value = issue_field_value.value
+                if value is not None and float(value).is_integer():
+                    value = int(value)
+            elif isinstance(issue_field_value, schema.IssueFieldTextValue):
+                value = issue_field_value.value
+            elif isinstance(issue_field_value, schema.IssueFieldDateValue):
+                value = issue_field_value.value
+
+            if value not in (None, ""):
+                values[issue_field_name] = str(value)
+
+        return values
 
 
 class LabelCache:
@@ -996,25 +1145,22 @@ class GitHubProjectV2:
                 "field_id": field.id,
             }
 
-            old_value = getattr(item, key, None)
+            old_value = extract_project_item_old_value(getattr(item, key, None), field.data_type)
+            normalized_new_value = normalize_outbound_field_value(value)
 
-            if field.data_type == "TEXT":
-                old_value = old_value.text if old_value else None
-                input_item["value"] = {"text": value}
-            elif field.data_type == "DATE":
-                old_value = old_value.date.isoformat() if old_value else None
-                input_item["value"] = {"date": value}
-            elif field.data_type == "SINGLE_SELECT":
-                old_value = old_value.name if old_value else None
-                input_item["value"] = {"single_select_option_id": self.find_option_id(field, value)}
+            if field.data_type == "SINGLE_SELECT":
+                option_id = find_option_id(field.options, str(value)) if value not in (None, "") else None
+                update = {"delete": True} if value in (None, "") else {"single_select_option_id": option_id}
+            elif field.data_type in ("TEXT", "DATE", "NUMBER"):
+                update = build_scalar_field_update(field.data_type, value)
             elif field.data_type == "ITERATION":  # pragma: no cover
-                old_value = old_value.iteration_id if old_value else None
-                input_item["value"] = {"iteration_id": "TODO"}
                 raise Exception("TODO")
             else:  # pragma: no cover
                 raise Exception("Unknown type " + field.data_type)
 
-            if old_value != value:
+            input_item["value"] = project_field_value_from_update(field.data_type, update)
+
+            if field_value_changed(old_value, normalized_new_value):
                 matches = False
 
             op.update_project_v2_item_field_value(__alias__=f"update{key}", input=input_item)
@@ -1044,101 +1190,3 @@ class GitHubProjectV2:
                 if delete:
                     gh_issue.project_items.nodes.pop(index)
                 return project_item
-
-    def find_option_id(self, field, option_name):
-        """Find the option id assoicated with the name for use in updates."""
-        for option in field.options:
-            if option.name == option_name:
-                return option.id
-
-        return None
-
-
-def issue_field_ops(issue):
-    """Set the fields we need for project sync on the GraphQL operation."""
-    issue.title()
-    issue.number()
-    issue.updated_at()
-    issue.created_at()
-    issue.closed_at()
-    issue.title()
-    issue.state()
-    issue.state_reason()
-    issue.url()
-    issue.id()
-    issue.body()
-    issue.parent.id()
-    issue.parent.number()
-    issue.parent.repository.name_with_owner()
-    issue.repository.id()
-    issue.repository.name_with_owner()
-    issue.repository.name()
-    issue.repository.is_private()
-    issue.labels(first=100).nodes.name()
-    issue.issue_type.id()
-    issue.issue_type.name()
-
-    assignees = issue.assignees(first=10)
-    assignees.nodes.id()
-    assignees.nodes.login()
-
-    timeline_items = issue.timeline_items(last=50, item_types=["CROSS_REFERENCED_EVENT"])
-    crossref_events = timeline_items.nodes.__as__(schema.CrossReferencedEvent)
-    crossref_events.will_close_target()
-    pull_request = crossref_events.source.__as__(schema.PullRequest)
-    pull_request.url()
-    pull_request_reviewer = pull_request.review_requests(first=10).nodes.requested_reviewer.__as__(schema.User)
-    pull_request_reviewer.id()
-    pull_request_reviewer.login()
-
-    project_items = issue.project_items(first=10, include_archived=True).nodes
-    project_items.id()
-
-    project = project_items.project.__as__(schema.ProjectV2)
-    project.id()
-    project.number()
-    project.title()
-    project.__fields__("id", "title", "number")
-
-    project_items.project.__as__(schema.Node).id()
-
-    fieldvalue = project_items.field_value_by_name(name="Priority", __alias__="priority").__as__(
-        schema.ProjectV2ItemFieldSingleSelectValue
-    )
-    fieldvalue.__as__(schema.ProjectV2ItemFieldValueCommon).field.__as__(schema.ProjectV2FieldCommon).id()
-    fieldvalue.name()
-    fieldvalue.option_id()
-
-    fieldvalue = project_items.field_value_by_name(name="Start Date", __alias__="start_date").__as__(
-        schema.ProjectV2ItemFieldDateValue
-    )
-    fieldvalue.__as__(schema.ProjectV2ItemFieldValueCommon).field.__as__(schema.ProjectV2FieldCommon).id()
-    fieldvalue.date()
-
-    fieldvalue = project_items.field_value_by_name(name="Target Date", __alias__="target_date").__as__(
-        schema.ProjectV2ItemFieldDateValue
-    )
-    fieldvalue.__as__(schema.ProjectV2ItemFieldValueCommon).field.__as__(schema.ProjectV2FieldCommon).id()
-    fieldvalue.date()
-
-    fieldvalue = project_items.field_value_by_name(name="Status", __alias__="status").__as__(
-        schema.ProjectV2ItemFieldSingleSelectValue
-    )
-    fieldvalue.field.__as__(schema.ProjectV2FieldCommon).id()
-    fieldvalue.name()
-    fieldvalue.option_id()
-
-    fieldvalue = project_items.field_value_by_name(name="Link", __alias__="link").__as__(
-        schema.ProjectV2ItemFieldTextValue
-    )
-    fieldvalue.field.__as__(schema.ProjectV2FieldCommon).id()
-    fieldvalue.text()
-
-    fieldvalue = project_items.field_value_by_name(name="Sprint", __alias__="sprint").__as__(
-        schema.ProjectV2ItemFieldIterationValue
-    )
-    fieldvalue.field.__as__(schema.ProjectV2FieldCommon).id()
-    fieldvalue.iteration_id()
-    fieldvalue.start_date()
-    fieldvalue.title()
-    fieldvalue.duration()
