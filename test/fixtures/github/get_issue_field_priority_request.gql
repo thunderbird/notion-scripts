@@ -1,0 +1,47 @@
+query {
+organization(login: "kewisch") {
+issueTypes(first: 100, after: null) {
+nodes {
+id
+name
+}
+pageInfo {
+hasNextPage
+endCursor
+}
+}
+issueFields(first: 100, after: null) {
+pageInfo {
+hasNextPage
+endCursor
+}
+nodes {
+__typename
+... on IssueFieldSingleSelect {
+id
+name
+dataType
+options {
+id
+name
+}
+}
+... on IssueFieldNumber {
+id
+name
+dataType
+}
+... on IssueFieldText {
+id
+name
+dataType
+}
+... on IssueFieldDate {
+id
+name
+dataType
+}
+}
+}
+}
+}

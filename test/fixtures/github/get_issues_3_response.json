@@ -37,6 +37,20 @@
             }
           ]
         },
+        "issueFieldValues": {
+          "nodes": [
+            {
+              "__typename": "IssueFieldSingleSelectValue",
+              "field": {
+                "__typename": "IssueFieldSingleSelect",
+                "id": "IF_kwDOMwGgpM4AABCD"
+              },
+              "name": "P2",
+              "value": "P2",
+              "optionId": "0c858f8d"
+            }
+          ]
+        },
         "projectItems": {
           "nodes": [
             {
@@ -46,15 +60,6 @@
                 "id": "PVT_kwHOAAlD3s4AxVFW",
                 "number": 2,
                 "title": "Test Sprints"
-              },
-              "priority": {
-                "__typename": "ProjectV2ItemFieldSingleSelectValue",
-                "name": "P2",
-                "optionId": "0c858f8d",
-                "field": {
-                  "__typename": "ProjectV2SingleSelectField",
-                  "id": "PVTSSF_lAHOAAlD3s4AxVFWzgndSP0"
-                }
               },
               "start_date": null,
               "target_date": null,

@@ -45,6 +45,49 @@ id
 login
 }
 }
+issueFieldValues(first: 20) {
+nodes {
+__typename
+... on IssueFieldSingleSelectValue {
+name
+value
+optionId
+field {
+__typename
+... on IssueFieldSingleSelect {
+id
+}
+}
+}
+... on IssueFieldNumberValue {
+value
+field {
+__typename
+... on IssueFieldNumber {
+id
+}
+}
+}
+... on IssueFieldTextValue {
+value
+field {
+__typename
+... on IssueFieldText {
+id
+}
+}
+}
+... on IssueFieldDateValue {
+value
+field {
+__typename
+... on IssueFieldDate {
+id
+}
+}
+}
+}
+}
 timelineItems(last: 50, itemTypes: [CROSS_REFERENCED_EVENT]) {
 nodes {
 __typename
@@ -82,22 +125,6 @@ title
 }
 ... on Node {
 id
-}
-}
-priority: fieldValueByName(name: "Priority") {
-__typename
-... on ProjectV2ItemFieldSingleSelectValue {
-__typename
-name
-optionId
-... on ProjectV2ItemFieldValueCommon {
-field {
-__typename
-... on ProjectV2FieldCommon {
-id
-}
-}
-}
 }
 }
 start_date: fieldValueByName(name: "Start Date") {

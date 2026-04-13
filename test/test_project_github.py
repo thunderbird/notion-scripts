@@ -6,7 +6,14 @@ import httpx
 
 from freezegun import freeze_time
 
-from mzla_notion.tracker.github import GitHub, GitHubUserMap, LabelCache, GitHubIssue, GitHubUser
+from mzla_notion.tracker.github import (
+    GitHub,
+    GitHubUserMap,
+    LabelCache,
+    GitHubIssue,
+    GitHubUser,
+)
+from mzla_notion.tracker.github_utils import build_scalar_field_update, field_value_changed
 from mzla_notion.tracker.common import IssueRef, Sprint
 
 from .handlers import BaseTestCase
@@ -73,6 +80,7 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(issue.description, "I am the body")
         self.assertEqual(issue.state, "Not started")
         self.assertEqual(issue.priority, "P2")
+        self.assertEqual(issue.estimate, "5")
         self.assertEqual(len(issue.assignees), 1)
         self.assertEqual(next(iter(issue.assignees)).tracker_user, "kewisch")
         self.assertEqual(issue.labels, {"type: epic"})
@@ -98,6 +106,7 @@ class GitHubProjectTest(BaseTestCase):
         )
         self.assertEqual(issue.state, "In progress")
         self.assertEqual(issue.priority, "P3")
+        self.assertEqual(issue.estimate, None)
         self.assertEqual(len(issue.assignees), 0)
         self.assertEqual(issue.labels, {"type: epic"})
         self.assertEqual(issue.url, "https://github.com/kewisch/test/issues/2")
@@ -116,8 +125,9 @@ class GitHubProjectTest(BaseTestCase):
             ],
         )
 
-        self.assertEqual(len(self.github_handler.calls), 1)
+        self.assertEqual(len(self.github_handler.calls), 2)
         self.assertEqual(len(self.github_handler.calls["get_issues_1_and_2"]), 1)
+        self.assertEqual(len(self.github_handler.calls["get_issue_field_priority"]), 1)
 
     async def test_github_get_issue_tasks(self):
         iterator = self.github.get_issues_by_number([], True)
@@ -203,9 +213,10 @@ class GitHubProjectTest(BaseTestCase):
 
         # A call without change shouldn't trigger anything
         await self.github.update_milestone_issue(old_issue, old_issue)
-        self.assertEqual(len(self.github_handler.calls), 2)
+        self.assertEqual(len(self.github_handler.calls), 3)
         self.assertEqual(len(self.github_handler.calls["get_users"]), 1)
         self.assertEqual(len(self.github_handler.calls["get_issues_1_and_2"]), 1)
+        self.assertEqual(len(self.github_handler.calls["get_issue_field_priority"]), 1)
 
     async def test_github_update_milestone_issue(self):
         self.github.user_map = await GitHubUserMap.create(
@@ -241,7 +252,7 @@ class GitHubProjectTest(BaseTestCase):
 
         await self.github.update_milestone_issue(old_issue, new_issue)
 
-        self.assertEqual(len(self.github_handler.calls), 8)
+        self.assertEqual(len(self.github_handler.calls), 10)
 
         self.assertEqual(len(self.github_handler.calls["get_users"]), 1)
         self.assertEqual(len(self.github_handler.calls["get_issues_1_and_2"]), 1)
@@ -251,6 +262,8 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(len(self.github_handler.calls["update_issue_1_project"]), 1)
         self.assertEqual(len(self.github_handler.calls["get_label_bug"]), 1)
         self.assertEqual(len(self.github_handler.calls["get_project_info"]), 1)
+        self.assertEqual(len(self.github_handler.calls["get_issue_field_priority"]), 1)
+        self.assertEqual(len(self.github_handler.calls["set_issue_field_value"]), 1)
 
     async def test_github_update_issue_add_roadmap(self):
         self.github.user_map = await GitHubUserMap.create(
@@ -284,7 +297,7 @@ class GitHubProjectTest(BaseTestCase):
 
         await self.github.update_milestone_issue(old_issue, new_issue)
 
-        self.assertEqual(len(self.github_handler.calls), 9)
+        self.assertEqual(len(self.github_handler.calls), 11)
 
         self.assertEqual(len(self.github_handler.calls["get_users"]), 1)
         self.assertEqual(len(self.github_handler.calls["get_issues_1_and_2"]), 1)
@@ -295,6 +308,8 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(len(self.github_handler.calls["update_issue_1_labels"]), 1)
         self.assertEqual(len(self.github_handler.calls["update_issue_1_project"]), 1)
         self.assertEqual(len(self.github_handler.calls["add_issue_to_project"]), 1)
+        self.assertEqual(len(self.github_handler.calls["get_issue_field_priority"]), 1)
+        self.assertEqual(len(self.github_handler.calls["set_issue_field_value"]), 1)
 
     async def test_github_update_issue_dry(self):
         self.github.dry = True
@@ -330,11 +345,34 @@ class GitHubProjectTest(BaseTestCase):
 
         await self.github.update_milestone_issue(old_issue, new_issue)
 
-        self.assertEqual(len(self.github_handler.calls), 3)
+        self.assertEqual(len(self.github_handler.calls), 4)
 
         self.assertEqual(len(self.github_handler.calls["get_users"]), 1)
         self.assertEqual(len(self.github_handler.calls["get_issues_1_and_2"]), 1)
         self.assertEqual(len(self.github_handler.calls["get_label_bug"]), 1)
+        self.assertEqual(len(self.github_handler.calls["get_issue_field_priority"]), 1)
+
+    async def test_github_update_issue_fields_fail_fast_missing_priority(self):
+        iterator = self.github.get_issues_by_number(
+            [IssueRef(repo="kewisch/test", id="1"), IssueRef(repo="kewisch/test", id="2")], True
+        )
+        old_issue = {issue.id: issue async for issue in iterator}["1"]
+
+        self.github.issue_planning_cache._issue_field_cache["kewisch"] = {}
+        self.github.issue_planning_cache._issue_type_cache["kewisch"] = {}
+        new_issue = dataclasses.replace(old_issue, priority="P3")
+
+        with self.assertRaisesRegex(Exception, r"Missing required GitHub issue field 'Priority'"):
+            await self.github._update_issue_fields(old_issue, new_issue)
+
+    def test_field_value_changed_normalized_date(self):
+        self.assertFalse(field_value_changed(datetime.date(2025, 7, 4), "2025-07-04"))
+        self.assertTrue(field_value_changed(datetime.date(2025, 7, 4), "2025-07-05"))
+
+    def test_build_scalar_field_update_number(self):
+        self.assertEqual(build_scalar_field_update("NUMBER", "5"), {"number_value": 5.0})
+        self.assertEqual(build_scalar_field_update("NUMBER", 8), {"number_value": 8.0})
+        self.assertEqual(build_scalar_field_update("NUMBER", None), {"delete": True})
 
     async def test_get_sprints(self):
         with freeze_time("2025-02-24 12:13:14"):
@@ -471,7 +509,7 @@ class GitHubProjectTest(BaseTestCase):
             )
             issues = [issue async for issue in iterator]
 
-            self.assertEqual(issue_count_queried, [2, 2, 2, 2, 2, 2, 1, 1])
+            self.assertEqual(issue_count_queried, [2, 2, 2, 2, 2, 2, 1, 0, 1])
             self.assertEqual(len(issues), 2)
 
         count = 0

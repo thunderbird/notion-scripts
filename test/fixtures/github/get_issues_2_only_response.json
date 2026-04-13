@@ -40,15 +40,6 @@
                 "number": 1,
                 "title": "Test Roadmap - Readonly"
               },
-              "priority": {
-                "__typename": "ProjectV2ItemFieldSingleSelectValue",
-                "name": "P3",
-                "optionId": "c82ffbcf",
-                "field": {
-                  "__typename": "ProjectV2SingleSelectField",
-                  "id": "PVTSSF_lAHOAAlD3s4AxVDIzgndQGw"
-                }
-              },
               "start_date": {
                 "__typename": "ProjectV2ItemFieldDateValue",
                 "date": "2025-02-19",
@@ -102,6 +93,20 @@
               "repository": {
                 "nameWithOwner": "kewisch/test"
               }
+            }
+          ]
+        },
+        "issueFieldValues": {
+          "nodes": [
+            {
+              "__typename": "IssueFieldSingleSelectValue",
+              "field": {
+                "__typename": "IssueFieldSingleSelect",
+                "id": "IF_kwDOMwGgpM4AABCD"
+              },
+              "name": "P3",
+              "value": "P3",
+              "optionId": "c82ffbcf"
             }
           ]
         }
