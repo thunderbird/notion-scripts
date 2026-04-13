@@ -198,7 +198,7 @@ repositories = [
     "thunderbird/observability",
     "thunderbird/pro",
     "thunderbird/pulumi",
-    "thunderbird/send-suite",
+    #"thunderbird/send-suite",
     "thunderbird/services-ui",
     "thunderbird/services-utils",
     "thunderbird/tbpro-add-on",
