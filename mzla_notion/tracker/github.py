@@ -34,10 +34,10 @@ GITHUB_PROJECT_MILESTONE_FIELDS = [
     "Status",
     "Start Date",
     "Target Date",
-    "Link",
 ]
 GITHUB_ISSUE_FIELD_PRIORITY = "Priority"
 GITHUB_ISSUE_FIELD_ESTIMATE = "Estimate"
+GITHUB_ISSUE_FIELD_NOTION_LINK = "Notion Link"
 
 
 class GitHubUserMap(UserMap):
@@ -369,14 +369,12 @@ class GitHub(IssueTracker, GitHubFixups):
         old_state = getnestedattr(lambda: gh_project_item.status.name, None)
         old_start_date = getnestedattr(lambda: gh_project_item.start_date.date, None)
         old_end_date = getnestedattr(lambda: gh_project_item.target_date.date, None)
-        old_link = getnestedattr(lambda: gh_project_item.link.text, None)
 
         if (
             not gh_project_item
             or old_state != new_issue.state
             or old_start_date != new_issue.start_date
             or old_end_date != new_issue.end_date
-            or old_link != new_issue.notion_url
         ):
             await self.github_milestones_projects[new_issue.repo].update_project_for_issue(
                 new_issue.gql,
@@ -384,40 +382,53 @@ class GitHub(IssueTracker, GitHubFixups):
                     "start_date": new_issue.start_date,
                     "target_date": new_issue.end_date,
                     "status": new_issue.state,
-                    "link": new_issue.notion_url,
                 },
                 add=True,
             )
 
     async def _update_issue_fields(self, old_issue, new_issue):
-        if not self.property_names.get("notion_milestones_priority"):
-            return
-
         org, _ = new_issue.repo.split("/")
-        issue_field = await self.issue_planning_cache.get_issue_field(org, GITHUB_ISSUE_FIELD_PRIORITY)
-        if not issue_field or issue_field.data_type != "SINGLE_SELECT":
-            data_type = "(missing)" if not issue_field else issue_field.data_type
+        issue_fields = []
+
+        if self.property_names.get("notion_milestones_priority"):
+            priority_field = await self.issue_planning_cache.get_issue_field(org, GITHUB_ISSUE_FIELD_PRIORITY)
+            if not priority_field or priority_field.data_type != "SINGLE_SELECT":
+                data_type = "(missing)" if not priority_field else priority_field.data_type
+                raise Exception(
+                    f"GitHub issue field '{GITHUB_ISSUE_FIELD_PRIORITY}' in {new_issue.repo} "
+                    f"must be SINGLE_SELECT, got '{data_type}'"
+                )
+
+            if field_value_changed(old_issue.priority, new_issue.priority):
+                option_id = await self.issue_planning_cache.get_issue_field_option_id(
+                    org, GITHUB_ISSUE_FIELD_PRIORITY, str(new_issue.priority)
+                )
+
+                if new_issue.priority and not option_id:
+                    raise Exception(
+                        f"Could not find option '{new_issue.priority}' on GitHub issue field "
+                        f"'{GITHUB_ISSUE_FIELD_PRIORITY}' in {new_issue.repo}"
+                    )
+                field_update = {"single_select_option_id": option_id} if new_issue.priority else {"delete": True}
+                issue_fields.append({"field_id": priority_field.id, **field_update})
+
+        notion_link_field = await self.issue_planning_cache.get_issue_field(org, GITHUB_ISSUE_FIELD_NOTION_LINK)
+        if not notion_link_field or notion_link_field.data_type != "TEXT":
+            data_type = "(missing)" if not notion_link_field else notion_link_field.data_type
             raise Exception(
-                f"GitHub issue field '{GITHUB_ISSUE_FIELD_PRIORITY}' in {new_issue.repo} "
-                f"must be SINGLE_SELECT, got '{data_type}'"
+                f"GitHub issue field '{GITHUB_ISSUE_FIELD_NOTION_LINK}' in {new_issue.repo} "
+                f"must be TEXT, got '{data_type}'"
             )
 
-        if not field_value_changed(old_issue.priority, new_issue.priority):
+        if field_value_changed(old_issue.notion_url, new_issue.notion_url):
+            field_update = {"text_value": str(new_issue.notion_url)} if new_issue.notion_url else {"delete": True}
+            issue_fields.append({"field_id": notion_link_field.id, **field_update})
+
+        if not issue_fields:
             return
-
-        option_id = await self.issue_planning_cache.get_issue_field_option_id(
-            org, GITHUB_ISSUE_FIELD_PRIORITY, str(new_issue.priority)
-        )
-
-        if new_issue.priority and not option_id:
-            raise Exception(
-                f"Could not find option '{new_issue.priority}' on GitHub issue field '{GITHUB_ISSUE_FIELD_PRIORITY}' in {new_issue.repo}"
-            )
-        field_update = {"single_select_option_id": option_id} if new_issue.priority else {"delete": True}
-        field_input = {"field_id": issue_field.id, **field_update}
 
         op = Operation(schema.mutation_type)
-        op.set_issue_field_value(input={"issue_id": new_issue.gql.id, "issue_fields": [field_input]})
+        op.set_issue_field_value(input={"issue_id": new_issue.gql.id, "issue_fields": issue_fields})
 
         if not self.dry:
             await self.endpoint(op)
@@ -513,7 +524,7 @@ class GitHub(IssueTracker, GitHubFixups):
             end_date=getnestedattr(lambda: gh_project_item.target_date.date, None),
             priority=issue_fields.get(GITHUB_ISSUE_FIELD_PRIORITY),
             estimate=issue_fields.get(GITHUB_ISSUE_FIELD_ESTIMATE),
-            notion_url=getnestedattr(lambda: gh_project_item.link.text, None),
+            notion_url=issue_fields.get(GITHUB_ISSUE_FIELD_NOTION_LINK),
             labels={label.name for label in ghissue.labels.nodes},
             review_url=review_url,
             reviewers=reviewers,

@@ -37,6 +37,12 @@
               {"id": "e1", "name": "3"},
               {"id": "e2", "name": "5"}
             ]
+          },
+          {
+            "__typename": "IssueFieldText",
+            "id": "IF_kwDOMwGgpM4AABCF",
+            "name": "Notion Link",
+            "dataType": "TEXT"
           }
         ]
       }

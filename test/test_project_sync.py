@@ -744,6 +744,65 @@ class ProjectSyncTest(BaseTestCase):
             },
         )
 
+    async def test_task_issue_link_written_for_all_pickup_paths(self):
+        tracker = IssueTestTracker(
+            issues=[
+                *self.issues,
+                Issue(
+                    repo="repo",
+                    id="901",
+                    title="Picked up from sprint board",
+                    description="description",
+                    state="NEW",
+                    created_date=datetime.datetime(2025, 3, 5, 6, 0, 0, tzinfo=datetime.timezone.utc),
+                    closed_date=None,
+                    priority=None,
+                    url="https://example.com/repo/901",
+                ),
+                Issue(
+                    repo="repo",
+                    id="902",
+                    title="Picked up from pull request",
+                    description="description",
+                    state="NEW",
+                    created_date=datetime.datetime(2025, 3, 6, 7, 0, 0, tzinfo=datetime.timezone.utc),
+                    closed_date=None,
+                    priority=None,
+                    url="https://example.com/repo/902",
+                ),
+                Issue(
+                    repo="repo",
+                    id="903",
+                    title="Picked up from explicit refs",
+                    description="description",
+                    state="NEW",
+                    created_date=datetime.datetime(2025, 3, 7, 8, 0, 0, tzinfo=datetime.timezone.utc),
+                    closed_date=None,
+                    priority=None,
+                    url="https://example.com/repo/903",
+                ),
+            ]
+        )
+
+        # Simulate additional tasks discovered from different tracker sources.
+        tracker.additional_tasks = [
+            IssueRef(id="901", repo="repo"),  # sprint board/project item
+            IssueRef(id="902", repo="repo"),  # pull-request discovered
+            IssueRef(id="903", repo="repo"),  # explicit issue refs
+        ]
+
+        await self.synchronize_project(tracker)
+
+        created_issue_urls = {
+            props["properties"]["Issue Link"]["files"][0]["external"]["url"]
+            for props in (json.loads(call.request.content) for call in self.respx.routes["pages_create"].calls)
+        }
+
+        self.assertIn("https://example.com/repo/234", created_issue_urls)  # milestone-derived task
+        self.assertIn("https://example.com/repo/901", created_issue_urls)
+        self.assertIn("https://example.com/repo/902", created_issue_urls)
+        self.assertIn("https://example.com/repo/903", created_issue_urls)
+
     async def test_task_wrong_title(self):
         tracker = IssueTestTracker(
             issues=self.issues,

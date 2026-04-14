@@ -1,5 +1,5 @@
 mutation {
-setIssueFieldValue(input: {issueId: "I_kwDOMwGgpM6WLTqc", issueFields: [{fieldId: "IF_kwDOMwGgpM4AABCD", singleSelectOptionId: "c82ffbcf"}, {fieldId: "IF_kwDOMwGgpM4AABCF", textValue: "https://www.notion.so/mzthunderbird/123123123"}]}) {
+setIssueFieldValue(input: {issueId: "I_kwDOMwGgpM6WLTqc", issueFields: [{fieldId: "IF_kwDOMwGgpM4AABCF", delete: true}]}) {
 clientMutationId
 issue {
 closed

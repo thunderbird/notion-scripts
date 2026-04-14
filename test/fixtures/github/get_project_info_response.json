@@ -36,12 +36,6 @@
         "id": "PVTF_lAHOAAlD3s4AxVDIzgndQUU",
         "dataType": "DATE",
         "name": "Target Date"
-      },
-      "link": {
-        "__typename": "ProjectV2Field",
-        "id": "PVTF_lAHOAAlD3s4AxVDIzgohH4w",
-        "dataType": "TEXT",
-        "name": "Link"
       }
     }
   }

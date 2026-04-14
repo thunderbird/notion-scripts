@@ -267,13 +267,17 @@ On Notion, make sure the Databases have the expected properties:
 * Tasks Database:
   * `GitHub Assignee`: A rich text field, not an owner field. The real owner will still be used, but
     this helps for people not on Notion.
-  * `GitHub Issue`: An URL field which will be used to save the link to the GitHub issue.
+  * `GitHub Issue`: An URL field which will be used to save the forward link to the GitHub issue.
   * `Dates`: The start/end date for the task. This will be mapped to sprint dates.
   * `Priority`: The priority for the task, with values P1, P2, P3
 
 You can change the property names in the sync_settings config if needed. 
 
 #### GitHub Setup
+On GitHub, create an issue field:
+
+* `Notion Link`: Text issue field. This is the backlink to the Notion milestone page.
+
 On GitHub, you'll need to create two projects for each set of repositories you want to synchronize:
 
 **Sprint Project**: This is the project that will retain the individual tasks, as noted above, with
@@ -306,7 +310,6 @@ On GitHub, you'll need to create two projects for each set of repositories you w
    a start and end date
  * `Target Date`: Date field, with the end date. On Notion you'll have a single field `Dates` with
    a start and end date
- * `Link`: Text field, which will be filled with a backlink to Notion.
  * Usually there is also a "Sub-issues progress" field, though it isn't relevant for the sync
  * When you describe the roadmap project, make sure to indicate that this view is read-only and any
    changes made on GitHub will be overwritten
