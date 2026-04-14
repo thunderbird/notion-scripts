@@ -1,5 +1,6 @@
 import datetime
 import dataclasses
+import types
 import sgqlc.operation
 import json
 import httpx
@@ -264,6 +265,8 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(len(self.github_handler.calls["get_project_info"]), 1)
         self.assertEqual(len(self.github_handler.calls["get_issue_field_priority"]), 1)
         self.assertEqual(len(self.github_handler.calls["set_issue_field_value"]), 1)
+        request_query = json.loads(self.github_handler.calls["set_issue_field_value"][0].content)["query"]
+        self.assertIn('textValue: "https://www.notion.so/mzthunderbird/123123123"', request_query)
 
     async def test_github_update_issue_add_roadmap(self):
         self.github.user_map = await GitHubUserMap.create(
@@ -365,6 +368,47 @@ class GitHubProjectTest(BaseTestCase):
         with self.assertRaisesRegex(
             Exception,
             r"GitHub issue field 'Priority' in kewisch/test must be SINGLE_SELECT, got '\(missing\)'",
+        ):
+            await self.github._update_issue_fields(old_issue, new_issue)
+
+    async def test_github_update_issue_fields_clear_notion_link(self):
+        iterator = self.github.get_issues_by_number([IssueRef(repo="kewisch/test", id="1")], True)
+        old_issue = {issue.id: issue async for issue in iterator}["1"]
+        new_issue = dataclasses.replace(old_issue, notion_url=None)
+
+        await self.github._update_issue_fields(old_issue, new_issue)
+
+        self.assertEqual(len(self.github_handler.calls["set_issue_field_value_clear_notion_link"]), 1)
+
+    async def test_github_update_issue_fields_fail_fast_missing_notion_link(self):
+        iterator = self.github.get_issues_by_number([IssueRef(repo="kewisch/test", id="1")], True)
+        old_issue = {issue.id: issue async for issue in iterator}["1"]
+
+        self.github.issue_planning_cache._issue_field_cache["kewisch"] = {
+            "Priority": types.SimpleNamespace(id="IF_priority", data_type="SINGLE_SELECT", options=[])
+        }
+        self.github.issue_planning_cache._issue_type_cache["kewisch"] = {}
+        new_issue = dataclasses.replace(old_issue, notion_url="https://www.notion.so/mzthunderbird/123123123")
+
+        with self.assertRaisesRegex(
+            Exception,
+            r"GitHub issue field 'Notion Link' in kewisch/test must be TEXT, got '\(missing\)'",
+        ):
+            await self.github._update_issue_fields(old_issue, new_issue)
+
+    async def test_github_update_issue_fields_fail_fast_wrong_notion_link_type(self):
+        iterator = self.github.get_issues_by_number([IssueRef(repo="kewisch/test", id="1")], True)
+        old_issue = {issue.id: issue async for issue in iterator}["1"]
+
+        self.github.issue_planning_cache._issue_field_cache["kewisch"]["Notion Link"] = types.SimpleNamespace(
+            id="IF_notion_link", data_type="NUMBER"
+        )
+        self.github.issue_planning_cache._issue_type_cache["kewisch"] = {}
+        new_issue = dataclasses.replace(old_issue, notion_url="https://www.notion.so/mzthunderbird/123123123")
+
+        with self.assertRaisesRegex(
+            Exception,
+            r"GitHub issue field 'Notion Link' in kewisch/test must be TEXT, got 'NUMBER'",
         ):
             await self.github._update_issue_fields(old_issue, new_issue)
 

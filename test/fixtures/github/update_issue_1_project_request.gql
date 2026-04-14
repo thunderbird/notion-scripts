@@ -32,15 +32,4 @@ type
 updatedAt
 }
 }
-updatelink: updateProjectV2ItemFieldValue(input: {projectId: "PVT_kwHOAAlD3s4AxVDI", itemId: "PVTI_lAHOAAlD3s4AxVDIzgXcyAk", fieldId: "PVTF_lAHOAAlD3s4AxVDIzgohH4w", value: {text: "https://www.notion.so/mzthunderbird/123123123"}}) {
-clientMutationId
-projectV2Item {
-id
-createdAt
-fullDatabaseId
-isArchived
-type
-updatedAt
-}
-}
 }

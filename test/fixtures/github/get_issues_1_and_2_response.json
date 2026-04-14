@@ -54,6 +54,14 @@
                 "id": "IF_kwDOMwGgpM4AABCE"
               },
               "value": 5.0
+            },
+            {
+              "__typename": "IssueFieldTextValue",
+              "field": {
+                "__typename": "IssueFieldText",
+                "id": "IF_kwDOMwGgpM4AABCF"
+              },
+              "value": "https://notion.so/example/rebuild-event-read-dialog-726fac286b6348ca90ec0066be1a2755"
             }
           ]
         },
@@ -151,6 +159,14 @@
               "name": "P3",
               "value": "P3",
               "optionId": "c82ffbcf"
+            },
+            {
+              "__typename": "IssueFieldTextValue",
+              "field": {
+                "__typename": "IssueFieldText",
+                "id": "IF_kwDOMwGgpM4AABCF"
+              },
+              "value": "https://notion.so/example/test-ref-failure-a2b009b4b63447599b138cf059a7f885"
             }
           ]
         },
