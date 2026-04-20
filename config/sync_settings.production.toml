@@ -91,6 +91,9 @@ tasks_body_sync = false
 [sync.support.repositories]
 repositories = [
     "thunderbird/knowledgebase-issues",
+    "thunderbird/github-action-tbandroid-aaq",
+    "thunderbird/github-action-thunderbird-aaq",
+    "thunderbird/thunderbird-metrics-and-reports"
 ]
 
 [sync.support.properties]
