@@ -16,6 +16,52 @@ import sgqlc.operation
 logger = logging.getLogger("notion_sync")
 
 
+class NotionQueryIncompleteError(RuntimeError):
+    """Raised when Notion reports incomplete query results."""
+
+
+def check_notion_request_status(response, context="Notion query", query_kwargs=None):
+    """Raise when Notion reports incomplete query results."""
+    request_status = response.get("request_status") if isinstance(response, dict) else None
+    if not request_status:
+        return
+
+    if request_status.get("type") != "incomplete":
+        return
+
+    incomplete_reason = request_status.get("incomplete_reason", "unknown")
+    query_kwargs = query_kwargs if isinstance(query_kwargs, dict) else {}
+    query_filter = query_kwargs.get("filter")
+    query_debug_context = {
+        "database_id": query_kwargs.get("database_id"),
+        "page_size": query_kwargs.get("page_size"),
+        "start_cursor": query_kwargs.get("start_cursor"),
+        "filter": query_filter,
+    }
+
+    logger.debug("%s returned incomplete request_status. Query context: %s", context, query_debug_context)
+
+    if incomplete_reason == "query_result_limit_reached":
+        details = f" filter={query_filter!r}" if query_filter is not None else ""
+        raise NotionQueryIncompleteError(
+            f"{context} returned incomplete results (query_result_limit_reached). "
+            f"Narrow the query or switch to incremental sync.{details}"
+        )
+
+    raise NotionQueryIncompleteError(f"{context} returned incomplete results ({incomplete_reason}).")
+
+
+def guard_notion_query_response(query_func, context="Notion query"):
+    """Wrap a Notion query function and validate request_status on responses."""
+
+    async def wrapped_query(*args, **kwargs):
+        response = await query_func(*args, **kwargs)
+        check_notion_request_status(response, context=context, query_kwargs=kwargs)
+        return response
+
+    return wrapped_query
+
+
 class RetryingClient(httpx.Client):
     """A replacement httpx.Client for Notion.
 
