@@ -17,7 +17,7 @@ from notion_client.helpers import async_iterate_paginated_api
 
 from .. import notion_data as p
 from ..notion_data import NotionDatabase
-from ..util import getnestedattr, AsyncRetryingClient, ensure_datetime, from_isoformat
+from ..util import getnestedattr, AsyncRetryingClient, ensure_datetime, from_isoformat, guard_notion_query_response
 
 logger = logging.getLogger("project_sync")
 
@@ -277,8 +277,12 @@ class BaseSync:
                 ]
             }
 
-        async for block in async_iterate_paginated_api(
+        query_func = guard_notion_query_response(
             self.notion.databases.query,
+            context=f"Notion database query ({notion_db_id})",
+        )
+        async for block in async_iterate_paginated_api(
+            query_func,
             database_id=notion_db_id,
             filter=query_filter,
         ):

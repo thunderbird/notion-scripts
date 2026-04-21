@@ -13,7 +13,7 @@ from md2notionpage.core import parse_md
 from notion_client.helpers import async_collect_paginated_api, async_iterate_paginated_api
 from notion_to_md import NotionToMarkdownAsync
 
-from .util import getnestedattr
+from .util import getnestedattr, guard_notion_query_response
 
 logger = logging.getLogger("notion_database")
 
@@ -142,12 +142,16 @@ class NotionDatabase:
 
     def get_all_pages(self, query_filter=None):
         """Gets all pages currently in the Notion database."""
+        query_func = guard_notion_query_response(
+            self.notion.databases.query,
+            context=f"Notion database query ({self.database_id})",
+        )
         if query_filter:
             return async_collect_paginated_api(
-                self.notion.databases.query, database_id=self.database_id, page_size=100, filter=query_filter
+                query_func, database_id=self.database_id, page_size=100, filter=query_filter
             )
         else:
-            return async_collect_paginated_api(self.notion.databases.query, database_id=self.database_id, page_size=100)
+            return async_collect_paginated_api(query_func, database_id=self.database_id, page_size=100)
 
     def dict_to_page(self, datadict: Dict[str, Any]):
         """Takes a `datadict` and returns a Notion database page formatted for the Notion API.

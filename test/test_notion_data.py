@@ -2,6 +2,7 @@ import datetime
 import unittest
 
 from mzla_notion.notion_data import date, dates
+from mzla_notion.util import NotionQueryIncompleteError, check_notion_request_status, guard_notion_query_response
 
 
 class NotionDateDiffTest(unittest.TestCase):
@@ -80,6 +81,41 @@ class NotionDateDiffTest(unittest.TestCase):
         prop = date("Date")
         updated = prop.update_content(datetime.date(2026, 4, 27))
         self.assertEqual(updated["Date"]["date"]["start"], "2026-04-27")
+
+
+class NotionRequestStatusTest(unittest.IsolatedAsyncioTestCase):
+    async def test_check_notion_request_status_raises_on_query_limit(self):
+        response = {
+            "results": [],
+            "request_status": {
+                "type": "incomplete",
+                "incomplete_reason": "query_result_limit_reached",
+            },
+        }
+        with self.assertRaises(NotionQueryIncompleteError):
+            check_notion_request_status(response, context="Notion database query (db-id)")
+
+    async def test_guard_notion_query_response_raises_on_query_limit(self):
+        async def fake_query(**kwargs):
+            return {
+                "results": [],
+                "request_status": {
+                    "type": "incomplete",
+                    "incomplete_reason": "query_result_limit_reached",
+                },
+            }
+
+        guarded = guard_notion_query_response(fake_query, context="Notion database query (db-id)")
+        with self.assertRaisesRegex(NotionQueryIncompleteError, r"filter=.*Status"):
+            await guarded(database_id="db-id", filter={"property": "Status", "status": {"equals": "In progress"}})
+
+    async def test_guard_notion_query_response_passes_when_complete(self):
+        async def fake_query(**kwargs):
+            return {"results": [], "has_more": False}
+
+        guarded = guard_notion_query_response(fake_query, context="Notion database query (db-id)")
+        response = await guarded(database_id="db-id")
+        self.assertEqual(response["results"], [])
 
 
 if __name__ == "__main__":

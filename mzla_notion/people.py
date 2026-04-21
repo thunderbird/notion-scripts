@@ -5,6 +5,7 @@ import notion_client
 from notion_client.helpers import async_iterate_paginated_api
 
 from .util import AsyncRetryingClient
+from .util import guard_notion_query_response
 from .util import getnestedattr
 
 logger = logging.getLogger("notion_sync")
@@ -94,10 +95,14 @@ async def load_notion_usermap(settings, notion_token):
         return {}
 
     notion = notion_client.AsyncClient(auth=notion_token, client=AsyncRetryingClient(http2=True))
+    query_func = guard_notion_query_response(
+        notion.databases.query,
+        context=f"Notion database query ({directory_cfg['notion_people_id']})",
+    )
     pages = [
         page
         async for page in async_iterate_paginated_api(
-            notion.databases.query,
+            query_func,
             database_id=directory_cfg["notion_people_id"],
             page_size=100,
         )
