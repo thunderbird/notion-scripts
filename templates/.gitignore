@@ -1,0 +1,4 @@
+repos/
+.venv/
+__pycache__/
+*.egg-info/

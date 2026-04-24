@@ -1,0 +1,48 @@
+[project]
+name = "template-propagation"
+version = "0.1.0"
+description = "Template propagation toolchain for GitHub repository sync"
+requires-python = ">=3.12"
+dependencies = [
+  "jinja2>=3.1.6",
+]
+
+[dependency-groups]
+dev = [
+  "ruff>=0.12.11",
+  "taskipy>=1.14.1",
+]
+
+[project.scripts]
+propagate = "propagate:main"
+
+[tool.uv]
+managed = true
+package = true
+
+[tool.setuptools]
+py-modules = ["propagate"]
+
+# Example: uv run task lint
+[tool.taskipy.tasks]
+lint = "ruff check"
+format = "ruff format"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["mzla_notion/github_schema.py"]
+
+[tool.ruff.lint]
+fixable = ["ALL"]
+unfixable = []
+extend-select = ["D"]
+ignore = ["D100", "D203", "D213"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
