@@ -119,12 +119,12 @@ class GitHubFixups:
         tasks_project_item, milestones_project_item = self._get_project_items(ghissue)
         issue_type = getnestedattr(lambda: ghissue.issue_type.name, None)
         orgrepo = ghissue.repository.name_with_owner
+        allow_parents = getattr(self, "milestones_allow_parents", False)
 
         if tasks_project_item and milestones_project_item:
             # Issues cannot be on both tasks and milestone projects
-            if not ghissue.parent and (
-                issue_type == self.milestones_issue_type or (sub_issues and ghissue.sub_issues.nodes)
-            ):
+            looks_like_milestone = issue_type == self.milestones_issue_type or (sub_issues and ghissue.sub_issues.nodes)
+            if (allow_parents or not ghissue.parent) and looks_like_milestone:
                 # This is a milestone, or it at least has sub-issues. Remove it from the task
                 # project
                 logger.warning(
@@ -167,6 +167,9 @@ class GitHubFixups:
 
     async def _fixup_issue_milestone_with_parent(self, ghissue):
         """Issues on the Milestone project shouldn't have parents. Avoids sub-issues landing on the roadmap."""
+        if getattr(self, "milestones_allow_parents", False):
+            return
+
         _, milestones_project_item = self._get_project_items(ghissue)
         orgrepo = ghissue.repository.name_with_owner
 

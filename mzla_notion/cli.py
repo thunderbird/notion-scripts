@@ -154,6 +154,7 @@ async def cmd_synchronize(projects, config, verbose=0, dry_run=False, synchronou
                     dry=dry_run or project.get("tracker_dry_run", False),
                     user_map=user_map.get("github") or {},
                     milestones_issue_type=project.get("milestones_issue_type", None),
+                    milestones_allow_parents=project.get("milestones_allow_parents", False),
                     property_names=project.get("properties", {}),
                 )
 
