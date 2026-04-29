@@ -123,6 +123,12 @@ milestones_body_sync = false
 # will be updated with the markdown.
 milestones_body_sync_if_empty = true
 
+# By default, GitHub issues with the configured milestones_issue_type are required to be top-level
+# (no parent). The sync will remove any parent link it finds on such issues. Set this to true to
+# preserve parent links on milestone-typed issues — useful when your repos already model a
+# multi-level hierarchy (e.g. Epic -> Milestone -> Task) using GitHub sub-issues. Default: false.
+milestones_allow_parents = false
+
 # If you want all GitHub issues connected to milestones to have a prefix in their title, set this
 # property. Don't forget the trailing space.
 milestones_github_prefix = "[EPIC] "
