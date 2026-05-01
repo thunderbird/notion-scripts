@@ -14,6 +14,10 @@ body
 parent {
 id
 number
+issueType {
+id
+name
+}
 repository {
 nameWithOwner
 }
@@ -183,7 +187,12 @@ duration
 }
 subIssues(first: 100) {
 nodes {
+id
 number
+issueType {
+id
+name
+}
 repository {
 nameWithOwner
 }

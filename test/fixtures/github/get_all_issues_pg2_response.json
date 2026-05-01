@@ -132,7 +132,8 @@
                     "optionId": "c82ffbcf"
                   }
                 ]
-              }
+              },
+              "issueType": null
             },
             "repository": {
               "id": "R_kgDOMwGgpA",
@@ -306,7 +307,8 @@
                     "optionId": "c82ffbcf"
                   }
                 ]
-              }
+              },
+              "issueType": null
             },
             "repository": {
               "id": "R_kgDOMwGgpA",

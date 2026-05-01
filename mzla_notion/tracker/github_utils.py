@@ -96,6 +96,8 @@ def issue_field_ops(issue):
     issue.body()
     issue.parent.id()
     issue.parent.number()
+    issue.parent.issue_type.id()
+    issue.parent.issue_type.name()
     issue.parent.repository.name_with_owner()
     issue.repository.id()
     issue.repository.name_with_owner()

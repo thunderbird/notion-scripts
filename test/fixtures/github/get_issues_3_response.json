@@ -18,7 +18,8 @@
           "number": 2,
           "repository": {
             "nameWithOwner": "kewisch/test"
-          }
+          },
+          "issueType": null
         },
         "repository": {
           "id": "R_kgDOMwGgpA",

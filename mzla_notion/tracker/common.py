@@ -106,11 +106,18 @@ class IssueTracker:
         "notion_tasks_repository": "",  # Default is disabled
         "notion_tasks_openclose": "",  # Default is disabled
         "notion_milestones_team": "",  # Default is disabled
+        "notion_milestones_epic_relation": "",  # Default is disabled
         "notion_milestones_title": "Project",
         "notion_milestones_assignee": "Owner",
         "notion_milestones_priority": "Priority",
         "notion_milestones_status": "Status",
         "notion_milestones_dates": "Dates",
+        "notion_epics_team": "",  # Default is disabled
+        "notion_epics_title": "Project",
+        "notion_epics_assignee": "Owner",
+        "notion_epics_priority": "Priority",
+        "notion_epics_status": "Status",
+        "notion_epics_dates": "Dates",
         "notion_issue_field": "Issue Link",
         "notion_sprint_title": "Sprint name",
         "notion_sprint_status": "Sprint status",
@@ -156,6 +163,11 @@ class IssueTracker:
 
     async def collect_tracker_milestones(self, milestones_issue_type, sub_issues=False):
         """Collect all milestone issues on the tracker."""
+        if False:
+            yield "hack"
+
+    async def collect_tracker_epics(self, epics_issue_type, sub_issues=False):
+        """Collect all epic issues on the tracker."""
         if False:
             yield "hack"
 

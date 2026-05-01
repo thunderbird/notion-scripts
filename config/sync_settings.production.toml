@@ -187,8 +187,11 @@ notion_milestones_id = "2332df5d45ae80909305fe2278a14629"
 
 notion_team_id = "2332df5d45ae80bc8839d089f5c7f608"
 notion_associated_team = ["2332df5d45ae8083af1dcda07b5c1eca", "31a2df5d45ae80d38897dd6efe4e134a"]
-milestones_issue_type = "Milestone"
 
+epics_create_from_tracker = true
+epics_issue_type = "Epic"
+
+milestones_issue_type = "Milestone"
 milestones_body_sync = false
 milestones_body_sync_if_empty = true
 milestones_create_from_tracker = true
@@ -201,9 +204,9 @@ repositories = [
     "thunderbird/cloudops",
     "thunderbird/mailstrom",
     "thunderbird/observability",
+    "thunderbird/platform-infrastructure",
     "thunderbird/pro",
     "thunderbird/pulumi",
-    #"thunderbird/send-suite",
     "thunderbird/services-ui",
     "thunderbird/services-utils",
     "thunderbird/tbpro-add-on",
@@ -215,6 +218,7 @@ repositories = [
     #"thunderbird/assist",
     #"thunderbird/code-coverage",
     #"thunderbird/notion-scripts",
+    #"thunderbird/send-suite",
     #"thunderbird/stats",
     #"thunderbird/thunderblog",
     #"thunderbird/zendesk-config"
@@ -248,6 +252,14 @@ notion_inprogress_state = "In progress"
 notion_closed_states = ["Done", "Canceled"]
 notion_tasks_repository = "Product (Services)"
 
+notion_milestones_epic_relation = "Epics"
+notion_epics_team = "Teams"
+notion_epics_title = "Name"
+notion_epics_assignee = "Owner"
+notion_epics_priority = "Priority"
+notion_epics_status = "Status"
+notion_epics_dates = "Target Date"
+
 [sync.services.properties.notion_tasks_repository_map]
 "thunderbird/addons-server" = "Core Services"
 "thunderbird/appointment" = "Appointment"
@@ -264,6 +276,7 @@ notion_tasks_repository = "Product (Services)"
 "thunderbird/thunderbird-website" = "Websites"
 "thunderbird/thundernest-ansible" = "Core Services"
 "thunderbird/routing" = "Pro General"
+"thunderbird/platform-infrastructure" = "Core Services"
 "thunderbird/pro" = "Pro General"
 
 [sync.services_deployments]
