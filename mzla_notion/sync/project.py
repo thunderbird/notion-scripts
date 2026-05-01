@@ -26,11 +26,24 @@ class ProjectSync(BaseSync):
     async def _async_init(self):
         async with asyncio.TaskGroup() as tg:
             tg.create_task(super()._async_init())
+            if self.epics_db:
+                epics_issues = tg.create_task(
+                    self._discover_notion_issues(self.epics_db.database_id, self.propnames["notion_epics_team"])
+                )
             milestones_issues = tg.create_task(
                 self._discover_notion_issues(self.milestones_db.database_id, self.propnames["notion_milestones_team"])
             )
 
+        self._notion_epic_issues = epics_issues.result() if self.epics_db else {}
         self._notion_milestone_issues = milestones_issues.result()
+
+    def _find_milestone_epic_parent(self, tracker_issue):
+        if not self.epics_db:
+            return None
+        for parent in tracker_issue.parents:
+            if epic_parent := self._notion_epic_issues.get(parent.repo, {}).get(parent.id, None):
+                return epic_parent
+        return None
 
     def _find_task_parents(self, tracker_issue):
         milestone_issues = self._notion_milestone_issues
@@ -42,6 +55,99 @@ class ProjectSync(BaseSync):
         ]
 
         return found_milestone_parents
+
+    async def create_single_epic(self, tracker_issue):
+        """Create an epic in Notion from the issue tracker.
+
+        Args:
+            tracker_issue (Issue): Issue to create from
+        """
+        notion_data = {
+            self.propnames["notion_epics_title"]: tracker_issue.title,
+            self.propnames["notion_issue_field"]: tracker_issue.url,
+        }
+
+        assignees = [user.notion_user for user in tracker_issue.assignees if user.notion_user is not None]
+        self._set_if_prop(notion_data, "notion_epics_assignee", assignees or None)
+        self._set_if_prop(notion_data, "notion_epics_team", self.configured_team_ids or None)
+        self._set_if_prop(notion_data, "notion_epics_priority", tracker_issue.priority)
+
+        if tracker_issue.closed_date:
+            logger.info(
+                f"Skip creating epic {tracker_issue.id} - {tracker_issue.title} ({tracker_issue.url}) because it is already closed"
+            )
+            return
+        self._set_if_prop(notion_data, "notion_epics_status", self.propnames["notion_default_open_state"])
+
+        utc_min = datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
+        if tracker_issue.start_date or tracker_issue.end_date:
+            final_start = max(
+                ensure_datetime(tracker_issue.start_date) or utc_min, ensure_datetime(tracker_issue.created_date)
+            )
+            final_end = tracker_issue.end_date or tracker_issue.closed_date
+        else:
+            final_start = None
+            final_end = None
+        self._set_if_date_prop(notion_data, "notion_epics_dates", ensure_date(final_start), ensure_date(final_end))
+
+        page = await self.epics_db.create_page(notion_data)
+        logger.info(
+            f"Creating epic {tracker_issue.id} - {tracker_issue.title} ({tracker_issue.url} / {page.get('url')})"
+        )
+
+        if not self.dry:
+            await self.synchronize_single_epic(tracker_issue, page, skip_unchanged_msg=True)
+
+    async def synchronize_single_epic(self, tracker_issue, page, skip_unchanged_msg=False):
+        """Synchronize a single Notion epic to the issue tracker.
+
+        Args:
+            tracker_issue (Issue): Issue that is being updated
+            page (dict): The Notion page object of the epic in notion.
+            skip_unchanged_msg (bool): Skip the "Unchanged epic" log message (for creating).
+        """
+        old_issue_url = self._get_prop(page, "notion_issue_field")
+        if old_issue_url and old_issue_url != tracker_issue.url:
+            logger.warning(
+                f"Epic URL changed for {tracker_issue.repo}#{tracker_issue.id}: {old_issue_url} -> {tracker_issue.url}"
+            )
+
+        community_assignees = {assignee for assignee in tracker_issue.assignees if assignee.notion_user is None}
+        epic_assignees = {
+            self.tracker.new_user(notion_user=assignee["id"])
+            for assignee in self._get_prop(page, "notion_epics_assignee", [])
+        }
+
+        title = self._get_richtext_prop(page, "notion_epics_title", "")
+        labels = set(tracker_issue.labels)
+        if self.epics_extra_label:
+            labels.add(self.epics_extra_label)
+
+        start_date, end_date = self._get_date_prop(page, "notion_epics_dates")
+
+        new_issue = dataclasses.replace(
+            tracker_issue,
+            title=self.epics_tracker_prefix + title,
+            labels=labels,
+            state=(self._get_prop(page, "notion_epics_status") or {}).get("name"),
+            priority=(self._get_prop(page, "notion_epics_priority") or {}).get("name"),
+            assignees=community_assignees.union(epic_assignees),
+            notion_url=page.get("url", ""),
+            start_date=ensure_date(start_date) if start_date else None,
+            end_date=ensure_date(end_date) if end_date else None,
+            issue_type=self.epics_issue_type or tracker_issue.issue_type,
+        )
+
+        if tracker_issue != new_issue:
+            logger.info(
+                f"Updating epic {tracker_issue.id} - {tracker_issue.title} ({tracker_issue.url} / {new_issue.notion_url})"
+            )
+            diff_dataclasses(tracker_issue, new_issue, log=logger.debug)
+            await self.tracker.update_milestone_issue(tracker_issue, new_issue)
+        elif not skip_unchanged_msg:
+            logger.info(
+                f"Unchanged epic {tracker_issue.id} - {tracker_issue.title} ({tracker_issue.url} / {new_issue.notion_url})"
+            )
 
     async def create_single_milestone(self, tracker_issue):
         """Create a milestone in Notion from the issue tracker.
@@ -95,6 +201,9 @@ class ProjectSync(BaseSync):
             final_end = None
 
         self._set_if_date_prop(notion_data, "notion_milestones_dates", ensure_date(final_start), ensure_date(final_end))
+        epic_parent = self._find_milestone_epic_parent(tracker_issue)
+        if epic_parent:
+            self._set_if_prop(notion_data, "notion_milestones_epic_relation", [epic_parent["id"]])
 
         # TODO labels
         # TODO body
@@ -142,6 +251,7 @@ class ProjectSync(BaseSync):
             labels.add(self.milestones_extra_label)
 
         start_date, end_date = self._get_date_prop(page, "notion_milestones_dates")
+        epic_parent = self._find_milestone_epic_parent(tracker_issue)
 
         new_issue = dataclasses.replace(
             tracker_issue,
@@ -158,6 +268,16 @@ class ProjectSync(BaseSync):
 
         if self.milestones_issue_type:
             new_issue.issue_type = self.milestones_issue_type
+
+        if self.propnames["notion_milestones_epic_relation"]:
+            relation_value = [epic_parent["id"]] if epic_parent else []
+            changed = await self.milestones_db.update_page(
+                page, {self.propnames["notion_milestones_epic_relation"]: relation_value}
+            )
+            if changed:
+                logger.info(
+                    f"Updating milestone epic relation {tracker_issue.id} - {tracker_issue.title} ({tracker_issue.url})"
+                )
 
         if tracker_issue != new_issue:
             logger.info(
@@ -181,6 +301,12 @@ class ProjectSync(BaseSync):
         for subissue in tracker_issue.sub_issues:
             collected_tasks.setdefault(subissue.repo, {}).setdefault(subissue.id, None)
 
+    def _schedule_epic_sync(self, tg, tracker_issue, notion_page):
+        if notion_page:
+            tg.create_task(self.synchronize_single_epic(tracker_issue, notion_page))
+        elif self.epics_create_from_tracker:
+            tg.create_task(self.create_single_epic(tracker_issue))
+
     async def synchronize(self):
         """Synchronize all the things!"""
         await self._async_init()
@@ -200,8 +326,34 @@ class ProjectSync(BaseSync):
         if self.milestones_create_from_tracker:
             async for milestone in self.tracker.collect_tracker_milestones(self.milestones_issue_type, sub_issues=True):
                 collected_tracker_milestones.setdefault(milestone.repo, {})[milestone.id] = milestone
+        collected_tracker_epics = {}
+        if self.epics_db and self.epics_create_from_tracker:
+            async for epic in self.tracker.collect_tracker_epics(self.epics_issue_type, sub_issues=True):
+                collected_tracker_epics.setdefault(epic.repo, {})[epic.id] = epic
 
         async with asyncio.TaskGroup() as tg:
+            if self.epics_db:
+                for reporef, notion_pages in self._notion_epic_issues.items():
+                    repo_epics = collected_tracker_epics.get(reporef, {})
+                    missing_refs = []
+                    for issue_id, notion_page in notion_pages.items():
+                        epic = repo_epics.pop(issue_id, None)
+                        if epic is not None:
+                            self._schedule_epic_sync(tg, epic, notion_page)
+                        else:
+                            missing_refs.append(IssueRef(id=issue_id, repo=reporef))
+                    async for issue in self.tracker.get_issues_by_number(missing_refs, True):
+                        self._schedule_epic_sync(tg, issue, get_page_for_issue(issue, notion_pages))
+                    logger.info(f"Synchronizing {len(notion_pages)} epics for {reporef}")
+
+                if self.epics_create_from_tracker:
+                    for reporef, epics in collected_tracker_epics.items():
+                        if not len(epics):
+                            continue
+                        logger.info(f"Creating {len(epics)} new epics for {reporef}")
+                        for epic in epics.values():
+                            self._schedule_epic_sync(tg, epic, None)
+
             # Synchronize issues found in milestones
             for reporef, notion_pages in self._notion_milestone_issues.items():
                 repo_milestones = collected_tracker_milestones.get(reporef, {})

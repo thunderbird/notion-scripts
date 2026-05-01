@@ -960,3 +960,74 @@ class ProjectSyncTest(BaseTestCase):
             notion_data["Dates"]["start"],
             datetime.datetime(2026, 3, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
         )
+
+    async def test_milestone_gets_epic_relation_from_parent(self):
+        tracker = IssueTestTracker(
+            issues=self.issues,
+            property_names={
+                "notion_milestones_epic_relation": "Epic",
+                "notion_epics_title": "Title",
+                "notion_epics_status": "Status",
+                "notion_epics_priority": "Priority",
+                "notion_epics_dates": "Dates",
+            },
+        )
+        sync = ProjectSync(
+            project_key="test",
+            tracker=tracker,
+            notion_token="NOTION_TOKEN",
+            epics_id="epics_id",
+            milestones_id="milestones_id",
+            tasks_id="tasks_id",
+            dry=False,
+        )
+        await sync._async_init()
+
+        milestone_issue = self.issues[0]
+        milestone_issue.parents = [IssueRef(repo="repo", id="123")]
+        milestone_page = self.notion_handler.milestones_handler.pages[0]
+
+        await sync.synchronize_single_milestone(milestone_issue, milestone_page)
+
+        updates = [c for c in self.respx.routes["pages_update"].calls if "/v1/pages/" in str(c.request.url)]
+        self.assertTrue(any('"Epic"' in call.request.content.decode("utf-8") for call in updates))
+
+    async def test_epic_sync_does_not_sync_body(self):
+        epic_issue = Issue(
+            repo="repo",
+            id="123",
+            title="Account Drawer Improvements",
+            description="tracker-body",
+            state="NEW",
+            created_date=datetime.datetime(2025, 1, 2, 3, 0, 0, tzinfo=datetime.timezone.utc),
+            closed_date=None,
+            priority="P2",
+            url="https://example.com/repo/123",
+        )
+
+        tracker = IssueTestTracker(
+            issues=[epic_issue],
+            property_names={
+                "notion_epics_title": "Title",
+                "notion_epics_assignee": "Owner",
+                "notion_epics_priority": "Priority",
+                "notion_epics_status": "Status",
+                "notion_epics_dates": "Dates",
+            },
+        )
+        sync = ProjectSync(
+            project_key="test",
+            tracker=tracker,
+            notion_token="NOTION_TOKEN",
+            epics_id="epics_id",
+            milestones_id="milestones_id",
+            tasks_id="tasks_id",
+            dry=False,
+        )
+        await sync._async_init()
+
+        page = self.notion_handler.epics_handler.pages[0]
+        await sync.synchronize_single_epic(epic_issue, page)
+        self.assertEqual(tracker.update_milestone_issue.call_count, 1)
+        new_issue = tracker.update_milestone_issue.call_args[0][1]
+        self.assertEqual(new_issue.description, "tracker-body")

@@ -118,7 +118,9 @@ class GitHub(IssueTracker, GitHubFixups):
 
     name = "GitHub"
 
-    def __init__(self, token=None, repositories={}, user_map=None, milestones_issue_type=None, **kwargs):
+    def __init__(
+        self, token=None, repositories={}, user_map=None, milestones_issue_type=None, epics_issue_type="Epic", **kwargs
+    ):
         """Initialize issue tracker."""
         super().__init__(**kwargs)
 
@@ -132,6 +134,7 @@ class GitHub(IssueTracker, GitHubFixups):
         self.label_cache = LabelCache(self.endpoint)
         self.issue_planning_cache = IssuePlanningCache(self.endpoint)
         self.milestones_issue_type = milestones_issue_type
+        self.epics_issue_type = epics_issue_type
 
         self._init_repository_settings(repositories)
         self._raw_user_map = user_map
@@ -205,11 +208,12 @@ class GitHub(IssueTracker, GitHubFixups):
         """Get a list of all associated repositories."""
         return list(self.allowed_repositories)
 
-    async def collect_tracker_milestones(self, milestones_issue_type, sub_issues=False):
-        """Collect all milestone issues on the tracker."""
-        query = (
-            " ".join(f"repo:{repo}" for repo in self.allowed_repositories) + " is:issue type:" + milestones_issue_type
-        )
+    async def _collect_tracker_issues_for_type(self, issue_type, sub_issues=False):
+        """Collect all issues of an issue type on the tracker."""
+        if not issue_type:
+            return
+
+        query = " ".join(f"repo:{repo}" for repo in self.allowed_repositories) + " is:issue type:" + issue_type
         has_next_page = True
         cursor = None
 
@@ -223,7 +227,10 @@ class GitHub(IssueTracker, GitHubFixups):
             if sub_issues:
                 # TODO run through this with a cursor
                 subissues = nodes.sub_issues(first=100)
+                subissues.nodes.id()
                 subissues.nodes.number()
+                subissues.nodes.issue_type.id()
+                subissues.nodes.issue_type.name()
                 subissues.nodes.repository.name_with_owner()
 
             search.page_info.__fields__(has_next_page=True)
@@ -237,6 +244,16 @@ class GitHub(IssueTracker, GitHubFixups):
 
             has_next_page = searchdata.page_info.has_next_page
             cursor = searchdata.page_info.end_cursor
+
+    async def collect_tracker_milestones(self, milestones_issue_type, sub_issues=False):
+        """Collect all milestone issues on the tracker."""
+        async for issue in self._collect_tracker_issues_for_type(milestones_issue_type, sub_issues=sub_issues):
+            yield issue
+
+    async def collect_tracker_epics(self, epics_issue_type, sub_issues=False):
+        """Collect all epic issues on the tracker."""
+        async for issue in self._collect_tracker_issues_for_type(epics_issue_type, sub_issues=sub_issues):
+            yield issue
 
     async def collect_additional_tasks(self, collected_tasks):
         """Add additional tasks to the collected tasks for sync."""
@@ -494,7 +511,7 @@ class GitHub(IssueTracker, GitHubFixups):
                             dbid_user=r.requested_reviewer.id,
                         )
                         for r in item.source.review_requests.nodes
-                        if r.requested_reviewer
+                        if r.requested_reviewer and isinstance(r.requested_reviewer, schema.User)
                     }
 
         state = None
@@ -584,7 +601,10 @@ class GitHub(IssueTracker, GitHubFixups):
                 if sub_issues:
                     # TODO run through this with a cursor
                     subissues = issue.sub_issues(first=100)
+                    subissues.nodes.id()
                     subissues.nodes.number()
+                    subissues.nodes.issue_type.id()
+                    subissues.nodes.issue_type.name()
                     subissues.nodes.repository.name_with_owner()
 
             try:

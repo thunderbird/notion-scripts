@@ -43,7 +43,8 @@
                       "optionId": "c82ffbcf"
                     }
                   ]
-                }
+                },
+                "issueType": null
               },
               "labels": {
                 "nodes": []
@@ -150,7 +151,8 @@
                       "optionId": "c82ffbcf"
                     }
                   ]
-                }
+                },
+                "issueType": null
               },
               "labels": {
                 "nodes": []
@@ -325,7 +327,8 @@
                 },
                 "issueFieldValues": {
                   "nodes": []
-                }
+                },
+                "issueType": null
               },
               "labels": {
                 "nodes": []

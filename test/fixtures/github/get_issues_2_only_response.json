@@ -86,13 +86,17 @@
               "number": 4,
               "repository": {
                 "nameWithOwner": "kewisch/test"
-              }
+              },
+              "id": "I_4",
+              "issueType": null
             },
             {
               "number": 3,
               "repository": {
                 "nameWithOwner": "kewisch/test"
-              }
+              },
+              "id": "I_3",
+              "issueType": null
             }
           ]
         },

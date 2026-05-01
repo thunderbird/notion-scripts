@@ -17,6 +17,25 @@ class GitHubFixups:
     repositories.
     """
 
+    def _issue_type_name(self, ghissue):
+        return getnestedattr(lambda: ghissue.issue_type.name, None)
+
+    def _is_milestone_issue(self, ghissue):
+        issue_type = self._issue_type_name(ghissue)
+        return bool(issue_type and issue_type == self.milestones_issue_type)
+
+    def _is_epic_issue(self, ghissue):
+        issue_type = self._issue_type_name(ghissue)
+        return bool(issue_type and issue_type == self.epics_issue_type)
+
+    def _is_roadmap_issue(self, ghissue, sub_issues):
+        if self._is_milestone_issue(ghissue) or self._is_epic_issue(ghissue):
+            return True
+        labels = {label.name.lower() for label in getattr(ghissue.labels, "nodes", [])}
+        if "type: epic" in labels or "type: milestone" in labels:
+            return True
+        return bool(sub_issues and getattr(ghissue.sub_issues, "nodes", None))
+
     async def _fixup_pull_requests(self, pull_requests):
         for pull_request in pull_requests:
             ghissues = pull_request.closing_issues_references.nodes
@@ -27,8 +46,7 @@ class GitHubFixups:
             change_issues = []
             for ghissue in ghissues:
                 # Skip Milestone issues with a pull request attached
-                issue_type = getnestedattr(lambda: ghissue.issue_type.name, None)
-                if issue_type and issue_type == self.milestones_issue_type:
+                if self._is_milestone_issue(ghissue) or self._is_epic_issue(ghissue):
                     continue
 
                 change_issues.append(ghissue)
@@ -117,14 +135,11 @@ class GitHubFixups:
     async def _fixup_issue_both_projects(self, ghissue, sub_issues):
         """Issues should not be on both boards. Use some indicators to make a best effort call where it belongs."""
         tasks_project_item, milestones_project_item = self._get_project_items(ghissue)
-        issue_type = getnestedattr(lambda: ghissue.issue_type.name, None)
         orgrepo = ghissue.repository.name_with_owner
 
         if tasks_project_item and milestones_project_item:
             # Issues cannot be on both tasks and milestone projects
-            if not ghissue.parent and (
-                issue_type == self.milestones_issue_type or (sub_issues and ghissue.sub_issues.nodes)
-            ):
+            if not ghissue.parent and (self._is_roadmap_issue(ghissue, sub_issues)):
                 # This is a milestone, or it at least has sub-issues. Remove it from the task
                 # project
                 logger.warning(
@@ -163,20 +178,22 @@ class GitHubFixups:
 
                 milestones_project_item = None
             else:
-                raise Exception(f"Issue {ghissue.url} has both tasks and milestones project")
+                logger.warning(
+                    f"Issue {ghissue.url} has both tasks and milestones project with unknown classification, removing from tasks project."
+                )
+                await self.github_tasks_projects[orgrepo].remove_project_from_issue(ghissue)
 
     async def _fixup_issue_milestone_with_parent(self, ghissue):
-        """Issues on the Milestone project shouldn't have parents. Avoids sub-issues landing on the roadmap."""
+        """Validate epic/milestone hierarchy and cleanup invalid parent/child links."""
         _, milestones_project_item = self._get_project_items(ghissue)
         orgrepo = ghissue.repository.name_with_owner
 
-        issue_type = getnestedattr(lambda: ghissue.issue_type.name, None)
-
-        if issue_type and issue_type == self.milestones_issue_type and ghissue.parent and ghissue.parent.number:
-            # The issue is flagged as a milestone issue, but has a parent. They should not have
-            # parents, but they can have epics in Notion.
+        if self._is_milestone_issue(ghissue) and ghissue.parent and ghissue.parent.number:
+            parent_type = self._issue_type_name(ghissue.parent)
+            if not parent_type or self._is_epic_issue(ghissue.parent):
+                return
             logger.warning(
-                f"Issue https://github.com/{orgrepo}/issues/{ghissue.number} has a parent and the Milestone issue type,"
+                f"Issue https://github.com/{orgrepo}/issues/{ghissue.number} has an invalid parent for milestone type,"
                 " removing parent."
             )
             parent_id = ghissue.parent.id
@@ -187,14 +204,43 @@ class GitHubFixups:
                     tg.create_task(
                         self._comment_on_issue(
                             ghissue,
-                            "Milestone issues cannot have a parent. Please set the "
-                            "Epic in Notion if this is part of a larger effort.",
+                            "Milestone issues can only have Epic parents. Removing invalid parent relation.",
                         )
                     )
 
                     op = Operation(schema.mutation_type)
                     op.remove_sub_issue(input={"issue_id": parent_id, "sub_issue_id": ghissue.id})
                     tg.create_task(self.endpoint(op))
+
+        if self._is_epic_issue(ghissue):
+            subissue_nodes = getnestedattr(lambda: ghissue.sub_issues.nodes, []) or []
+            invalid_sub_issues = [
+                subissue
+                for subissue in subissue_nodes
+                if self._issue_type_name(subissue)
+                and not self._is_milestone_issue(subissue)
+                and getattr(subissue, "id", None)
+            ]
+            if invalid_sub_issues:
+                logger.warning(
+                    f"Issue https://github.com/{orgrepo}/issues/{ghissue.number} has non-milestone sub-issues, removing invalid links."
+                )
+
+                async with asyncio.TaskGroup() as tg:
+                    if not self.dry:
+                        tg.create_task(
+                            self._comment_on_issue(
+                                ghissue,
+                                "Epic sub-issues must be Milestones. Removing invalid parent-child relations.",
+                            )
+                        )
+                        op = Operation(schema.mutation_type)
+                        for idx, subissue in enumerate(invalid_sub_issues):
+                            op.remove_sub_issue(
+                                __alias__=f"remove_sub_{idx}",
+                                input={"issue_id": ghissue.id, "sub_issue_id": subissue.id},
+                            )
+                        tg.create_task(self.endpoint(op))
 
         if milestones_project_item and ghissue.parent and ghissue.parent.number:
             # This is an issue with a parent, but it is also on the milestones board. This can
@@ -210,9 +256,8 @@ class GitHubFixups:
                     tg.create_task(
                         self._comment_on_issue(
                             ghissue,
-                            "Issues with a parent cannot be on the Milestones board, removing. "
-                            "Either move your sub-issues up to the parent issue, or turn this into "
-                            "an independent Milestone issue that has sub-issues.",
+                            "Issues with a parent cannot be on the Milestones board unless they are "
+                            "Milestones under an Epic. Removing from milestones board.",
                         )
                     )
                     tg.create_task(self.github_milestones_projects[orgrepo].remove_project_from_issue(ghissue))

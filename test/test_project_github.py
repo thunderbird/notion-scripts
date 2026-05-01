@@ -4,6 +4,7 @@ import types
 import sgqlc.operation
 import json
 import httpx
+from unittest.mock import MagicMock
 
 from freezegun import freeze_time
 
@@ -583,3 +584,50 @@ class GitHubProjectTest(BaseTestCase):
         # Not planned issue, takes canceled state
         with self.subTest(msg="not planned issue"):
             self.assertEqual(issues[5].state, "Canceled")
+
+    async def test_fixup_milestone_parent_epic_allowed(self):
+        self.github._get_project_items = MagicMock(return_value=(None, None))
+        self.github.milestones_issue_type = "Milestone"
+
+        parent = types.SimpleNamespace(
+            id="PARENT",
+            number=1,
+            issue_type=types.SimpleNamespace(name="Epic"),
+            repository=types.SimpleNamespace(name_with_owner="kewisch/test"),
+        )
+        issue = types.SimpleNamespace(
+            id="ISSUE",
+            number=2,
+            url="https://github.com/kewisch/test/issues/2",
+            issue_type=types.SimpleNamespace(name=self.github.milestones_issue_type),
+            parent=parent,
+            repository=types.SimpleNamespace(name_with_owner="kewisch/test"),
+            sub_issues=types.SimpleNamespace(nodes=[]),
+        )
+
+        await self.github._fixup_issue_milestone_with_parent(issue)
+        self.assertIsNotNone(issue.parent)
+
+    async def test_fixup_milestone_parent_non_epic_removed(self):
+        self.github._get_project_items = MagicMock(return_value=(None, None))
+        self.github.dry = True
+        self.github.milestones_issue_type = "Milestone"
+
+        parent = types.SimpleNamespace(
+            id="PARENT",
+            number=1,
+            issue_type=types.SimpleNamespace(name="Task"),
+            repository=types.SimpleNamespace(name_with_owner="kewisch/test"),
+        )
+        issue = types.SimpleNamespace(
+            id="ISSUE",
+            number=2,
+            url="https://github.com/kewisch/test/issues/2",
+            issue_type=types.SimpleNamespace(name=self.github.milestones_issue_type),
+            parent=parent,
+            repository=types.SimpleNamespace(name_with_owner="kewisch/test"),
+            sub_issues=types.SimpleNamespace(nodes=[]),
+        )
+
+        await self.github._fixup_issue_milestone_with_parent(issue)
+        self.assertIsNone(issue.parent)

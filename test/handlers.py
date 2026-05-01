@@ -205,6 +205,7 @@ class NotionDatabaseHandler:
 
 class NotionHandler:
     def __init__(self, respx_mock):
+        self.epics_handler = NotionDatabaseHandler("epics_id")
         self.milestones_handler = NotionDatabaseHandler("milestones_id")
         self.tasks_handler = NotionDatabaseHandler("tasks_id")
         self.sprints_handler = NotionDatabaseHandler("sprints_id")
@@ -241,7 +242,9 @@ class NotionHandler:
         ).mock(side_effect=self.blocks_child_handler)
 
     def _get_handler(self, dbid):
-        if dbid == "milestones_id":
+        if dbid == "epics_id":
+            return self.epics_handler
+        elif dbid == "milestones_id":
             return self.milestones_handler
         elif dbid == "tasks_id":
             return self.tasks_handler
@@ -293,6 +296,7 @@ class NotionHandler:
     def pages_update_handler(self, req, page):
         page = (
             self.tasks_handler.get_page(page)
+            or self.epics_handler.get_page(page)
             or self.milestones_handler.get_page(page)
             or self.sprints_handler.get_page(page)
         )

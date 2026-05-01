@@ -35,11 +35,16 @@ class BaseSync:
         tracker,
         milestones_id,
         tasks_id,
+        epics_id=None,
         sprint_id=None,
+        epics_create_from_tracker=False,
         milestones_body_sync=False,
         milestones_body_sync_if_empty=False,
         milestones_create_from_tracker=False,
         tasks_body_sync=False,
+        epics_tracker_prefix="",
+        epics_extra_label="",
+        epics_issue_type="Epic",
         milestones_tracker_prefix="",
         milestones_extra_label="",
         milestones_issue_type=None,
@@ -55,6 +60,7 @@ class BaseSync:
             project_key (str): The identifying project key
             notion_token (str): The Notion client token
             tracker (IssueTracker): The issue tracker
+            epics_id (str): The Notion database id for the "Epics" database. Optional.
             milestones_id (str): The Notion database id for the "Milestones" database
             tasks_id (str): The Notion database id for the "Tasks" database
             sprint_id (str): The Notion database id for the "Sprints" database. Leave out to disable
@@ -64,10 +70,16 @@ class BaseSync:
             milestones_body_sync_if_empty (bool): If true, the Notion page body will be synchronized
                 to the tracker, but only if the tracker issue is empty. This works great for a one
                 time import.
+            epics_create_from_tracker (bool): If true, tracker issues with the epic type
+                will be created in Notion if they do not exist.
             milestones_create_from_tracker (bool): If true, tracker issues with the milestone type
                 will be created in Notion if they do not exist.
             tasks_body_sync (bool): If true, the issue body will be synced to Notion tasks.
                 Note this takes a lot of requests, so recommend avoiding.
+            epics_tracker_prefix (str): Optional prefix on the issue tracker when synchronized
+                from epics.
+            epics_extra_label (str): Optional label for GitHub issues synchronized from epics.
+            epics_issue_type (str): Optional issue type for GitHub issues synchronized from epics.
             milestones_tracker_prefix (str): Optional prefix on the issue tracker when synchronized
                 from milestones.
             milestones_extra_label (str): Optional label for GitHub issues synchronized from
@@ -85,6 +97,26 @@ class BaseSync:
         self.notion = notion_client.AsyncClient(auth=notion_token, client=AsyncRetryingClient(http2=True))
         self.tracker = tracker
 
+        # Epics Database (optional, enabled when epics_id is set)
+        self.epics_db = None
+        self.epics_enabled = bool(epics_id)
+        self.epics_create_from_tracker = epics_create_from_tracker
+        self.epics_tracker_prefix = epics_tracker_prefix
+        self.epics_extra_label = epics_extra_label
+        self.epics_issue_type = epics_issue_type
+
+        if epics_id:
+            epics_properties = [
+                p.link(self.propnames["notion_issue_field"]),
+            ]
+            self._setup_prop(epics_properties, "notion_epics_title", "title")
+            self._setup_prop(epics_properties, "notion_epics_assignee", "people")
+            self._setup_prop(epics_properties, "notion_epics_priority", "select")
+            self._setup_date_prop(epics_properties, "notion_epics_dates")
+            if team_id:
+                self._setup_prop(epics_properties, "notion_epics_team", "relation", team_id, False)
+            self.epics_db = NotionDatabase(epics_id, self.notion, epics_properties, dry=dry)
+
         # Milestones Database
         milestones_properties = [
             p.link(self.propnames["notion_issue_field"]),
@@ -94,6 +126,8 @@ class BaseSync:
         self._setup_prop(milestones_properties, "notion_milestones_assignee", "people")
         self._setup_prop(milestones_properties, "notion_milestones_priority", "select")
         self._setup_date_prop(milestones_properties, "notion_milestones_dates")
+        if epics_id and self.propnames["notion_milestones_epic_relation"]:
+            milestones_properties.append(p.relation(self.propnames["notion_milestones_epic_relation"], epics_id, True))
 
         if team_id:
             self._setup_prop(milestones_properties, "notion_milestones_team", "relation", team_id, False)
@@ -500,6 +534,8 @@ class BaseSync:
 
     async def _async_init(self):
         async with asyncio.TaskGroup() as tg:
+            if self.epics_db:
+                valid_epics = tg.create_task(self.epics_db.validate_props())
             valid_milestones = tg.create_task(self.milestones_db.validate_props())
             valid_tasks = tg.create_task(self.tasks_db.validate_props())
 
@@ -512,6 +548,8 @@ class BaseSync:
             if self.sprint_db:
                 sprint_pages = tg.create_task(self.sprint_db.get_all_pages())
 
+        if self.epics_db and not valid_epics.result():
+            raise Exception("Epic schema failed to validate")
         if not valid_milestones.result():
             raise Exception("Milestone schema failed to validate")
         if not valid_tasks.result():

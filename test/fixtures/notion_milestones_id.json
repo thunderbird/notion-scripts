@@ -16,45 +16,8 @@
       "Start": {"date": {}, "description": null, "id": "Yy%7DK", "name": "Start", "type": "date"},
       "End": {"date": {}, "description": null, "id": "Yy%7DK", "name": "End", "type": "date"},
       "Owner": {"description": null, "id": "FQY%7D", "name": "Owner", "people": {}, "type": "people"},
-      "Priority": {
-        "description": null,
-        "id": "%3F%7BJE",
-        "name": "Priority",
-        "type": "select",
-        "select": {"options": [
-          {
-            "color": "default",
-            "description": null,
-            "id": "HTg?",
-            "name": "P???"
-          }, {
-            "color": "red",
-            "description": null,
-            "id": "hbdy",
-            "name": "P1"
-          }, {
-            "color": "yellow",
-            "description": null,
-            "id": "uS<G",
-            "name": "P2"
-          }, {
-            "color": "green",
-            "description": null,
-            "id": "dIvi",
-            "name": "P3"
-          }, {
-            "color": "blue",
-            "description": null,
-            "id": "yi;k",
-            "name": "P4"
-          }, {
-            "color": "gray",
-            "description": null,
-            "id": "\\z=]",
-            "name": "P5"
-          }
-        ]}
-      }
+      "Priority": {"description": null,"id": "%3F%7BJE","name": "Priority","type": "select","select": {"options": [{"color": "default","description": null,"id": "HTg?","name": "P???"},{"color": "red","description": null,"id": "hbdy","name": "P1"},{"color": "yellow","description": null,"id": "uS<G","name": "P2"},{"color": "green","description": null,"id": "dIvi","name": "P3"},{"color": "blue","description": null,"id": "yi;k","name": "P4"},{"color": "gray","description": null,"id": "\\z=]","name": "P5"}]}},
+      "Epic": {"name": "Epic", "type": "relation", "relation": {"database_id": "epics_id", "type": "dual_property", "dual_property": {}}}
     },
     "archived": false,
     "in_trash": false,
