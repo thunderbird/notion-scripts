@@ -8,7 +8,7 @@ from copy import deepcopy
 from .base import BaseSync
 
 from ..tracker.common import IssueRef
-from ..util import diff_dataclasses, ensure_datetime, ensure_date
+from ..util import diff_dataclasses, ensure_datetime, ensure_date, normalize_notion_url
 
 from ..notion_data import CustomNotionToMarkdown
 
@@ -132,7 +132,7 @@ class ProjectSync(BaseSync):
             state=(self._get_prop(page, "notion_epics_status") or {}).get("name"),
             priority=(self._get_prop(page, "notion_epics_priority") or {}).get("name"),
             assignees=community_assignees.union(epic_assignees),
-            notion_url=page.get("url", ""),
+            notion_url=normalize_notion_url(page.get("url", "")),
             start_date=ensure_date(start_date) if start_date else None,
             end_date=ensure_date(end_date) if end_date else None,
             issue_type=self.epics_issue_type or tracker_issue.issue_type,
@@ -261,7 +261,7 @@ class ProjectSync(BaseSync):
             state=(self._get_prop(page, "notion_milestones_status") or {}).get("name"),
             priority=(self._get_prop(page, "notion_milestones_priority") or {}).get("name"),
             assignees=community_assignees.union(milestone_assignees),
-            notion_url=page.get("url", ""),
+            notion_url=normalize_notion_url(page.get("url", "")),
             start_date=ensure_date(start_date) if start_date else None,
             end_date=ensure_date(end_date) if end_date else None,
         )

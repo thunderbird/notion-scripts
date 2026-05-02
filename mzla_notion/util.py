@@ -12,12 +12,32 @@ import asyncio
 import http.client
 import random
 import sgqlc.operation
+from urllib.parse import urlsplit
 
 logger = logging.getLogger("notion_sync")
 
 
 class NotionQueryIncompleteError(RuntimeError):
     """Raised when Notion reports incomplete query results."""
+
+
+def normalize_notion_url(value):
+    """Normalize Notion URLs to canonical https://www.notion.so/... form."""
+    if value in (None, ""):
+        return None
+    if not isinstance(value, str):
+        return value
+
+    parts = urlsplit(value)
+    hostname = (parts.hostname or "").lower()
+    if hostname not in {"app.notion.com", "www.notion.so", "notion.so"}:
+        return value
+
+    path = (parts.path or "").strip("/")
+    if hostname == "app.notion.com" and path.startswith("p/"):
+        path = path[2:]
+
+    return f"https://www.notion.so/{path}"
 
 
 def check_notion_request_status(response, context="Notion query", query_kwargs=None):

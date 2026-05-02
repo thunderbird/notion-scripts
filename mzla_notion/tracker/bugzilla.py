@@ -11,6 +11,7 @@ from functools import cache
 from dataclasses import dataclass, field
 
 from ..util import getnestedattr, AsyncRetryingClient, RetryingClient
+from ..util import normalize_notion_url
 
 from .common import UserMap, IssueRef, Issue, User, IssueTracker
 
@@ -348,8 +349,9 @@ class Bugzilla(IssueTracker):
 
             notion_url = None
             for url in bug["see_also"]:
-                if url.startswith("https://www.notion.so/"):
-                    notion_url = url
+                normalized_url = normalize_notion_url(url)
+                if isinstance(normalized_url, str) and normalized_url.startswith("https://www.notion.so/"):
+                    notion_url = normalized_url
                     break
 
             issue = Issue(

@@ -354,8 +354,8 @@ class ProjectSyncTest(BaseTestCase):
         self.assertEqual(len(tracker.get_issues_by_number.call_args_list[0].args[0]), 1)
         self.assertEqual(tracker.get_issues_by_number.call_args_list[0].args[0][0].id, "123")
 
-        # No updates
-        self.assertEqual(tracker.update_milestone_issue.call_count, 0)
+        # Notion URL is normalized to www.notion.so, resulting in one update.
+        self.assertEqual(tracker.update_milestone_issue.call_count, 1)
 
         self.expect_total_calls()
 
@@ -379,7 +379,7 @@ class ProjectSyncTest(BaseTestCase):
         tracker = IssueTestTracker(issues=self.issues, dry=True)
 
         await self.synchronize_project(tracker, dry=True)
-        self.assertEqual(tracker.update_milestone_issue.call_count, 0)
+        self.assertEqual(tracker.update_milestone_issue.call_count, 1)
 
     async def test_milestone_sync_apply_extra_label(self):
         # Only milestone issue
@@ -570,7 +570,7 @@ class ProjectSyncTest(BaseTestCase):
             await self.synchronize_project(tracker, milestones_body_sync_if_empty=True)
             self.expect_call("pages_child_get", 0)
 
-            self.assertEqual(tracker.update_milestone_issue.call_count, 0)
+            self.assertEqual(tracker.update_milestone_issue.call_count, 1)
 
             self.expect_typical_db_update()
             self.expect_total_calls()
@@ -583,7 +583,7 @@ class ProjectSyncTest(BaseTestCase):
             await self.synchronize_project(tracker, milestones_body_sync_if_empty=True)
             self.expect_call("pages_child_get", 1)
 
-            self.assertEqual(tracker.update_milestone_issue.call_count, 1)
+            self.assertEqual(tracker.update_milestone_issue.call_count, 2)
             self.assertEqual(
                 tracker.update_milestone_issue.call_args[0][1].description, "\n_This is some page content._\n\n"
             )
