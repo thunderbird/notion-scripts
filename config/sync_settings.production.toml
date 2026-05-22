@@ -18,11 +18,16 @@ notion_milestones_id = "2332df5d45ae80909305fe2278a14629"
 
 notion_team_id = "2332df5d45ae80bc8839d089f5c7f608"
 notion_associated_team = "2332df5d45ae80658b05c4e8a4819827"
-milestones_issue_type = "Milestone"
 
+epics_create_from_tracker = true
+epics_issue_type = "Epic"
+
+milestones_issue_type = "Milestone"
 milestones_body_sync = false
 milestones_body_sync_if_empty = true
+milestones_create_from_tracker = true
 tasks_body_sync = false
+
 #sprints_merge_by_name = true
 
 [sync.mobile.properties]
