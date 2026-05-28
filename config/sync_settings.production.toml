@@ -202,7 +202,7 @@ milestones_body_sync_if_empty = true
 milestones_create_from_tracker = true
 tasks_body_sync = false
 
-[sync.services.repositories.pro]
+[sync.services.repositories]
 repositories = [
     "thunderbird/addons-server",
     "thunderbird/appointment",
@@ -220,6 +220,7 @@ repositories = [
     "thunderbird/thunderbird-website",
     "thunderbird/thundernest-ansible",
     "thunderbird/routing",
+    "thunderbird/stormbox",
     #"thunderbird/assist",
     #"thunderbird/code-coverage",
     #"thunderbird/notion-scripts",
@@ -283,6 +284,7 @@ notion_epics_dates = "Target Date"
 "thunderbird/routing" = "Pro General"
 "thunderbird/platform-infrastructure" = "Core Services"
 "thunderbird/pro" = "Pro General"
+"thunderbird/stormbox" = "Thundermail"
 
 [sync.services_deployments]
 method="github_deployments"
