@@ -21,6 +21,7 @@ REPOS = [
     {"repo": "tbpro-add-on", "product": "Thunderbird Send and Pro Add-on"},
     {"repo": "thunderbird-accounts", "product": "Thunderbird Accounts"},
     {"repo": "pro", "product": "Thunderbird Pro"},
+    {"repo": "stormbox", "product": "Stormbox (Webmail)"},
 ]
 
 SOURCE_OWNER = "thunderbird"
