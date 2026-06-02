@@ -40,6 +40,10 @@
 
 <!--
 Bulleted list of any steps taken to validate correctness beyond automated tests.
+
+For example:
+
+* manually tested sign-up workflow happy path in Firefox, Safari and Chrome on macOS
 -->
 
 ## Screenshots
