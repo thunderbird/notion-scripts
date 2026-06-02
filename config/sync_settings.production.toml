@@ -184,6 +184,67 @@ VERIFIED = "Canceled"
 "Done" = "RESOLVED"
 "Canceled" = "RESOLVED"
 
+[sync.buildrelease]
+method = "bugzilla_project"
+tracker_dry_run = true
+notion_tasks_id = "2332df5d45ae8072aa7aededaf161252"
+notion_milestones_id = "2332df5d45ae80909305fe2278a14629"
+
+notion_team_id = "2332df5d45ae80bc8839d089f5c7f608"
+notion_associated_team = "2332df5d45ae805c99f7cd0c05d67a89"
+
+bugzilla_base = "https://bugzilla.mozilla.org"
+milestones_tracker_prefix = "[meta] "
+
+[sync.buildrelease.properties]
+bugzilla_allowed_products = ["Thunderbird", "MailNews Core", "Calendar"]
+
+notion_tasks_title = "Name"
+notion_tasks_assignee = "Assignee"
+notion_tasks_dates = ""
+#notion_tasks_openclose = ["Opened", "Closed"]
+notion_tasks_priority = "Priority"
+notion_tasks_estimate = "Estimate"
+notion_tasks_team = "Team"
+notion_tasks_milestone_relation = "Milestones"
+notion_tasks_text_assignee = "Text Assignee (Desktop)"
+notion_tasks_labels = "Keywords (Desktop)"
+notion_tasks_whiteboard = "Whiteboard (Desktop)"
+notion_tasks_repository = ""
+notion_tasks_review_url = "Patch URL"
+notion_tasks_reviewers = "Peer Reviewer"
+notion_milestones_title = "Name"
+notion_milestones_team = "Team"
+notion_milestones_assignee = "Assignee"
+notion_milestones_priority = "Priority"
+notion_milestones_dates = ""
+notion_issue_field = "Bug URL"
+notion_default_open_state = "Backlog"
+notion_inprogress_state = "In progress"
+notion_closed_states = ["Done", "Canceled"]
+
+[sync.buildrelease.properties.bugzilla_map_state]
+NEW = "Backlog"
+UNCONFIRMED = "Backlog"
+ASSIGNED = "In progress"
+"IN REVIEW" = "In Review"
+ACCEPTED = "Approved"
+CHECKIN = "Ready to Publish"
+REOPENED = "In progress"
+RESOLVED = "Canceled"
+"RESOLVED:FIXED" = "Done"
+VERIFIED = "Canceled"
+"VERIFIED:FIXED" = "Verified"
+
+"Backlog" = "NEW"
+"Planning" = "NEW"
+"In progress" = "ASSIGNED"
+"In Review" = "ASSIGNED"
+"Approved" = "ASSIGNED"
+"Ready to Publish" = "ASSIGNED"
+"Done" = "RESOLVED"
+"Canceled" = "RESOLVED"
+
 [sync.services]
 method = "github_project"
 notion_tasks_id = "2332df5d45ae8072aa7aededaf161252"
