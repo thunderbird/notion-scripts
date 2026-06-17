@@ -551,6 +551,8 @@ class GitHub(IssueTracker, GitHubFixups):
         if ghissue.parent:
             issue.parents = [IssueRef(repo=ghissue.parent.repository.name_with_owner, id=str(ghissue.parent.number))]
 
+        issue.deeply_nested = self._is_deeply_nested_subissue(ghissue)
+
         if sub_issues:
             issue.sub_issues = [
                 IssueRef(id=str(subissue.number), repo=subissue.repository.name_with_owner, parents=[issue])

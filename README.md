@@ -242,7 +242,10 @@ Here is your workflow as a manager/project manager:
 
 Here is your workflow as an engineer:
 * Use the Epic issue on GitHub as the parent item for any work you do. All child issues one level
-  deep will be synchronized to Notion. 
+  deep will be synchronized to Notion. The sync only supports a single Milestone -> Task layer, so
+  sub-issues of a task (sub-sub-issues) are ignored on the Notion side. They stay intact on GitHub
+  for your own tracking, but won't appear as tasks in Notion. Promote a task to a Milestone if you
+  need its sub-issues to show up.
 * Plan these issues into sprints using the Sprints GitHub Project. You can do all the work on
   GitHub.
 * If you have additional high level tasks or are still breaking things down, you can also use Tasks

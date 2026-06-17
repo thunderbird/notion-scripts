@@ -744,6 +744,32 @@ class ProjectSyncTest(BaseTestCase):
             },
         )
 
+    async def test_deeply_nested_subissue_ignored(self):
+        # A sub-issue of a task (sub-sub-issue) that gets picked up via the sprint board. It must
+        # not be synced to Notion since only a single Milestone -> Task layer is supported.
+        # test_task_no_parent covers that the additional-tasks pickup path does create pages, so a
+        # missing create here is proof the deeply_nested flag is what skips it.
+        nested = Issue(
+            parents=[IssueRef(repo="repo", id="234")],
+            repo="repo",
+            id="999",
+            title="Sub-sub issue",
+            description="description",
+            state="NEW",
+            created_date=datetime.datetime(2025, 4, 5, 6, 0, 0, tzinfo=datetime.timezone.utc),
+            closed_date=None,
+            priority=None,
+            url="https://example.com/repo/999",
+            deeply_nested=True,
+        )
+        tracker = IssueTestTracker(issues=[*self.issues, nested])
+        tracker.additional_tasks = [IssueRef(id="999", repo="repo")]
+
+        await self.synchronize_project(tracker)
+
+        for call in self.respx.routes["pages_create"].calls:
+            self.assertNotIn("repo/999", call.request.content.decode())
+
     async def test_task_issue_link_written_for_all_pickup_paths(self):
         tracker = IssueTestTracker(
             issues=[
