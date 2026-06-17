@@ -493,6 +493,13 @@ class BaseSync:
             page (dict): The Notion page object of the existing task in notion. Leave out to add
                 instead of update.
         """
+        if tracker_issue.deeply_nested:
+            logger.info(
+                f"Ignoring deeply nested sub-issue {tracker_issue.repo}#{tracker_issue.id} - "
+                f"{tracker_issue.title}; only a single Milestone -> Task layer is synced"
+            )
+            return
+
         if page:
             old_issue_url = getnestedattr(
                 lambda: self._get_prop(page, "notion_issue_field", [])[0]["external"]["url"], None

@@ -28,6 +28,25 @@ class GitHubFixups:
         issue_type = self._issue_type_name(ghissue)
         return bool(issue_type and issue_type == self.epics_issue_type)
 
+    def _is_deeply_nested_subissue(self, ghissue):
+        """Whether the issue is nested deeper than the single supported sub-issue layer.
+
+        The Notion sync only supports a Milestone -> Task hierarchy, so a task may be a direct
+        sub-issue of a milestone but not a sub-issue of another task. When an issue's parent is a
+        regular task (i.e. not a Milestone or Epic), it is a sub-sub-issue and we ignore it rather
+        than syncing it to Notion as an orphaned task.
+        """
+        parent = getattr(ghissue, "parent", None)
+        if not parent or not getattr(parent, "number", None):
+            return False
+
+        # Only act when the parent has a known issue type. An untyped parent is treated as valid,
+        # matching the conservative behavior in _fixup_issue_milestone_with_parent.
+        if not self._issue_type_name(parent):
+            return False
+
+        return not self._is_milestone_issue(parent) and not self._is_epic_issue(parent)
+
     def _is_roadmap_issue(self, ghissue, sub_issues):
         if self._is_milestone_issue(ghissue) or self._is_epic_issue(ghissue):
             return True
