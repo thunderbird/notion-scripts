@@ -213,37 +213,9 @@ class GitHub(IssueTracker, GitHubFixups):
         if not issue_type:
             return
 
-        query = " ".join(f"repo:{repo}" for repo in self.allowed_repositories) + " is:issue type:" + issue_type
-        has_next_page = True
-        cursor = None
-
-        while has_next_page:
-            op = Operation(schema.query_type)
-            search = op.search(query=query, type=schema.SearchType.ISSUE, first=100, after=cursor)
-
-            nodes = search.edges.node.__as__(schema.Issue)
-            issue_field_ops(nodes)
-
-            if sub_issues:
-                # TODO run through this with a cursor
-                subissues = nodes.sub_issues(first=100)
-                subissues.nodes.id()
-                subissues.nodes.number()
-                subissues.nodes.issue_type.id()
-                subissues.nodes.issue_type.name()
-                subissues.nodes.repository.name_with_owner()
-
-            search.page_info.__fields__(has_next_page=True)
-            search.page_info.__fields__(end_cursor=True)
-
-            data = await self.endpoint(op)
-            searchdata = (op + data).search
-
-            for edge in searchdata.edges:
-                yield await self._parse_issue(edge.node, sub_issues)
-
-            has_next_page = searchdata.page_info.has_next_page
-            cursor = searchdata.page_info.end_cursor
+        for repo in sorted(self.allowed_repositories):
+            async for issue in self._get_repo_issues(repo, sub_issues=sub_issues, issue_type=issue_type):
+                yield issue
 
     async def collect_tracker_milestones(self, milestones_issue_type, sub_issues=False):
         """Collect all milestone issues on the tracker."""
@@ -703,7 +675,7 @@ class GitHub(IssueTracker, GitHubFixups):
             for ghissue in pull.closing_issues_references.nodes:
                 yield await self._parse_issue(ghissue)
 
-    async def _get_repo_issues(self, reporef, sub_issues=False):
+    async def _get_repo_issues(self, reporef, sub_issues=False, issue_type=None):
         has_next_page = True
         cursor = None
 
@@ -711,14 +683,26 @@ class GitHub(IssueTracker, GitHubFixups):
 
         while has_next_page:
             op = Operation(schema.query_type)
-            issues = op.repository(owner=orgname, name=reponame).issues(
-                first=100,
-                after=cursor,
-                order_by={"field": "UPDATED_AT", "direction": "DESC"},
-            )
+            issue_args = {
+                "first": 100,
+                "after": cursor,
+                "order_by": {"field": "UPDATED_AT", "direction": "DESC"},
+            }
+            if issue_type:
+                issue_args["filter_by"] = {"type": issue_type}
+            issues = op.repository(owner=orgname, name=reponame).issues(**issue_args)
             issues.page_info.__fields__(has_next_page=True)
             issues.page_info.__fields__(end_cursor=True)
             issue_field_ops(issues.nodes)
+
+            if sub_issues:
+                # TODO run through this with a cursor
+                subissues = issues.nodes.sub_issues(first=100)
+                subissues.nodes.id()
+                subissues.nodes.number()
+                subissues.nodes.issue_type.id()
+                subissues.nodes.issue_type.name()
+                subissues.nodes.repository.name_with_owner()
 
             data = await self.endpoint(op)
             repo = (op + data).repository
