@@ -467,6 +467,25 @@ class GitHub(IssueTracker, GitHubFixups):
         if not self.dry:
             await self.endpoint(op)
 
+    def _is_deeply_nested_subissue(self, ghissue):
+        """Whether the issue is nested deeper than the single supported sub-issue layer.
+
+        The Notion sync only supports a Milestone -> Task hierarchy, so a task may be a direct
+        sub-issue of a milestone but not a sub-issue of another task. When an issue's parent is a
+        regular task (i.e. not a Milestone or Epic), it is a sub-sub-issue and we ignore it rather
+        than syncing it to Notion as an orphaned task.
+        """
+        parent = getattr(ghissue, "parent", None)
+        if not parent or not getattr(parent, "number", None):
+            return False
+
+        # Only act when the parent has a known issue type. An untyped parent is treated as valid,
+        # matching the conservative behavior in _fixup_issue_milestone_with_parent.
+        if not self._issue_type_name(parent):
+            return False
+
+        return not self._is_milestone_issue(parent) and not self._is_epic_issue(parent)
+
     async def _parse_issue(self, ghissue, sub_issues=False):
         # There isn't really a better place to put it with the current architecture. If while
         # parsing github issues we find a problem, fix it on the spot before we continue
@@ -550,6 +569,8 @@ class GitHub(IssueTracker, GitHubFixups):
 
         if ghissue.parent:
             issue.parents = [IssueRef(repo=ghissue.parent.repository.name_with_owner, id=str(ghissue.parent.number))]
+
+        issue.deeply_nested = self._is_deeply_nested_subissue(ghissue)
 
         if sub_issues:
             issue.sub_issues = [
