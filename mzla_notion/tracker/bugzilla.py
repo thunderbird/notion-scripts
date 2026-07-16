@@ -314,7 +314,7 @@ class Bugzilla(IssueTracker):
     async def _get_bugzilla_bugs(self, bugids, sub_issues=False):
         issues = {}
         review_urls = {}
-        fields = "id,summary,status,resolution,product,cf_user_story,assigned_to,priority,cf_fx_points,depends_on,blocks,attachments,comments,see_also,creation_time,cf_last_resolved,keywords,whiteboard"
+        fields = "id,summary,status,resolution,product,cf_user_story,assigned_to,priority,cf_fx_points,depends_on,blocks,attachments,comments,see_also,creation_time,cf_last_resolved,keywords,whiteboard,target_milestone"
 
         response = await self.client.get("/bug", params={"id": ",".join(bugids), "include_fields": fields})
         response_json = response.json()
@@ -364,6 +364,7 @@ class Bugzilla(IssueTracker):
                 state=status,
                 labels=labels,
                 whiteboard=bug["whiteboard"] or "",
+                target_milestone=bug["target_milestone"] if bug["target_milestone"] != "---" else None,
                 description=bug["cf_user_story"] or getnestedattr(lambda: bug["comments"][0]["text"], ""),
                 assignees={User(self.user_map, tracker_user=assignee)} if assignee else set(),
                 priority=bug["priority"] if bug["priority"] != "--" else None,

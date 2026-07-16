@@ -7,6 +7,7 @@
   "summary": "Read Calendar Event - Acceptance Widget",
   "keywords": [],
   "whiteboard": "",
+  "target_milestone": "154 Branch",
   "attachments": [
     {
       "file_name": "phabricator-D248065-url.txt",
@@ -91,7 +92,5 @@
     "nick": "user1",
     "email": "user1@example.com"
   },
-  "blocks": [
-    1944850
-  ]
+  "blocks": [1944850]
 }
