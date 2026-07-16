@@ -158,7 +158,7 @@ class BaseSync:
         self._setup_prop(tasks_properties, "notion_tasks_text_assignee", "rich_text_space_set")
         self._setup_prop(tasks_properties, "notion_tasks_repository", "select", unknown="skip")
         self._setup_prop(tasks_properties, "notion_tasks_labels", "multi_select", unknown="skip")
-
+        self._setup_prop(tasks_properties, "notion_tasks_target_milestone", "rich_text")
         self._setup_prop(tasks_properties, "notion_tasks_whiteboard", "rich_text")
         self._setup_date_prop(tasks_properties, "notion_tasks_dates")
         self._setup_date_prop(tasks_properties, "notion_tasks_openclose")
@@ -402,9 +402,10 @@ class BaseSync:
         reviewers = [user.notion_user for user in tracker_issue.reviewers if user.notion_user is not None]
         self._set_if_prop(notion_data, "notion_tasks_reviewers", reviewers)
 
-        # Labels and Whiteboard
+        # Labels and Whiteboard and Target Milestone
         self._set_if_prop(notion_data, "notion_tasks_labels", tracker_issue.labels or [])
         self._set_if_prop(notion_data, "notion_tasks_whiteboard", tracker_issue.whiteboard)
+        self._set_if_prop(notion_data, "notion_tasks_target_milestone", tracker_issue.target_milestone)
 
         # Repository
         repomap = self.propnames.get("notion_tasks_repository_map") or {}

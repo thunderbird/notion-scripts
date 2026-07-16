@@ -22,12 +22,8 @@
   "cf_last_resolved": null,
   "creation_time": "2025-01-30T13:59:24Z",
   "assigned_to": "nobody@mozilla.org",
-  "blocks": [
-    1944847
-  ],
-  "depends_on": [
-    1944885
-  ],
+  "blocks": [1944847],
+  "depends_on": [1944885],
   "id": 1944850,
   "see_also": [],
   "priority": "--",
@@ -36,6 +32,7 @@
   "attachments": [],
   "keywords": [],
   "whiteboard": "",
+  "target_milestone": "---",
   "assigned_to_detail": {
     "nick": "nobody",
     "id": 1,

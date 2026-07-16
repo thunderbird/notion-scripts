@@ -46,6 +46,7 @@ class Issue(IssueRef):
     sprint: Sprint = None
     sub_issues: list = field(default_factory=list)
     whiteboard: str = ""
+    target_milestone: str = ""
     requested_ref: IssueRef = None
 
 
@@ -103,6 +104,7 @@ class IssueTracker:
         "notion_tasks_reviewers": "",  # Default is disabled
         "notion_tasks_labels": "",  # Default is disabled
         "notion_tasks_whiteboard": "",  # Default is disabled
+        "notion_tasks_target_milestone": "",  # Default is disabled
         "notion_tasks_repository": "",  # Default is disabled
         "notion_tasks_openclose": "",  # Default is disabled
         "notion_milestones_team": "",  # Default is disabled
