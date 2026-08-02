@@ -364,7 +364,7 @@ class Bugzilla(IssueTracker):
                 state=status,
                 labels=labels,
                 whiteboard=bug["whiteboard"] or "",
-                target_milestone=bug["target_milestone"] if bug["target_milestone"] != "---" else None,
+                target_milestone=bug["target_milestone"] if bug["target_milestone"] != "---" else "",
                 description=bug["cf_user_story"] or getnestedattr(lambda: bug["comments"][0]["text"], ""),
                 assignees={User(self.user_map, tracker_user=assignee)} if assignee else set(),
                 priority=bug["priority"] if bug["priority"] != "--" else None,
