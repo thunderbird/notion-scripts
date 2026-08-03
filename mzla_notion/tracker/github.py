@@ -684,7 +684,7 @@ class GitHub(IssueTracker, GitHubFixups):
         while has_next_page:
             op = Operation(schema.query_type)
             issue_args = {
-                "first": 100,
+                "first": 50,
                 "after": cursor,
                 "order_by": {"field": "UPDATED_AT", "direction": "DESC"},
             }
