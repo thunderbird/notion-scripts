@@ -1,6 +1,6 @@
 query {
 repository(owner: "kewisch", name: "test") {
-issues(first: 100, after: "Y3Vyc29yOnYyOpK5MjAyNS0wMi0xOVQxMTo1NzowNyswMTowMM6qpYBM", orderBy: {field: UPDATED_AT, direction: DESC}) {
+issues(first: 50, after: "Y3Vyc29yOnYyOpK5MjAyNS0wMi0xOVQxMTo1NzowNyswMTowMM6qpYBM", orderBy: {field: UPDATED_AT, direction: DESC}) {
 pageInfo {
 hasNextPage
 endCursor
