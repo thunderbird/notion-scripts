@@ -631,3 +631,35 @@ class GitHubProjectTest(BaseTestCase):
 
         await self.github._fixup_issue_milestone_with_parent(issue)
         self.assertIsNone(issue.parent)
+
+    def _make_parent(self, type_name):
+        return types.SimpleNamespace(
+            id="PARENT",
+            number=1,
+            issue_type=types.SimpleNamespace(name=type_name) if type_name else None,
+            repository=types.SimpleNamespace(name_with_owner="kewisch/test"),
+        )
+
+    def test_is_deeply_nested_subissue(self):
+        self.github.milestones_issue_type = "Milestone"
+        self.github.epics_issue_type = "Epic"
+
+        with self.subTest(msg="no parent"):
+            issue = types.SimpleNamespace(parent=None)
+            self.assertFalse(self.github._is_deeply_nested_subissue(issue))
+
+        with self.subTest(msg="parent is a milestone"):
+            issue = types.SimpleNamespace(parent=self._make_parent("Milestone"))
+            self.assertFalse(self.github._is_deeply_nested_subissue(issue))
+
+        with self.subTest(msg="parent is an epic"):
+            issue = types.SimpleNamespace(parent=self._make_parent("Epic"))
+            self.assertFalse(self.github._is_deeply_nested_subissue(issue))
+
+        with self.subTest(msg="untyped parent is treated as valid"):
+            issue = types.SimpleNamespace(parent=self._make_parent(None))
+            self.assertFalse(self.github._is_deeply_nested_subissue(issue))
+
+        with self.subTest(msg="parent is a regular task"):
+            issue = types.SimpleNamespace(parent=self._make_parent("Task"))
+            self.assertTrue(self.github._is_deeply_nested_subissue(issue))

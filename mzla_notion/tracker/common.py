@@ -48,6 +48,9 @@ class Issue(IssueRef):
     whiteboard: str = ""
     target_milestone: str = ""
     requested_ref: IssueRef = None
+    # True when the issue is nested deeper than a single sub-issue layer (a sub-issue of a task).
+    # The sync only supports a Milestone -> Task hierarchy, so these are ignored.
+    deeply_nested: bool = False
 
 
 class User:
