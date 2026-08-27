@@ -627,6 +627,43 @@ class TwoWaySyncTest(BaseTestCase):
             [{"id": "6f6fac286b6348ca90ec0066be1a2755"}],
         )
 
+    async def test_dry_run_epic_create_does_not_feed_milestone_relation_update(self):
+        self._set_milestone_page_issue("902")
+        tie_ts = datetime.datetime(2022, 7, 6, 20, 25, tzinfo=datetime.timezone.utc)
+        tracker = TwoWayTestTracker(
+            issues=[
+                self._issue("901", updated=tie_ts, title="New epic", issue_type="Epic"),
+                self._issue(
+                    "902",
+                    updated=tie_ts,
+                    parents=[IssueRef(repo="repo", id="901")],
+                    title="Rebuild the calendar Read Event dialog",
+                    issue_type="Milestone",
+                ),
+            ],
+            recent_ids=[("repo", "901"), ("repo", "902")],
+        )
+
+        with self.assertLogs("twoway_sync", level="INFO") as logs:
+            await self._run_sync(
+                tracker,
+                epics_id="epics_id",
+                epics_tracker_to_notion=True,
+                epics_tracker_to_notion_create=True,
+                epics_notion_to_tracker=False,
+                milestones_issue_type="Milestone",
+                milestones_tracker_to_notion=True,
+                milestones_notion_to_tracker=True,
+                tasks_tracker_to_notion=False,
+                incremental_lookback_seconds=604800,
+                dry=True,
+            )
+
+        output = "\n".join(logs.output)
+        self.assertRegex(output, r"created from tracker\s+0\s+0\s+1")
+        self.assertNotIn("Updating milestone epic relation (Tracker->Notion)", output)
+        self.assertNotIn("to ['dry']", output)
+
     async def test_warm_cache_retrieves_cached_recent_epic_page(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_path = Path(tmpdir) / "twoway.sqlite3"

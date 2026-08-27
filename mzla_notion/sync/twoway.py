@@ -1230,8 +1230,9 @@ class TrackerTwoWaySync(BaseSync):
                             page = await self._create_epic_in_notion_from_tracker(issue)
                             if not page:
                                 continue
-                            notion_epic_refs[key] = page
-                            self._notion_epic_issues.setdefault(issue.repo, {})[issue.id] = page
+                            if not self.dry:
+                                notion_epic_refs[key] = page
+                                self._notion_epic_issues.setdefault(issue.repo, {})[issue.id] = page
                             stats["epics_created_from_tracker"] += 1
                             if "properties" in page:
                                 await self.synchronize_single_epic_from_tracker(issue, page)
@@ -1280,9 +1281,10 @@ class TrackerTwoWaySync(BaseSync):
                             page = await self._create_milestone_in_notion_from_tracker(issue)
                             if not page:
                                 continue
-                            notion_milestone_refs[key] = page
-                            self._notion_milestone_issues.setdefault(issue.repo, {})[issue.id] = page
-                            milestone_page_by_id[page["id"].replace("-", "")] = (issue.repo, issue.id, page)
+                            if not self.dry:
+                                notion_milestone_refs[key] = page
+                                self._notion_milestone_issues.setdefault(issue.repo, {})[issue.id] = page
+                                milestone_page_by_id[page["id"].replace("-", "")] = (issue.repo, issue.id, page)
                             stats["milestones_created_from_tracker"] += 1
                             if "properties" in page:
                                 await self.synchronize_single_milestone_from_tracker(issue, page)
