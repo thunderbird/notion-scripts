@@ -529,7 +529,7 @@ class TrackerTwoWaySync(BaseSync):
             notion_data,
             "notion_epics_dates",
             ensure_date(tracker_issue.start_date),
-            ensure_date(tracker_issue.end_date or tracker_issue.closed_date),
+            ensure_date(tracker_issue.end_date),
         )
 
         return notion_data

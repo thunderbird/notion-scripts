@@ -527,6 +527,32 @@ class TwoWaySyncTest(BaseTestCase):
         title = json.loads(epic_updates[0].request.content)["properties"]["Title"]["title"][0]["text"]["content"]
         self.assertEqual(title, "Updated epic title")
 
+    async def test_closed_epic_tracker_to_notion_uses_target_date(self):
+        tracker_issue = self._issue(
+            "900",
+            updated=datetime.datetime(2025, 1, 1, tzinfo=datetime.timezone.utc),
+            title="Closed epic",
+            state="Done",
+            issue_type="Epic",
+        )
+        tracker_issue.start_date = datetime.date(2025, 1, 2)
+        tracker_issue.end_date = None
+        tracker_issue.closed_date = datetime.datetime(2025, 3, 4, 12, 0, tzinfo=datetime.timezone.utc)
+        tracker = TwoWayTestTracker(issues=[tracker_issue])
+        sync = TrackerTwoWaySync(
+            project_key="twoway",
+            tracker=tracker,
+            notion_token="NOTION_TOKEN",
+            epics_id="epics_id",
+            milestones_id="milestones_id",
+            tasks_id="tasks_id",
+            dry=False,
+        )
+
+        notion_data = sync._get_epic_notion_data_from_tracker(tracker_issue)
+
+        self.assertEqual(notion_data["Dates"], {"start": datetime.date(2025, 1, 2), "end": None})
+
     async def test_tracker_to_notion_epic_create(self):
         tracker = TwoWayTestTracker(
             issues=[

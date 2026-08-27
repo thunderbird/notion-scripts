@@ -96,7 +96,7 @@ class ProjectSync(BaseSync):
             final_start = max(
                 ensure_datetime(tracker_issue.start_date) or utc_min, ensure_datetime(tracker_issue.created_date)
             )
-            final_end = tracker_issue.end_date or tracker_issue.closed_date
+            final_end = tracker_issue.end_date
         else:
             final_start = None
             final_end = None
