@@ -131,6 +131,7 @@ class BugzillaProjectTest(BaseTestCase):
 
         self.assertEqual(self.respx.routes["bugs_get"].calls.call_count, 1)
         self.assertEqual(self.respx.routes["bugs_get"].calls.last.request.url.params["id"], "1944850,1944885")
+        self.assertIn("creator", self.respx.routes["bugs_get"].calls.last.request.url.params["include_fields"])
 
         issue = issues["1944850"]
 
@@ -142,6 +143,7 @@ class BugzillaProjectTest(BaseTestCase):
         self.assertEqual(issue.labels, set())
         self.assertEqual(issue.description, "Rebuild the Read Event dialog based on designs in blabla")
         self.assertEqual(issue.assignees, set())
+        self.assertEqual(issue.creator.tracker_user, "nobody@thunderbird.net")
         self.assertEqual(issue.priority, None)
         self.assertEqual(issue.target_milestone, "")
         self.assertEqual(issue.estimate, "")
@@ -223,12 +225,15 @@ class BugzillaProjectTest(BaseTestCase):
 
     def test_usermap(self):
         user_map = BugzillaUserMap(
-            self.bugzilla.sync_client, {"staff@example.com": "3f92ed7d-9ca8-4266-98d7-4604ea623c46"}
+            self.bugzilla.sync_client,
+            {"staff@example.com": "3f92ed7d-9ca8-4266-98d7-4604ea623c46"},
+            notion_to_teams={"3f92ed7d-9ca8-4266-98d7-4604ea623c46": ["team-a"]},
         )
 
         self.assertEqual(user_map.tracker_mention("staff@example.com"), "Staff user")
         self.assertEqual(user_map.tracker_to_notion("staff@example.com"), "3f92ed7d-9ca8-4266-98d7-4604ea623c46")
         self.assertEqual(user_map.notion_to_tracker("3f92ed7d-9ca8-4266-98d7-4604ea623c46"), "staff@example.com")
+        self.assertEqual(user_map.notion_to_teams("3f92ed7d-9ca8-4266-98d7-4604ea623c46"), ["teama"])
 
     async def test_retrying_client(self):
         client = BugzillaAsyncRetryingClient()

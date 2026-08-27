@@ -48,6 +48,14 @@ def _get_notion_people_id(page, field_name):
     return people[0].get("id")
 
 
+def _get_notion_relation_ids(page, field_name):
+    prop = _get_notion_property(page, field_name)
+    if not prop or prop.get("type") != "relation":
+        return []
+
+    return [relation["id"].replace("-", "") for relation in prop.get("relation", []) if relation.get("id")]
+
+
 def _normalize_github_login(profile):
     if not profile:
         return None
@@ -109,18 +117,22 @@ async def load_notion_usermap(settings, notion_token):
     ]
     logger.info(f"Loaded {len(pages)} entries from Notion people directory")
 
-    result = {"github": {}, "bugzilla": {}, "phabricator": {}}
+    result = {"github": {}, "bugzilla": {}, "phabricator": {}, "teams": {}}
 
     field_github_profile = directory_cfg["notion_people_github"]
     field_email = directory_cfg["notion_people_email"]
     field_bugzilla_email = directory_cfg["notion_people_bugzilla"]
     field_phabricator = directory_cfg["notion_people_phabricator"]
     field_user_id = directory_cfg["notion_people_uuid"]
+    field_team = directory_cfg.get("notion_people_team")
 
     for page in pages:
         notion_user = _get_notion_people_id(page, field_user_id)
         if not notion_user:
             continue
+
+        if field_team:
+            result["teams"][notion_user] = _get_notion_relation_ids(page, field_team)
 
         github_profile = _get_notion_property_value(page, field_github_profile)
         if github_login := _normalize_github_login(github_profile):

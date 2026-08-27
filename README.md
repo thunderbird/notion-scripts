@@ -66,6 +66,7 @@ notion_people_email = "Email"
 notion_people_github = "GitHub Profile"
 notion_people_bugzilla = "Bugzilla Email"
 notion_people_phabricator = "Phabricator Username"
+notion_people_team = "Team"
 
 [sync]
 # There are three supported synchronization engines: github_labels, github_project and bugzilla They

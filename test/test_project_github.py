@@ -180,6 +180,7 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(issue.estimate, "5")
         self.assertEqual(len(issue.assignees), 1)
         self.assertEqual(next(iter(issue.assignees)).tracker_user, "kewisch")
+        self.assertEqual(issue.creator.tracker_user, "kewisch")
         self.assertEqual(issue.labels, {"type: epic"})
         self.assertEqual(issue.url, "https://github.com/kewisch/test/issues/1")
         self.assertEqual(issue.review_url, None)
@@ -644,6 +645,7 @@ class GitHubProjectTest(BaseTestCase):
         user_map = self.github.user_map = await GitHubUserMap.create(
             self.github.endpoint,
             {"kewisch": "3df71ec3-17c7-4eb4-80bc-a321af157be6", "notkewisch": "b5a819b4-e2b3-432c-8e5a-256dace1176f"},
+            notion_to_teams={"3df71ec3-17c7-4eb4-80bc-a321af157be6": ["team-a"]},
         )
 
         self.assertEqual(user_map.tracker_mention("kewisch"), "@kewisch")
@@ -653,8 +655,10 @@ class GitHubProjectTest(BaseTestCase):
         self.assertEqual(user_map.dbid_to_notion("MDQ6VXNlcjYwNzE5OA=="), "3df71ec3-17c7-4eb4-80bc-a321af157be6")
         self.assertEqual(user_map.tracker_to_notion("kewisch"), "3df71ec3-17c7-4eb4-80bc-a321af157be6")
         self.assertEqual(user_map.notion_to_tracker("3df71ec3-17c7-4eb4-80bc-a321af157be6"), "kewisch")
+        self.assertEqual(user_map.notion_to_teams("3df71ec3-17c7-4eb4-80bc-a321af157be6"), ["teama"])
 
         user = GitHubUser(user_map=self.github.user_map, tracker_user="kewisch", dbid_user="MDQ6VXNlcjYwNzE5OA==")
+        self.assertEqual(user.team_ids, ["teama"])
         self.assertEqual(
             repr(user),
             "GitHubUser(tracker=kewisch,notion=3df71ec3-17c7-4eb4-80bc-a321af157be6,dbid=MDQ6VXNlcjYwNzE5OA==)",

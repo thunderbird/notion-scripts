@@ -181,7 +181,11 @@ class ProjectSync(BaseSync):
             pass
 
         # Team
-        self._set_if_prop(notion_data, "notion_milestones_team", self.configured_team_ids or None)
+        self._set_if_prop(
+            notion_data,
+            "notion_milestones_team",
+            self._resolve_tracker_created_milestone_teams(tracker_issue),
+        )
 
         # Priority
         self._set_if_prop(notion_data, "notion_milestones_priority", tracker_issue.priority)

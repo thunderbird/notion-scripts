@@ -5,11 +5,12 @@ import tempfile
 import unittest
 
 from pathlib import Path
+from unittest.mock import AsyncMock
 
 from freezegun import freeze_time
 
 from mzla_notion.sync.twoway import TrackerTwoWaySync
-from mzla_notion.tracker.common import Issue, IssueRef, IssueTracker, UserMap
+from mzla_notion.tracker.common import Issue, IssueRef, IssueTracker, User, UserMap
 from mzla_notion.util import NotionQueryIncompleteError
 
 from .handlers import BaseTestCase
@@ -1100,6 +1101,65 @@ class TwoWaySyncTest(BaseTestCase):
         )
 
         self.assertEqual(self.respx.routes["pages_create"].calls.call_count, 1)
+
+    async def test_tracker_to_notion_milestone_create_uses_creator_team_without_assignees(self):
+        user_map = StaticUserMap(
+            {"creator@example.com": "notion-creator"},
+            notion_to_teams={"notion-creator": ["team-a"]},
+        )
+        tracker_issue = self._issue(
+            "999",
+            updated=datetime.datetime(2025, 1, 1, tzinfo=datetime.timezone.utc),
+            title="[meta] New Milestone",
+        )
+        tracker_issue.creator = User(user_map, tracker_user="creator@example.com")
+        tracker = TwoWayTestTracker(
+            issues=[tracker_issue],
+            property_names={"notion_milestones_team": "Team"},
+        )
+        tracker.user_map = user_map
+        sync = TrackerTwoWaySync(
+            project_key="twoway",
+            tracker=tracker,
+            notion_token="NOTION_TOKEN",
+            milestones_id="milestones_id",
+            tasks_id="tasks_id",
+            team_id="team_db_id",
+            team_association=["fallback-team"],
+            dry=True,
+        )
+        sync.milestones_db.create_page = AsyncMock(return_value={"id": "dry", "url": "https://notion.so/dry"})
+
+        await sync._create_milestone_in_notion_from_tracker(tracker_issue)
+
+        created_data = sync.milestones_db.create_page.await_args.args[0]
+        self.assertEqual(created_data["Team"], ["teama"])
+
+    async def test_tracker_to_notion_milestone_create_logs_payload(self):
+        tracker_issue = self._issue(
+            "999",
+            updated=datetime.datetime(2025, 1, 1, tzinfo=datetime.timezone.utc),
+            title="[meta] New Milestone",
+        )
+        tracker = TwoWayTestTracker([tracker_issue])
+        sync = TrackerTwoWaySync(
+            project_key="twoway",
+            tracker=tracker,
+            notion_token="NOTION_TOKEN",
+            milestones_id="milestones_id",
+            tasks_id="tasks_id",
+            dry=True,
+        )
+        sync.milestones_db.create_page = AsyncMock(return_value={"id": "dry", "url": "https://notion.so/dry"})
+
+        with self.assertLogs("twoway_sync", level="DEBUG") as logs:
+            await sync._create_milestone_in_notion_from_tracker(tracker_issue)
+
+        output = "\n".join(logs.output)
+        self.assertIn(
+            "Creating milestone (Tracker->Notion) https://example.com/repo/999 - [meta] New Milestone", output
+        )
+        self.assertIn("'Issue Link': 'https://example.com/repo/999'", output)
 
     @freeze_time("2026-08-24T00:01:00Z", real_asyncio=True)
     async def test_tracker_to_notion_typed_milestone_create(self):

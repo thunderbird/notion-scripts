@@ -13,6 +13,9 @@
         "id": "I_kwDOMwGgpM6WLTqc",
         "issueType": null,
         "body": "I am the body",
+        "author": {
+          "login": "kewisch"
+        },
         "parent": null,
         "repository": {
           "id": "R_kgDOMwGgpA",

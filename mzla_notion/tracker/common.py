@@ -40,6 +40,7 @@ class Issue(IssueRef):
     url: str
     review_url: str = ""
     reviewers: set = field(default_factory=set)
+    creator: "User" = None
     notion_url: str = ""
     created_date: datetime.datetime = None
     updated_date: datetime.datetime = None
@@ -64,6 +65,7 @@ class User:
         self.user_map = user_map
         self.notion_user = notion_user or self.user_map.tracker_to_notion(tracker_user)
         self.tracker_user = tracker_user or self.user_map.notion_to_tracker(notion_user)
+        self.team_ids = self.user_map.notion_to_teams(self.notion_user)
 
     @property
     def tracker_mention(self):
@@ -272,14 +274,21 @@ class IssueTracker:
 class UserMap:
     """A map between different types of user names."""
 
-    def __init__(self, trk_to_notion):
+    def __init__(self, trk_to_notion, notion_to_teams=None):
         """Initialize.
 
         Args:
             trk_to_notion (dict[str, str]): Map from tracker username to notion guid
+            notion_to_teams (dict[str, list[str]]): Map from Notion user id to Notion team page ids.
         """
         self._trk_to_notion = trk_to_notion
         self._notion_to_trk = {notion: trk for trk, notion in trk_to_notion.items()}
+        self._notion_to_teams = {}
+        for notion_id, team_ids in (notion_to_teams or {}).items():
+            if not notion_id:
+                continue
+            normalized_notion_id = notion_id.replace("-", "")
+            self._notion_to_teams[normalized_notion_id] = [team_id.replace("-", "") for team_id in team_ids if team_id]
 
     def map(self, func, inputs):
         """Map helper to apply one of the other functions if there is a value."""
@@ -292,6 +301,12 @@ class UserMap:
     def notion_to_tracker(self, notion_id):
         """Convert a notion id to a tracker username."""
         return self._notion_to_trk.get(notion_id)
+
+    def notion_to_teams(self, notion_id):
+        """Get Notion team ids associated with a Notion user id."""
+        if not notion_id:
+            return []
+        return self._notion_to_teams.get(notion_id.replace("-", ""), [])
 
     def tracker_mention(self, tracker_user):
         """Convert a tracker username to a mention in issue text."""

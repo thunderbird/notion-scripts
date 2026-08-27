@@ -123,6 +123,7 @@ class GitHub(IssueTracker, GitHubFixups):
         token=None,
         repositories={},
         user_map=None,
+        user_teams=None,
         milestones_issue_type=None,
         epics_issue_type="Epic",
         epics_allow_parents=False,
@@ -146,9 +147,14 @@ class GitHub(IssueTracker, GitHubFixups):
 
         self._init_repository_settings(repositories)
         self._raw_user_map = user_map
+        self._raw_user_teams = user_teams
 
     async def _async_init(self):
-        self.user_map = await GitHubUserMap.create(self.endpoint, self._raw_user_map)
+        self.user_map = await GitHubUserMap.create(
+            self.endpoint,
+            self._raw_user_map,
+            notion_to_teams=self._raw_user_teams,
+        )
 
     def _init_repository_settings(self, repository_settings):
         self.allowed_repositories = set()
@@ -683,6 +689,13 @@ class GitHub(IssueTracker, GitHubFixups):
                 GitHubUser(user_map=self.user_map, tracker_user=a.login, dbid_user=a.id)
                 for a in ghissue.assignees.nodes
             },
+            creator=GitHubUser(
+                user_map=self.user_map,
+                tracker_user=ghissue.author.login,
+                dbid_user=getattr(ghissue.author, "id", None),
+            )
+            if getnestedattr(lambda: ghissue.author.login, None)
+            else None,
             issue_type=getnestedattr(lambda: ghissue.issue_type.name, None),
             state=state,
             created_date=ghissue.created_at,

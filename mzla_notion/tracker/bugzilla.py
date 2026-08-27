@@ -44,9 +44,9 @@ class BugzillaUserMap(UserMap):
         await self._init_userid_logins(phabclient, phabricator_to_notion or {})
         return self
 
-    def __init__(self, client, trk_to_notion):
+    def __init__(self, client, trk_to_notion, **kwargs):
         """Initialize."""
-        super().__init__(trk_to_notion)
+        super().__init__(trk_to_notion, **kwargs)
         self._client = client
 
     async def _init_userid_logins(self, phabclient, phabricator_map):
@@ -175,7 +175,16 @@ class Bugzilla(IssueTracker):
 
     name = "Bugzilla"
 
-    def __init__(self, base_url, phab_token=None, token=None, user_map=None, phabricator_user_map=None, **kwargs):
+    def __init__(
+        self,
+        base_url,
+        phab_token=None,
+        token=None,
+        user_map=None,
+        user_teams=None,
+        phabricator_user_map=None,
+        **kwargs,
+    ):
         """Initialize the Bugzilla issue tracker."""
         super().__init__(**kwargs)
 
@@ -212,6 +221,7 @@ class Bugzilla(IssueTracker):
         )
 
         self._raw_user_map = user_map
+        self._raw_user_teams = user_teams
         self._raw_phabricator_user_map = phabricator_user_map
 
     async def _async_init(self):
@@ -220,6 +230,7 @@ class Bugzilla(IssueTracker):
             self.phab_client,
             self._raw_user_map,
             self._raw_phabricator_user_map,
+            notion_to_teams=self._raw_user_teams,
         )
 
     def parse_issueref(self, ref):
@@ -314,7 +325,7 @@ class Bugzilla(IssueTracker):
     async def _get_bugzilla_bugs(self, bugids, sub_issues=False):
         issues = {}
         review_urls = {}
-        fields = "id,summary,status,resolution,product,cf_user_story,assigned_to,priority,cf_fx_points,depends_on,blocks,attachments,comments,see_also,creation_time,last_change_time,cf_last_resolved,keywords,whiteboard,target_milestone"
+        fields = "id,summary,status,resolution,product,cf_user_story,assigned_to,creator,priority,cf_fx_points,depends_on,blocks,attachments,comments,see_also,creation_time,last_change_time,cf_last_resolved,keywords,whiteboard,target_milestone"
 
         response = await self.client.get("/bug", params={"id": ",".join(bugids), "include_fields": fields})
         response_json = response.json()
@@ -367,6 +378,7 @@ class Bugzilla(IssueTracker):
                 target_milestone=bug["target_milestone"] if bug["target_milestone"] != "---" else "",
                 description=bug["cf_user_story"] or getnestedattr(lambda: bug["comments"][0]["text"], ""),
                 assignees={User(self.user_map, tracker_user=assignee)} if assignee else set(),
+                creator=User(self.user_map, tracker_user=bug["creator"]) if bug.get("creator") else None,
                 priority=bug["priority"] if bug["priority"] != "--" else None,
                 estimate="" if bug.get("cf_fx_points") in (None, "---") else str(bug["cf_fx_points"]),
                 parents=parents,

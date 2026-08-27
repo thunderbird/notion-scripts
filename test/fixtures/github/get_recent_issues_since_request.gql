@@ -21,6 +21,9 @@ stateReason
 url
 id
 body
+author {
+login
+}
 parent {
 id
 number

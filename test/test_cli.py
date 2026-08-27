@@ -30,6 +30,7 @@ class TestPeopleLoader(unittest.IsolatedAsyncioTestCase):
                 "notion_people_bugzilla": "Bugzilla Email",
                 "notion_people_phabricator": "Phabricator",
                 "notion_people_uuid": "User",
+                "notion_people_team": "Team",
             }
         }
         pages = [
@@ -40,6 +41,7 @@ class TestPeopleLoader(unittest.IsolatedAsyncioTestCase):
                     "Bugzilla Email": {"type": "email", "email": ""},
                     "Phabricator": {"type": "rich_text", "rich_text": [{"plain_text": "example-phab"}]},
                     "User": {"type": "people", "people": [{"id": "11111111-1111-1111-1111-111111111111"}]},
+                    "Team": {"type": "relation", "relation": [{"id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"}]},
                 }
             },
             {
@@ -49,6 +51,13 @@ class TestPeopleLoader(unittest.IsolatedAsyncioTestCase):
                     "Bugzilla Email": {"type": "email", "email": "bz-other@example.com"},
                     "Phabricator": {"type": "rich_text", "rich_text": [{"plain_text": "other-phab"}]},
                     "User": {"type": "people", "people": [{"id": "22222222-2222-2222-2222-222222222222"}]},
+                    "Team": {
+                        "type": "relation",
+                        "relation": [
+                            {"id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"},
+                            {"id": "cccccccc-cccc-cccc-cccc-cccccccccccc"},
+                        ],
+                    },
                 }
             },
             {
@@ -58,6 +67,7 @@ class TestPeopleLoader(unittest.IsolatedAsyncioTestCase):
                     "Bugzilla Email": {"type": "email", "email": ""},
                     "Phabricator": {"type": "rich_text", "rich_text": [{"plain_text": "ignored-phab"}]},
                     "User": {"type": "people", "people": []},
+                    "Team": {"type": "relation", "relation": [{"id": "dddddddd-dddd-dddd-dddd-dddddddddddd"}]},
                 }
             },
         ]
@@ -89,6 +99,16 @@ class TestPeopleLoader(unittest.IsolatedAsyncioTestCase):
             {
                 "example-phab": "11111111-1111-1111-1111-111111111111",
                 "other-phab": "22222222-2222-2222-2222-222222222222",
+            },
+        )
+        self.assertEqual(
+            user_map["teams"],
+            {
+                "11111111-1111-1111-1111-111111111111": ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+                "22222222-2222-2222-2222-222222222222": [
+                    "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                    "cccccccccccccccccccccccccccccccc",
+                ],
             },
         )
 

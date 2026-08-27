@@ -50,8 +50,8 @@
       "text": "- Radio with the potential of no pre-selected state\n- Inputs:\n    - boolean if rsvp is possible/available\n    - string for current ical status (NEEDS-ACTION/ACCEPTED/DECLINED/TENTATIVE/DELEGATED/COMPLETED/IN-PROCESS)",
       "reactions": {},
       "is_private": false,
-      "creator": "toby@thunderbird.net",
-      "author": "toby@thunderbird.net",
+      "creator": "nobody@thunderbird.net",
+      "author": "nobody@thunderbird.net",
       "creation_time": "2025-01-30T15:32:37Z"
     },
     {

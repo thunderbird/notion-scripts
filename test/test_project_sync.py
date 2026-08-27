@@ -7,7 +7,7 @@ from mzla_notion.tracker.common import IssueRef, Issue, IssueTracker, Sprint, Us
 from mzla_notion.sync.project import ProjectSync
 
 from freezegun import freeze_time
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 from .handlers import BaseTestCase
 
@@ -263,6 +263,89 @@ class ProjectSyncTest(BaseTestCase):
                 old_page=None,
             )
             self.assertEqual(notion_data["Team"], ["teama"])
+
+    async def test_tracker_created_milestone_team_resolution(self):
+        user_map = StaticUserMap(
+            {
+                "assignee1@example.com": "notion-assignee-1",
+                "assignee2@example.com": "notion-assignee-2",
+                "creator@example.com": "notion-creator",
+                "empty@example.com": "notion-empty",
+            },
+            notion_to_teams={
+                "notion-assignee-1": ["team-a"],
+                "notion-assignee-2": ["team-b", "team-a"],
+                "notion-creator": ["team-c"],
+            },
+        )
+        tracker = IssueTestTracker(
+            user_map=user_map,
+            property_names={
+                "notion_milestones_team": "Team",
+            },
+        )
+        sync = ProjectSync(
+            project_key="test",
+            tracker=tracker,
+            notion_token="NOTION_TOKEN",
+            milestones_id="milestones_id",
+            tasks_id="tasks_id",
+            team_id="team_db_id",
+            team_association=["fallback-team"],
+            dry=True,
+        )
+
+        with self.subTest(msg="assignee teams are unioned"):
+            issue = self.issues[0]
+            issue.assignees = {
+                User(user_map, tracker_user="assignee1@example.com"),
+                User(user_map, tracker_user="assignee2@example.com"),
+            }
+            issue.creator = User(user_map, tracker_user="creator@example.com")
+
+            self.assertEqual(sync._resolve_tracker_created_milestone_teams(issue), ["teama", "teamb"])
+
+        with self.subTest(msg="creator team is used without assignees"):
+            issue = self.issues[0]
+            issue.assignees = set()
+            issue.creator = User(user_map, tracker_user="creator@example.com")
+
+            self.assertEqual(sync._resolve_tracker_created_milestone_teams(issue), ["teamc"])
+
+        with self.subTest(msg="configured teams are used when selected users have no teams"):
+            issue = self.issues[0]
+            issue.assignees = {User(user_map, tracker_user="empty@example.com")}
+            issue.creator = User(user_map, tracker_user="creator@example.com")
+
+            self.assertEqual(sync._resolve_tracker_created_milestone_teams(issue), ["fallbackteam"])
+
+    async def test_create_single_milestone_uses_resolved_team(self):
+        user_map = StaticUserMap(
+            {"assignee@example.com": "notion-assignee"},
+            notion_to_teams={"notion-assignee": ["team-a"]},
+        )
+        self.issues[0].assignees = {User(user_map, tracker_user="assignee@example.com")}
+        tracker = IssueTestTracker(
+            issues=self.issues,
+            user_map=user_map,
+            property_names={"notion_milestones_team": "Team"},
+        )
+        sync = ProjectSync(
+            project_key="test",
+            tracker=tracker,
+            notion_token="NOTION_TOKEN",
+            milestones_id="milestones_id",
+            tasks_id="tasks_id",
+            team_id="team_db_id",
+            team_association=["fallback-team"],
+            dry=True,
+        )
+        sync.milestones_db.create_page = AsyncMock(return_value={"id": "dry", "url": "https://notion.so/dry"})
+
+        await sync.create_single_milestone(self.issues[0])
+
+        created_data = sync.milestones_db.create_page.await_args.args[0]
+        self.assertEqual(created_data["Team"], ["teama"])
 
     async def test_task_estimate_sync(self):
         tracker = IssueTestTracker(

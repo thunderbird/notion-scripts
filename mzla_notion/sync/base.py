@@ -285,6 +285,39 @@ class BaseSync:
 
         return [self.configured_team_ids[0]]
 
+    def _resolve_tracker_created_milestone_teams(self, tracker_issue):
+        if not self.propnames.get("notion_milestones_team"):
+            return None
+
+        team_ids = []
+        users = tracker_issue.assignees or []
+        if not users and tracker_issue.creator:
+            users = [tracker_issue.creator]
+
+        for user in users:
+            user_team_ids = getattr(user, "team_ids", [])
+            tracker_user_map = getattr(self.tracker, "user_map", None)
+            if (
+                not user_team_ids
+                and getattr(user, "notion_user", None)
+                and hasattr(tracker_user_map, "notion_to_teams")
+            ):
+                user_team_ids = tracker_user_map.notion_to_teams(user.notion_user)
+
+            team_ids.extend(user_team_ids)
+
+        resolved_team_ids = []
+        for team_id in team_ids:
+            normalized = team_id.replace("-", "")
+            if normalized not in resolved_team_ids:
+                resolved_team_ids.append(normalized)
+
+        resolved_team_ids = sorted(resolved_team_ids)
+        if resolved_team_ids:
+            return resolved_team_ids
+
+        return self.configured_team_ids or None
+
     async def _discover_notion_issues(self, notion_db_id, filter_team_prop=None, filter_issue_type="url"):
         repos = defaultdict(dict)
 

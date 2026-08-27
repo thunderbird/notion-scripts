@@ -97,6 +97,7 @@ def issue_field_ops(issue):
     issue.url()
     issue.id()
     issue.body()
+    issue.author.login()
     issue.parent.id()
     issue.parent.number()
     issue.parent.issue_type.id()

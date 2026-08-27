@@ -187,6 +187,7 @@ async def cmd_synchronize(
                     phab_token=os.environ["PHAB_TOKEN"],
                     dry=effective_dry_run or project.get("tracker_dry_run", False),
                     user_map=user_map.get("bugzilla") or {},
+                    user_teams=user_map.get("teams") or {},
                     phabricator_user_map=user_map.get("phabricator") or {},
                     property_names=project.get("properties", {}),
                 )
@@ -196,6 +197,7 @@ async def cmd_synchronize(
                     repositories=project["repositories"],
                     dry=effective_dry_run or project.get("tracker_dry_run", False),
                     user_map=user_map.get("github") or {},
+                    user_teams=user_map.get("teams") or {},
                     milestones_issue_type=project.get("milestones_issue_type", None),
                     epics_issue_type=project.get("epics_issue_type", "Epic"),
                     epics_allow_parents=project.get("epics_allow_parents", False),
@@ -243,6 +245,7 @@ async def cmd_synchronize(
                     phab_token=os.environ["PHAB_TOKEN"],
                     dry=effective_dry_run or project.get("tracker_dry_run", False),
                     user_map=user_map.get("bugzilla") or {},
+                    user_teams=user_map.get("teams") or {},
                     property_names=project.get("properties", {}),
                 )
             elif tracker_kind == "github":
@@ -251,6 +254,7 @@ async def cmd_synchronize(
                     repositories=project["repositories"],
                     dry=effective_dry_run or project.get("tracker_dry_run", False),
                     user_map=user_map.get("github") or {},
+                    user_teams=user_map.get("teams") or {},
                     milestones_issue_type=project.get("milestones_issue_type", None),
                     epics_issue_type=project.get("epics_issue_type", "Epic"),
                     epics_allow_parents=project.get("epics_allow_parents", False),
@@ -311,6 +315,7 @@ async def cmd_synchronize(
                 repositories=project["repositories"],
                 dry=effective_dry_run or project.get("tracker_dry_run", False),
                 user_map=user_map.get("github") or {},
+                user_teams=user_map.get("teams") or {},
                 property_names=project.get("properties", {}),
             )
             await synchronize_gh_label(

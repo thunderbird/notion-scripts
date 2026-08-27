@@ -11,8 +11,8 @@
       "tags": [],
       "text": "Rebuild the Read Event dialog based on designs in blabla",
       "creation_time": "2025-01-30T13:59:24Z",
-      "creator": "toby@thunderbird.net",
-      "author": "toby@thunderbird.net",
+      "creator": "nobody@thunderbird.net",
+      "author": "nobody@thunderbird.net",
       "is_private": false,
       "raw_text": "Rebuild the Read Event dialog based on designs in blabla",
       "attachment_id": null
@@ -21,6 +21,7 @@
   "cf_user_story": "",
   "cf_last_resolved": null,
   "creation_time": "2025-01-30T13:59:24Z",
+  "creator": "nobody@thunderbird.net",
   "assigned_to": "nobody@mozilla.org",
   "blocks": [1944847],
   "depends_on": [1944885],

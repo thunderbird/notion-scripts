@@ -1053,7 +1053,13 @@ class TrackerTwoWaySync(BaseSync):
 
     async def _create_milestone_in_notion_from_tracker(self, tracker_issue):
         notion_data = self._get_milestone_notion_data_from_tracker(tracker_issue)
-        self._set_if_prop(notion_data, "notion_milestones_team", self.configured_team_ids or None)
+        self._set_if_prop(
+            notion_data,
+            "notion_milestones_team",
+            self._resolve_tracker_created_milestone_teams(tracker_issue),
+        )
+        self.logger.info(f"Creating milestone (Tracker->Notion) {tracker_issue.url} - {tracker_issue.title}")
+        self.logger.debug("\t" + str(notion_data))
         page = await self.milestones_db.create_page(notion_data)
         if page:
             self._record_milestone_cache_update(page, tracker_issue)
