@@ -559,6 +559,18 @@ class GitHubProjectTest(BaseTestCase):
     def test_field_value_changed_normalized_notion_url(self):
         self.assertFalse(field_value_changed("https://app.notion.com/p/xxx", "https://www.notion.so/xxx"))
         self.assertFalse(field_value_changed("https://app.notion.com/p/xxx", "https://notion.so/xxx"))
+        self.assertFalse(
+            field_value_changed(
+                "https://app.notion.com/p/Kubernetes-Migration-33c2df5d45ae80989ba4d7e9e694ad0f",
+                "https://app.notion.com/p/Epic-Kubernetes-Migration-FY26-Q3-33c2df5d45ae80989ba4d7e9e694ad0f",
+            )
+        )
+        self.assertFalse(
+            field_value_changed(
+                "https://app.notion.com/p/Kubernetes-Migration-33c2df5d45ae80989ba4d7e9e694ad0f?source=copy_link",
+                "https://app.notion.com/p/Epic-Kubernetes-Migration-FY26-Q3-33c2df5d45ae80989ba4d7e9e694ad0f",
+            )
+        )
         self.assertTrue(field_value_changed("https://app.notion.com/p/xxx", "https://www.notion.so/yyy"))
 
     def test_build_scalar_field_update_number(self):

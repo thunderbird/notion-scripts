@@ -14,17 +14,20 @@ import http.client
 import json
 import math
 import random
+import re
 import sgqlc.operation
 from urllib.parse import urlsplit
 
 logger = logging.getLogger("notion_sync")
+
+NOTION_PAGE_ID_RE = re.compile(r"(?i)([0-9a-f]{32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$")
 
 
 class NotionQueryIncompleteError(RuntimeError):
     """Raised when Notion reports incomplete query results."""
 
 
-def notion_url_page_key(value):
+def notion_url_page_key(value, *, preserve_slug=False):
     """Return a stable comparison key for Notion URLs."""
     if value in (None, ""):
         return None
@@ -40,12 +43,19 @@ def notion_url_page_key(value):
     if hostname == "app.notion.com" and path.startswith("p/"):
         path = path[2:]
 
+    if preserve_slug:
+        return path
+
+    path_end = path.rsplit("/", 1)[-1]
+    if match := NOTION_PAGE_ID_RE.search(path_end):
+        return match.group(1).replace("-", "").lower()
+
     return path
 
 
 def normalize_notion_url(value):
     """Normalize Notion URLs to canonical https://www.notion.so/... form."""
-    path = notion_url_page_key(value)
+    path = notion_url_page_key(value, preserve_slug=True)
     if path in (None, ""):
         return None
     if path == value and not isinstance(value, str):
@@ -61,7 +71,7 @@ def normalize_notion_url(value):
 
 def canonical_notion_url(value):
     """Normalize Notion URLs to canonical https://app.notion.com/p/... form."""
-    path = notion_url_page_key(value)
+    path = notion_url_page_key(value, preserve_slug=True)
     if path in (None, ""):
         return None
     if path == value and not isinstance(value, str):
