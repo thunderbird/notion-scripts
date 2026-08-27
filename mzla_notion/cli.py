@@ -134,6 +134,7 @@ async def cmd_synchronize(
     verbose=0,
     dry_run=None,
     synchronous=False,
+    fixups=True,
     lookback=None,
     twoway_cache=None,
     twoway_cache_path=None,
@@ -201,6 +202,7 @@ async def cmd_synchronize(
                     milestones_issue_type=project.get("milestones_issue_type", None),
                     epics_issue_type=project.get("epics_issue_type", "Epic"),
                     epics_allow_parents=project.get("epics_allow_parents", False),
+                    fixups_enabled=fixups,
                     property_names=project.get("properties", {}),
                 )
 
@@ -258,6 +260,7 @@ async def cmd_synchronize(
                     milestones_issue_type=project.get("milestones_issue_type", None),
                     epics_issue_type=project.get("epics_issue_type", "Epic"),
                     epics_allow_parents=project.get("epics_allow_parents", False),
+                    fixups_enabled=fixups,
                     property_names=project.get("properties", {}),
                 )
             else:
@@ -316,6 +319,7 @@ async def cmd_synchronize(
                 dry=effective_dry_run or project.get("tracker_dry_run", False),
                 user_map=user_map.get("github") or {},
                 user_teams=user_map.get("teams") or {},
+                fixups_enabled=fixups,
                 property_names=project.get("properties", {}),
             )
             await synchronize_gh_label(
@@ -388,6 +392,12 @@ async def async_main():
         help="Run requests in order, for debugging",
     )
     parser.add_argument(
+        "--fixups",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Enable or disable GitHub tracker fixups.",
+    )
+    parser.add_argument(
         "--lookback",
         dest="lookback",
         type=parse_lookback,
@@ -441,6 +451,7 @@ async def async_main():
                 verbose=args.verbose,
                 dry_run=args.dry_run,
                 synchronous=args.synchronous,
+                fixups=args.fixups,
                 lookback=args.lookback,
                 twoway_cache=args.twoway_cache,
                 twoway_cache_path=args.twoway_cache_path,

@@ -47,6 +47,9 @@ class GitHubFixups:
         return bool(sub_issues and getattr(ghissue.sub_issues, "nodes", None))
 
     async def _fixup_pull_requests(self, pull_requests):
+        if not self.fixups_enabled:
+            return
+
         for pull_request in pull_requests:
             ghissues = pull_request.closing_issues_references.nodes
 
@@ -139,6 +142,9 @@ class GitHubFixups:
         return tasks_project_item, milestones_project_item
 
     async def _fixup_issue(self, ghissue, sub_issues=False):
+        if not self.fixups_enabled:
+            return
+
         await self._fixup_issue_both_projects(ghissue, sub_issues)
         await self._fixup_issue_milestone_with_parent(ghissue)
 

@@ -127,6 +127,7 @@ class GitHub(IssueTracker, GitHubFixups):
         milestones_issue_type=None,
         epics_issue_type="Epic",
         epics_allow_parents=False,
+        fixups_enabled=True,
         **kwargs,
     ):
         """Initialize issue tracker."""
@@ -144,6 +145,7 @@ class GitHub(IssueTracker, GitHubFixups):
         self.milestones_issue_type = milestones_issue_type
         self.epics_issue_type = epics_issue_type
         self.epics_allow_parents = epics_allow_parents
+        self.fixups_enabled = fixups_enabled
 
         self._init_repository_settings(repositories)
         self._raw_user_map = user_map

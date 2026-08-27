@@ -43,6 +43,27 @@ class GitHubProjectTest(BaseTestCase):
         self.assertTrue(github.is_repo_allowed("kewisch/test"))
         self.assertEqual(github.get_all_repositories(), ["kewisch/test"])
 
+    async def test_disabled_fixups_skip_issue_and_pull_request_handlers(self):
+        github = await GitHub.create(
+            token="GITHUB_TOKEN",
+            repositories=REPO_SETTINGS,
+            user_map={},
+            dry=False,
+            fixups_enabled=False,
+        )
+        github._fixup_issue_both_projects = AsyncMock()
+        github._fixup_issue_milestone_with_parent = AsyncMock()
+        github._fixup_pull_request_assign_author = AsyncMock()
+        github._fixup_add_to_tasks_project = AsyncMock()
+
+        await github._fixup_issue(types.SimpleNamespace(), sub_issues=True)
+        await github._fixup_pull_requests([types.SimpleNamespace()])
+
+        github._fixup_issue_both_projects.assert_not_awaited()
+        github._fixup_issue_milestone_with_parent.assert_not_awaited()
+        github._fixup_pull_request_assign_author.assert_not_awaited()
+        github._fixup_add_to_tasks_project.assert_not_awaited()
+
     def test_is_task_issue_uses_github_task_criteria(self):
         def classifier_issue(issue_type=None, parent_type=None, on_tasks_project=False, review_url=None):
             project_items = []
