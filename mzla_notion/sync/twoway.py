@@ -1068,6 +1068,8 @@ class TrackerTwoWaySync(BaseSync):
     async def _create_epic_in_notion_from_tracker(self, tracker_issue):
         notion_data = self._get_epic_notion_data_from_tracker(tracker_issue)
         self._set_if_prop(notion_data, "notion_epics_team", self.configured_team_ids or None)
+        self.logger.info(f"Creating epic (Tracker->Notion) {tracker_issue.url} - {tracker_issue.title}")
+        self.logger.debug("\t" + str(notion_data))
         page = await self.epics_db.create_page(notion_data)
         if page:
             self._record_epic_cache_update(page, tracker_issue)
