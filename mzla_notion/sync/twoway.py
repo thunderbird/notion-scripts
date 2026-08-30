@@ -566,6 +566,8 @@ class TrackerTwoWaySync(BaseSync):
             labels.add(self.epics_extra_label)
 
         start_date, end_date = self._get_date_prop(page, "notion_epics_dates")
+        if start_date and not end_date:
+            start_date, end_date = None, start_date
 
         return dataclasses.replace(
             tracker_issue,
@@ -735,6 +737,8 @@ class TrackerTwoWaySync(BaseSync):
             labels.add(self.milestones_extra_label)
 
         start_date, end_date = self._get_date_prop(page, "notion_milestones_dates")
+        if start_date and not end_date:
+            start_date, end_date = None, start_date
 
         new_issue = dataclasses.replace(
             tracker_issue,

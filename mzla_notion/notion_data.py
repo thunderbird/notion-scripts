@@ -470,11 +470,15 @@ def dates(name: str) -> NotionProperty:
 
     def _update(content: dict) -> Dict[str, Any]:
         if content:
+            content_start = content.get("start")
+            content_end = content.get("end")
+            if content_end and not content_start:
+                content_start, content_end = content_end, None
             return {
                 name: {
                     "date": {
-                        "start": _format_notion_date_update_value(content.get("start")),
-                        "end": _format_notion_date_update_value(content.get("end")),
+                        "start": _format_notion_date_update_value(content_start),
+                        "end": _format_notion_date_update_value(content_end),
                     }
                 }
             }
@@ -485,8 +489,13 @@ def dates(name: str) -> NotionProperty:
         start_data = _normalize_notion_date_compare_value(getnestedattr(lambda: property_data["date"]["start"], None))
         end_data = _normalize_notion_date_compare_value(getnestedattr(lambda: property_data["date"]["end"], None))
 
-        content_start = _normalize_notion_date_compare_value(content.get("start") if content else None)
-        content_end = _normalize_notion_date_compare_value(content.get("end") if content else None)
+        content_start = content.get("start") if content else None
+        content_end = content.get("end") if content else None
+        if content_end and not content_start:
+            content_start, content_end = content_end, None
+
+        content_start = _normalize_notion_date_compare_value(content_start)
+        content_end = _normalize_notion_date_compare_value(content_end)
 
         if content_start != start_data or content_end != end_data:
             return True

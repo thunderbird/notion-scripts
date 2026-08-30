@@ -60,11 +60,19 @@ class NotionDateDiffTest(unittest.TestCase):
         content = {"start": datetime.date(2025, 3, 10), "end": datetime.date(2025, 3, 16)}
         self.assertFalse(prop.is_prop_diff(property_data, content))
 
+        property_data = {"date": {"start": "2026-12-11", "end": None}}
+        content = {"start": None, "end": datetime.date(2026, 12, 11)}
+        self.assertFalse(prop.is_prop_diff(property_data, content))
+
     def test_dates_update_preserves_date_without_time(self):
         prop = dates("Dates")
         updated = prop.update_content({"start": datetime.date(2026, 4, 27), "end": datetime.date(2026, 4, 28)})
         self.assertEqual(updated["Dates"]["date"]["start"], "2026-04-27")
         self.assertEqual(updated["Dates"]["date"]["end"], "2026-04-28")
+
+        updated = prop.update_content({"start": None, "end": datetime.date(2026, 12, 11)})
+        self.assertEqual(updated["Dates"]["date"]["start"], "2026-12-11")
+        self.assertIsNone(updated["Dates"]["date"]["end"])
 
     def test_dates_update_rounds_datetime_to_minute(self):
         prop = dates("Dates")

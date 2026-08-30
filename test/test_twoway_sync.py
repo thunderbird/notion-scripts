@@ -466,7 +466,11 @@ class TwoWaySyncTest(BaseTestCase):
         self.assertTrue(all("last_edited_time" in body for body in query_bodies))
 
     async def test_linked_epic_updates_tracker_from_notion(self):
-        self._set_epic_page_issue("900")
+        page = self._set_epic_page_issue("900")
+        page["properties"]["Dates"] = {
+            "type": "date",
+            "date": {"start": "2026-06-24", "end": None},
+        }
         tracker = TwoWayTestTracker(
             issues=[
                 self._issue(
@@ -493,6 +497,8 @@ class TwoWaySyncTest(BaseTestCase):
         _, new_issue = tracker.updated_milestones[0]
         self.assertEqual(new_issue.title, "Account Drawer Improvements")
         self.assertEqual(new_issue.issue_type, "Epic")
+        self.assertIsNone(new_issue.start_date)
+        self.assertEqual(new_issue.end_date, datetime.date(2026, 6, 24))
 
     async def test_linked_epic_updates_notion_from_tracker(self):
         self._set_epic_page_issue("900")
@@ -535,8 +541,8 @@ class TwoWaySyncTest(BaseTestCase):
             state="Done",
             issue_type="Epic",
         )
-        tracker_issue.start_date = datetime.date(2025, 1, 2)
-        tracker_issue.end_date = None
+        tracker_issue.start_date = None
+        tracker_issue.end_date = datetime.date(2025, 3, 4)
         tracker_issue.closed_date = datetime.datetime(2025, 3, 4, 12, 0, tzinfo=datetime.timezone.utc)
         tracker = TwoWayTestTracker(issues=[tracker_issue])
         sync = TrackerTwoWaySync(
@@ -551,7 +557,7 @@ class TwoWaySyncTest(BaseTestCase):
 
         notion_data = sync._get_epic_notion_data_from_tracker(tracker_issue)
 
-        self.assertEqual(notion_data["Dates"], {"start": datetime.date(2025, 1, 2), "end": None})
+        self.assertEqual(notion_data["Dates"], {"start": datetime.date(2025, 3, 4), "end": None})
 
     async def test_tracker_to_notion_epic_create(self):
         tracker = TwoWayTestTracker(
@@ -782,6 +788,11 @@ class TwoWaySyncTest(BaseTestCase):
 
     async def test_lww_tie_break_defaults(self):
         tie_ts = datetime.datetime(2022, 7, 6, 20, 25, tzinfo=datetime.timezone.utc)
+        page = self._set_milestone_page_issue("123")
+        page["properties"]["Dates"] = {
+            "type": "date",
+            "date": {"start": "2026-06-24", "end": None},
+        }
         tracker = TwoWayTestTracker(
             issues=[
                 self._issue("123", updated=tie_ts, title="[meta] Milestone"),
@@ -802,6 +813,10 @@ class TwoWaySyncTest(BaseTestCase):
         # Tie fallback: tracker for tasks, notion for milestones
         self.assertEqual(len(tracker.updated_tasks), 0)
         self.assertGreaterEqual(len(tracker.updated_milestones), 1)
+        milestone_updates = [new_issue for old_issue, new_issue in tracker.updated_milestones if old_issue.id == "123"]
+        self.assertTrue(milestone_updates)
+        self.assertIsNone(milestone_updates[0].start_date)
+        self.assertEqual(milestone_updates[0].end_date, datetime.date(2026, 6, 24))
 
     async def test_exact_task_tie_uses_configured_conflict_preference(self):
         tracker_issue = self._issue(

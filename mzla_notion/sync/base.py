@@ -253,6 +253,8 @@ class BaseSync:
                 obj[propname[0]] = start if start else None
                 obj[propname[1]] = end if end else None
             else:
+                if end and not start:
+                    start, end = end, None
                 obj[propname] = {"start": start, "end": end} if start or end else None
 
     def _normalize_relation_ids(self, relation_or_id):
