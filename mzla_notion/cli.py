@@ -20,6 +20,7 @@ from .people import load_notion_usermap
 from .util import GitHubActionsFormatter
 
 logger = logging.getLogger("notion_sync")
+SYNC_PHASES = frozenset({"tasks", "milestones", "epics"})
 
 
 def parse_lookback(value, now=None):
@@ -43,6 +44,23 @@ def parse_lookback(value, now=None):
         raise argparse.ArgumentTypeError("lookback date/time must not be in the future")
 
     return lookback_seconds
+
+
+def parse_phases(value):
+    """Parse a comma-separated list of sync phases."""
+    phases = [phase.strip() for phase in value.split(",")]
+    allowed = ", ".join(sorted(SYNC_PHASES))
+
+    if not value or any(not phase for phase in phases):
+        raise argparse.ArgumentTypeError(f"phases must be a comma-separated list of: {allowed}")
+
+    unknown = sorted(set(phases) - SYNC_PHASES)
+    if unknown:
+        raise argparse.ArgumentTypeError(
+            f"unknown sync phase {', '.join(unknown)}; expected a comma-separated list of: {allowed}"
+        )
+
+    return frozenset(phases)
 
 
 def cmd_list_synchronizers(config):
@@ -139,6 +157,7 @@ async def cmd_synchronize(
     twoway_cache=None,
     twoway_cache_path=None,
     hide_unchanged=False,
+    phases=None,
 ):
     """This is the main cli. Please use --help on how to use it."""
     with open(config, "rb") as fp:
@@ -234,6 +253,7 @@ async def cmd_synchronize(
                 dry=effective_dry_run,
                 synchronous=synchronous,
                 hide_unchanged=hide_unchanged,
+                phases=phases,
             )
         elif project["method"] == "tracker_twoway":
             tracker_kind = project.get("tracker")
@@ -311,6 +331,7 @@ async def cmd_synchronize(
                 twoway_cache_path=twoway_cache_path
                 or project.get("twoway_cache_path", ".cache/mzla-notion/twoway.sqlite3"),
                 hide_unchanged=hide_unchanged,
+                phases=phases,
             )
         elif project["method"] == "github_labels":
             tracker = await GitHub.create(
@@ -427,6 +448,12 @@ async def async_main():
         action="store_true",
         help="Suppress unchanged item logs for project and two-way sync.",
     )
+    parser.add_argument(
+        "--phases",
+        type=parse_phases,
+        default=None,
+        help="Comma-separated phases to run for project and two-way sync: tasks, milestones, epics.",
+    )
     parser.add_argument("-l", "--list", action="store_true", help="List synchronizers and exit")
     parser.add_argument("--repositories", action="store_true", help="List repositories and exit")
     parser.add_argument(
@@ -456,5 +483,6 @@ async def async_main():
                 twoway_cache=args.twoway_cache,
                 twoway_cache_path=args.twoway_cache_path,
                 hide_unchanged=args.hide_unchanged,
+                phases=args.phases,
             )
         )

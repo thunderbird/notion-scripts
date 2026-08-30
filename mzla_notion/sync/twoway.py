@@ -46,10 +46,12 @@ class TrackerTwoWaySync(BaseSync):
         tracker_kind=None,
         twoway_cache_enabled=False,
         twoway_cache_path=".cache/mzla-notion/twoway.sqlite3",
+        phases=None,
         **kwargs,
     ):
         """Initialize two-way sync configuration and directional behavior."""
         super().__init__(**kwargs, logger=logging.getLogger("twoway_sync"))
+        self.phases = set(phases or {"tasks", "milestones", "epics"})
         self.incremental_lookback_seconds = incremental_lookback_seconds
         self.tasks_tracker_to_notion = tasks_tracker_to_notion
         self.tasks_notion_to_tracker = tasks_notion_to_tracker
@@ -77,6 +79,22 @@ class TrackerTwoWaySync(BaseSync):
         self._task_create_cache = {}
         self._unlinked_notion_tasks = []
         self._task_discovery_since = None
+
+        if "tasks" not in self.phases:
+            self.tasks_tracker_to_notion = False
+            self.tasks_notion_to_tracker = False
+            self.tasks_tracker_to_notion_create = False
+            self.tasks_notion_to_tracker_create = False
+        if "milestones" not in self.phases:
+            self.milestones_tracker_to_notion = False
+            self.milestones_notion_to_tracker = False
+            self.milestones_tracker_to_notion_create = False
+            self.milestones_notion_to_tracker_create = False
+        if "epics" not in self.phases:
+            self.epics_tracker_to_notion = False
+            self.epics_notion_to_tracker = False
+            self.epics_tracker_to_notion_create = False
+            self.epics_notion_to_tracker_create = False
 
         if self.milestones_notion_to_tracker_create:
             self.logger.warning("milestones_notion_to_tracker_create is not supported in v2; skipping")
@@ -1702,10 +1720,12 @@ class TrackerTwoWaySync(BaseSync):
             stats,
         )
         async with asyncio.TaskGroup() as tg:
-            if self.epics_db:
+            if "epics" in self.phases and self.epics_db:
                 tg.create_task(self._update_timestamp(self.epics_db, timestamp))
-            tg.create_task(self._update_timestamp(self.milestones_db, timestamp))
-            tg.create_task(self._update_timestamp(self.tasks_db, timestamp))
+            if "milestones" in self.phases:
+                tg.create_task(self._update_timestamp(self.milestones_db, timestamp))
+            if "tasks" in self.phases:
+                tg.create_task(self._update_timestamp(self.tasks_db, timestamp))
 
         if self._notion_cache:
             self._notion_cache.close()

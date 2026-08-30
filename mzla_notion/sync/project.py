@@ -28,12 +28,14 @@ class ProjectSync(BaseSync):
         *args,
         epics_create_from_tracker=False,
         milestones_create_from_tracker=False,
+        phases=None,
         **kwargs,
     ):
         """Set up project-sync-specific tracker creation settings."""
         super().__init__(*args, **kwargs)
         self.epics_create_from_tracker = epics_create_from_tracker
         self.milestones_create_from_tracker = milestones_create_from_tracker
+        self.phases = set(phases or {"tasks", "milestones", "epics"})
 
     async def _async_init(self):
         async with asyncio.TaskGroup() as tg:
@@ -330,16 +332,16 @@ class ProjectSync(BaseSync):
             return issue_pages.get(issue.id)
 
         collected_tracker_milestones = {}
-        if self.milestones_create_from_tracker:
+        if "milestones" in self.phases and self.milestones_create_from_tracker:
             async for milestone in self.tracker.collect_tracker_milestones(self.milestones_issue_type, sub_issues=True):
                 collected_tracker_milestones.setdefault(milestone.repo, {})[milestone.id] = milestone
         collected_tracker_epics = {}
-        if self.epics_db and self.epics_create_from_tracker:
+        if "epics" in self.phases and self.epics_db and self.epics_create_from_tracker:
             async for epic in self.tracker.collect_tracker_epics(self.epics_issue_type, sub_issues=True):
                 collected_tracker_epics.setdefault(epic.repo, {})[epic.id] = epic
 
         async with asyncio.TaskGroup() as tg:
-            if self.epics_db:
+            if "epics" in self.phases and self.epics_db:
                 for reporef, notion_pages in self._notion_epic_issues.items():
                     repo_epics = collected_tracker_epics.get(reporef, {})
                     missing_refs = []
@@ -368,7 +370,11 @@ class ProjectSync(BaseSync):
                             self._schedule_epic_sync(tg, epic, None)
 
             # Synchronize issues found in milestones
-            for reporef, notion_pages in self._notion_milestone_issues.items():
+            if "milestones" in self.phases:
+                milestone_issues = self._notion_milestone_issues.items()
+            else:
+                milestone_issues = []
+            for reporef, notion_pages in milestone_issues:
                 repo_milestones = collected_tracker_milestones.get(reporef, {})
                 missing_refs = []
 
@@ -403,7 +409,7 @@ class ProjectSync(BaseSync):
 
                 logger.info(f"Synchronizing {len(notion_pages)} milestones for {reporef}")
 
-            if self.milestones_create_from_tracker:
+            if "milestones" in self.phases and self.milestones_create_from_tracker:
                 for reporef, milestones in collected_tracker_milestones.items():
                     if not len(milestones):
                         continue
@@ -417,28 +423,35 @@ class ProjectSync(BaseSync):
                             collected_tasks,
                         )
 
-            # Any additional tasks the tracker might be interested in (e.g. sprint boards)
-            await self.tracker.collect_additional_tasks(collected_tasks)
+            if "tasks" in self.phases:
+                # Any additional tasks the tracker might be interested in (e.g. sprint boards)
+                await self.tracker.collect_additional_tasks(collected_tasks)
 
-            # Synchronize individual and above collected tasks
-            for reporef, issue_pages in collected_tasks.items():
-                refs = [
-                    IssueRef(
-                        id=issue, repo=reporef, notion_url=normalize_notion_url(page.get("url", "") if page else "")
-                    )
-                    for issue, page in issue_pages.items()
-                ]
+                # Synchronize individual and above collected tasks
+                for reporef, issue_pages in collected_tasks.items():
+                    refs = [
+                        IssueRef(
+                            id=issue,
+                            repo=reporef,
+                            notion_url=normalize_notion_url(page.get("url", "") if page else ""),
+                        )
+                        for issue, page in issue_pages.items()
+                    ]
 
-                tracker_issues = self.tracker.get_issues_by_number(refs)
-                logger.info(f"Synchronizing tasks for {reporef}")
+                    tracker_issues = self.tracker.get_issues_by_number(refs)
+                    logger.info(f"Synchronizing tasks for {reporef}")
 
-                async for issue in tracker_issues:
-                    tg.create_task(self.synchronize_single_task(issue, get_page_for_issue(issue, issue_pages)))
+                    async for issue in tracker_issues:
+                        tg.create_task(self.synchronize_single_task(issue, get_page_for_issue(issue, issue_pages)))
 
         async with asyncio.TaskGroup() as tg:
             # Update the description with the last updated timestamp
-            tg.create_task(self._update_timestamp(self.milestones_db, timestamp))
-            tg.create_task(self._update_timestamp(self.tasks_db, timestamp))
+            if "epics" in self.phases and self.epics_db:
+                tg.create_task(self._update_timestamp(self.epics_db, timestamp))
+            if "milestones" in self.phases:
+                tg.create_task(self._update_timestamp(self.milestones_db, timestamp))
+            if "tasks" in self.phases:
+                tg.create_task(self._update_timestamp(self.tasks_db, timestamp))
 
         await self.notion.aclose()
 
