@@ -257,6 +257,36 @@ class BaseSync:
                     start, end = end, None
                 obj[propname] = {"start": start, "end": end} if start or end else None
 
+    def _find_milestone_epic_parent(self, tracker_issue):
+        if not self.epics_db:
+            return None
+        for parent in tracker_issue.parents:
+            if epic_parent := self._notion_epic_issues.get(parent.repo, {}).get(parent.id, None):
+                return epic_parent
+        return None
+
+    def _get_milestone_epic_relation_from_tracker(self, tracker_issue, page=None):
+        epic_parent = self._find_milestone_epic_parent(tracker_issue)
+        relation = self._get_prop(page, "notion_milestones_epic_relation", []) if page else []
+        tracker_managed_epic_ids = {
+            page["id"].replace("-", "")
+            for repo_pages in getattr(self, "_notion_epic_issues", {}).values()
+            for page in repo_pages.values()
+            if page.get("id")
+        }
+        relation_ids = [
+            item["id"]
+            for item in relation
+            if item.get("id") and item["id"].replace("-", "") not in tracker_managed_epic_ids
+        ]
+
+        if epic_parent:
+            epic_parent_id = epic_parent["id"]
+            if epic_parent_id.replace("-", "") not in {item.replace("-", "") for item in relation_ids}:
+                relation_ids.append(epic_parent_id)
+
+        return relation_ids
+
     def _normalize_relation_ids(self, relation_or_id):
         if not relation_or_id:
             return []

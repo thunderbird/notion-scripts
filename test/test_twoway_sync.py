@@ -167,6 +167,36 @@ class TwoWaySyncTest(BaseTestCase):
         page["properties"]["Issue Link"]["url"] = f"https://example.com/repo/{issue_id}"
         return page
 
+    def _add_epic_page(self, page_id, issue_url=None):
+        page = {
+            "object": "page",
+            "id": page_id,
+            "created_time": "2025-01-01T00:00:00.000Z",
+            "last_edited_time": "2025-01-01T00:00:00.000Z",
+            "url": f"https://notion.so/example/{page_id}",
+            "properties": {
+                "Title": {
+                    "id": "title",
+                    "type": "title",
+                    "title": [
+                        {
+                            "type": "text",
+                            "text": {"content": "Epic"},
+                            "plain_text": "Epic",
+                        }
+                    ],
+                },
+                "Status": {
+                    "id": "st",
+                    "type": "status",
+                    "status": {"name": "Backlog"},
+                },
+                "Issue Link": {"type": "url", "url": issue_url},
+            },
+        }
+        self.notion_handler.epics_handler.pages.append(page)
+        return page
+
     def _add_unlinked_task_page(self, page_id="bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", url=None):
         page = {
             "object": "page",
@@ -636,6 +666,68 @@ class TwoWaySyncTest(BaseTestCase):
         self.assertEqual(
             body["properties"]["Epic"]["relation"],
             [{"id": "6f6fac286b6348ca90ec0066be1a2755"}],
+        )
+
+    async def test_milestone_epic_relation_preserves_unmanaged_notion_epics(self):
+        managed_epic = self._set_epic_page_issue("900")
+        unmanaged_epic = self._add_epic_page("11111111-1111-1111-1111-111111111111")
+        out_of_scope_epic = self._add_epic_page(
+            "22222222-2222-2222-2222-222222222222",
+            "https://example.com/other/800",
+        )
+        page = self._set_milestone_page_issue("901")
+        page["properties"]["Epic"] = {
+            "type": "relation",
+            "relation": [
+                {"id": managed_epic["id"]},
+                {"id": unmanaged_epic["id"]},
+                {"id": out_of_scope_epic["id"]},
+            ],
+        }
+        tracker_issue = self._issue(
+            "901",
+            updated=datetime.datetime(2025, 1, 1, tzinfo=datetime.timezone.utc),
+            parents=[],
+            title="Milestone without GitHub epic parent",
+            issue_type="Milestone",
+        )
+        tracker_issue.start_date = None
+        tracker_issue.end_date = datetime.date(2026, 9, 16)
+        tracker = TwoWayTestTracker(issues=[tracker_issue])
+        sync = TrackerTwoWaySync(
+            project_key="twoway",
+            tracker=tracker,
+            notion_token="NOTION_TOKEN",
+            epics_id="epics_id",
+            milestones_id="milestones_id",
+            tasks_id="tasks_id",
+            milestones_issue_type="Milestone",
+            milestones_tracker_to_notion=True,
+            milestones_notion_to_tracker=False,
+            tasks_tracker_to_notion=False,
+            epics_tracker_to_notion=False,
+            epics_notion_to_tracker=False,
+            incremental_lookback_seconds=604800,
+        )
+        await sync._async_init()
+
+        notion_data = sync._get_milestone_notion_data_from_tracker(tracker_issue, page)
+        self.assertEqual(notion_data["Dates"], {"start": datetime.date(2026, 9, 16), "end": None})
+
+        relation_data = {
+            sync.propnames["notion_milestones_epic_relation"]: sync._get_milestone_epic_relation_from_tracker(
+                tracker_issue, page
+            )
+        }
+        await sync.milestones_db.update_page(page, relation_data, diff_log=False)
+
+        body = json.loads(self.respx.routes["pages_update"].calls[-1].request.content)
+        self.assertEqual(
+            body["properties"]["Epic"]["relation"],
+            [
+                {"id": "11111111111111111111111111111111"},
+                {"id": "22222222222222222222222222222222"},
+            ],
         )
 
     async def test_dry_run_epic_create_does_not_feed_milestone_relation_update(self):

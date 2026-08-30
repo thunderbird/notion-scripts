@@ -465,14 +465,6 @@ class TrackerTwoWaySync(BaseSync):
 
         return found_milestone_parents
 
-    def _find_milestone_epic_parent(self, tracker_issue):
-        if not self.epics_db:
-            return None
-        for parent in tracker_issue.parents:
-            if epic_parent := self._notion_epic_issues.get(parent.repo, {}).get(parent.id, None):
-                return epic_parent
-        return None
-
     def _page_timestamp(self, page):
         value = page.get("last_edited_time")
         if not value:
@@ -636,16 +628,19 @@ class TrackerTwoWaySync(BaseSync):
             return "notion_to_tracker"
         return fallback
 
-    def _get_milestone_notion_data_from_tracker(self, tracker_issue):
+    def _get_milestone_notion_data_from_tracker(self, tracker_issue, page=None):
+        # Basic Data
         notion_data = {
             self.propnames["notion_milestones_title"]: tracker_issue.title,
             self.propnames["notion_issue_field"]: tracker_issue.url,
         }
 
+        # Assignee, Priority
         assignees = [user.notion_user for user in tracker_issue.assignees if user.notion_user is not None]
         self._set_if_prop(notion_data, "notion_milestones_assignee", assignees or None)
         self._set_if_prop(notion_data, "notion_milestones_priority", tracker_issue.priority)
 
+        # Status
         state = tracker_issue.state
         if not state:
             state = (
@@ -655,18 +650,20 @@ class TrackerTwoWaySync(BaseSync):
             )
         self._set_if_prop(notion_data, "notion_milestones_status", state)
 
+        # Dates
         self._set_if_date_prop(
             notion_data,
             "notion_milestones_dates",
             ensure_date(tracker_issue.start_date),
             ensure_date(tracker_issue.end_date),
         )
+
+        # Epics relation
         if self.epics_db and self.propnames.get("notion_milestones_epic_relation"):
-            epic_parent = self._find_milestone_epic_parent(tracker_issue)
             self._set_if_prop(
                 notion_data,
                 "notion_milestones_epic_relation",
-                [epic_parent["id"]] if epic_parent else [],
+                self._get_milestone_epic_relation_from_tracker(tracker_issue, page),
             )
 
         return notion_data
@@ -675,8 +672,11 @@ class TrackerTwoWaySync(BaseSync):
         if not self.epics_db or not self.propnames.get("notion_milestones_epic_relation"):
             return False
 
-        epic_parent = self._find_milestone_epic_parent(tracker_issue)
-        relation_data = {self.propnames["notion_milestones_epic_relation"]: [epic_parent["id"]] if epic_parent else []}
+        relation_data = {
+            self.propnames["notion_milestones_epic_relation"]: self._get_milestone_epic_relation_from_tracker(
+                tracker_issue, page
+            )
+        }
         changed = self.milestones_db.page_diff(relation_data, page, log=False)
         if changed:
             self.logger.info(
@@ -694,7 +694,7 @@ class TrackerTwoWaySync(BaseSync):
 
     async def synchronize_single_milestone_from_tracker(self, tracker_issue, page, candidate_debug=None):
         """Apply tracker milestone fields onto the linked Notion milestone page."""
-        notion_data = self._get_milestone_notion_data_from_tracker(tracker_issue)
+        notion_data = self._get_milestone_notion_data_from_tracker(tracker_issue, page)
         changed = self.milestones_db.page_diff(notion_data, page, log=False)
         if changed:
             self.logger.info(f"Updating milestone (Tracker->Notion) {page.get('url')} - {tracker_issue.title}")

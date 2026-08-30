@@ -49,14 +49,6 @@ class ProjectSync(BaseSync):
         self._notion_epic_issues = epics_issues.result() if self.epics_db else {}
         self._notion_milestone_issues = milestones_issues.result()
 
-    def _find_milestone_epic_parent(self, tracker_issue):
-        if not self.epics_db:
-            return None
-        for parent in tracker_issue.parents:
-            if epic_parent := self._notion_epic_issues.get(parent.repo, {}).get(parent.id, None):
-                return epic_parent
-        return None
-
     def _find_task_parents(self, tracker_issue):
         milestone_issues = self._notion_milestone_issues
 
@@ -213,9 +205,13 @@ class ProjectSync(BaseSync):
             final_end = None
 
         self._set_if_date_prop(notion_data, "notion_milestones_dates", ensure_date(final_start), ensure_date(final_end))
-        epic_parent = self._find_milestone_epic_parent(tracker_issue)
-        if epic_parent:
-            self._set_if_prop(notion_data, "notion_milestones_epic_relation", [epic_parent["id"]])
+        epic_relation = self._get_milestone_epic_relation_from_tracker(tracker_issue)
+        if epic_relation:
+            self._set_if_prop(
+                notion_data,
+                "notion_milestones_epic_relation",
+                epic_relation,
+            )
 
         # TODO labels
         # TODO body
@@ -261,8 +257,6 @@ class ProjectSync(BaseSync):
             labels.add(self.milestones_extra_label)
 
         start_date, end_date = self._get_date_prop(page, "notion_milestones_dates")
-        epic_parent = self._find_milestone_epic_parent(tracker_issue)
-
         new_issue = dataclasses.replace(
             tracker_issue,
             title=self.milestones_tracker_prefix + title,
@@ -281,7 +275,9 @@ class ProjectSync(BaseSync):
 
         if self.propnames["notion_milestones_epic_relation"]:
             relation_data = {
-                self.propnames["notion_milestones_epic_relation"]: [epic_parent["id"]] if epic_parent else []
+                self.propnames["notion_milestones_epic_relation"]: self._get_milestone_epic_relation_from_tracker(
+                    tracker_issue, page
+                )
             }
             changed = self.milestones_db.page_diff(relation_data, page, log=False)
             if changed:
