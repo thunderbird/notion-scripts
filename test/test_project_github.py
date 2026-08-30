@@ -167,6 +167,27 @@ class GitHubProjectTest(BaseTestCase):
             )
             issues = [issue async for issue in iterator]
 
+    async def test_github_get_inaccessible_issue_logs_notion_page(self):
+        self.github_handler.responses["get_issues_3"]["data"]["repository"]["issue3"] = None
+        self.respx.get("https://github.com/kewisch/test/issues/3").mock(return_value=httpx.Response(404))
+
+        ref = IssueRef(
+            repo="kewisch/test",
+            id="3",
+            notion_url="https://www.notion.so/example/inaccessible-page-123",
+        )
+
+        with self.assertLogs("project_sync", level="WARNING") as logs:
+            issues = [issue async for issue in self.github.get_issues_by_number([ref])]
+
+        self.assertEqual(issues, [])
+        self.assertIn(
+            "Issue https://github.com/kewisch/test/issues/3 "
+            "from Notion page https://www.notion.so/example/inaccessible-page-123 "
+            "is no longer accessible",
+            "\n".join(logs.output),
+        )
+
     async def test_github_get_issue_reviewers(self):
         self.github.user_map = GitHubUserMap({"kewisch": "3df71ec3-17c7-4eb4-80bc-a321af157be6"})
         self.github.user_map._trk_to_dbid = {"kewisch": "MDQ6VXNlcjYwNzE5OA=="}

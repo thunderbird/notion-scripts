@@ -23,6 +23,7 @@ class IssueRef:
     repo: str
     id: str
     parents: list["IssueRef"] = field(default_factory=list)
+    notion_url: str = ""
 
 
 @dataclass(kw_only=True)

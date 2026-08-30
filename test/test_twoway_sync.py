@@ -61,10 +61,15 @@ class TwoWayTestTracker(IssueTracker):
         self.recent_since_calls = []
 
     def parse_issueref(self, ref):
+        if not ref:
+            return None
         parts = ref.split("/")
         if len(parts) == 5 and parts[2] == "example.com":
             return IssueRef(repo=parts[3], id=parts[4])
         return None
+
+    def is_repo_allowed(self, repo):
+        return repo == "repo"
 
     async def get_issues_by_number(self, refs, sub_issues=False):
         for ref in refs:

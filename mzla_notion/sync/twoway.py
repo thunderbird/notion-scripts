@@ -303,6 +303,7 @@ class TrackerTwoWaySync(BaseSync):
         issue_url = self._page_issue_url(page)
         ref = self.tracker.parse_issueref(issue_url) if issue_url else None
         if ref and self.tracker.is_repo_allowed(ref.repo):
+            ref.notion_url = canonical_notion_url(page.get("url", ""))
             return ref, issue_url
         return None, issue_url
 
@@ -857,7 +858,16 @@ class TrackerTwoWaySync(BaseSync):
             if issue:
                 tracker_issues[(repo, issue_id)] = issue
             else:
-                missing[repo].append(IssueRef(repo=repo, id=issue_id))
+                page = self._notion_tasks_issues.get(repo, {}).get(issue_id)
+                page = page or self._notion_milestone_issues.get(repo, {}).get(issue_id)
+                page = page or self._notion_epic_issues.get(repo, {}).get(issue_id)
+                missing[repo].append(
+                    IssueRef(
+                        repo=repo,
+                        id=issue_id,
+                        notion_url=canonical_notion_url(page.get("url", "")) if page else "",
+                    )
+                )
 
         for repo, refs in missing.items():
             async for issue in self.tracker.get_issues_by_number(refs):
@@ -1348,6 +1358,7 @@ class TrackerTwoWaySync(BaseSync):
             if not parent_ref:
                 stats["tasks_create_skipped_no_parent"] += 1
                 return
+            parent_ref.notion_url = canonical_notion_url(milestone_page.get("url", ""))
             async for fetched_parent in self.tracker.get_issues_by_number([parent_ref], sub_issues=False):
                 parent_issue = fetched_parent
                 break

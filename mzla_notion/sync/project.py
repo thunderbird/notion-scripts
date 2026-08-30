@@ -352,7 +352,13 @@ class ProjectSync(BaseSync):
                         if epic is not None:
                             self._schedule_epic_sync(tg, epic, notion_page)
                         else:
-                            missing_refs.append(IssueRef(id=issue_id, repo=reporef))
+                            missing_refs.append(
+                                IssueRef(
+                                    id=issue_id,
+                                    repo=reporef,
+                                    notion_url=normalize_notion_url(notion_page.get("url", "")),
+                                )
+                            )
                     async for issue in self.tracker.get_issues_by_number(missing_refs, True):
                         self._schedule_epic_sync(tg, issue, get_page_for_issue(issue, notion_pages))
                     logger.info(f"Synchronizing {len(notion_pages)} epics for {reporef}")
@@ -382,7 +388,11 @@ class ProjectSync(BaseSync):
                             collected_tasks,
                         )
                     else:
-                        missing_refs.append(IssueRef(id=issue_id, repo=reporef))
+                        missing_refs.append(
+                            IssueRef(
+                                id=issue_id, repo=reporef, notion_url=normalize_notion_url(notion_page.get("url", ""))
+                            )
+                        )
 
                 # Remaining milestones are new in the tracker
 
@@ -416,7 +426,12 @@ class ProjectSync(BaseSync):
 
             # Synchronize individual and above collected tasks
             for reporef, issue_pages in collected_tasks.items():
-                refs = [IssueRef(id=issue, repo=reporef) for issue in issue_pages.keys()]
+                refs = [
+                    IssueRef(
+                        id=issue, repo=reporef, notion_url=normalize_notion_url(page.get("url", "") if page else "")
+                    )
+                    for issue, page in issue_pages.items()
+                ]
 
                 tracker_issues = self.tracker.get_issues_by_number(refs)
                 logger.info(f"Synchronizing tasks for {reporef}")

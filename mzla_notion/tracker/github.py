@@ -783,6 +783,7 @@ class GitHub(IssueTracker, GitHubFixups):
                     ghissue = getattr(datarepo, f"issue{ref.id}", None)
 
                     if not getattr(ghissue, "id", None):
+                        notion_context = f" from Notion page {ref.notion_url}" if ref.notion_url else ""
                         response = await self.endpoint.client.get(
                             f"https://github.com/{org}/{repo}/issues/{ref.id}", follow_redirects=False
                         )
@@ -791,13 +792,15 @@ class GitHub(IssueTracker, GitHubFixups):
                         if new_ref:
                             async for issue in self.get_issues_by_number([new_ref], sub_issues):
                                 logger.warning(
-                                    f"Issue https://github.com/{org}/{repo}/issues/{ref.id} has moved to {response.headers.get('location')}"
+                                    f"Issue https://github.com/{org}/{repo}/issues/{ref.id}{notion_context} "
+                                    f"has moved to {response.headers.get('location')}"
                                 )
                                 issue.requested_ref = ref
                                 yield issue
                         else:
                             logger.warning(
-                                f"Issue https://github.com/{org}/{repo}/issues/{ref.id} is no longer accessible"
+                                f"Issue https://github.com/{org}/{repo}/issues/{ref.id}{notion_context} "
+                                "is no longer accessible"
                             )
 
                         continue
