@@ -10,8 +10,12 @@ notion_people_bugzilla = "Bugzilla Email"
 notion_people_phabricator = "Phabricator Username"
 notion_people_team = "Team"
 
+#
+# Mobile
+#
 [sync.mobile]
-method = "github_project"
+method = "tracker_twoway"
+tracker = "github"
 
 notion_tasks_id = "2332df5d45ae8072aa7aededaf161252"
 notion_milestones_id = "2332df5d45ae80909305fe2278a14629"
@@ -20,14 +24,39 @@ notion_milestones_id = "2332df5d45ae80909305fe2278a14629"
 notion_team_id = "2332df5d45ae80bc8839d089f5c7f608"
 notion_associated_team = "2332df5d45ae80658b05c4e8a4819827"
 
-epics_create_from_tracker = true
-epics_issue_type = "Epic"
+# Tasks sync - one way sync and create, tracker to notion
+tasks_conflict_preference = "tracker"
+tasks_body_sync = false
 
+tasks_tracker_to_notion = true
+tasks_notion_to_tracker = false
+
+tasks_tracker_to_notion_create = true
+tasks_notion_to_tracker_create = false
+
+
+# Milestones - two way sync, create from tracker to notion
 milestones_issue_type = "Milestone"
+milestones_conflict_preference = "notion"
 milestones_body_sync = false
 milestones_body_sync_if_empty = true
-milestones_create_from_tracker = true
-tasks_body_sync = false
+
+milestones_tracker_to_notion = true
+milestones_notion_to_tracker = true
+
+milestones_tracker_to_notion_create = true
+milestones_notion_to_tracker_create = false
+
+# Epics - two way sync, create from tracker to notion
+epics_issue_type = "Epic"
+epics_conflict_preference = "notion"
+epics_allow_parents = true
+
+epics_tracker_to_notion = true
+epics_notion_to_tracker = true
+
+epics_tracker_to_notion_create = true
+epics_notion_to_tracker_create = false
 
 #sprints_merge_by_name = true
 
@@ -59,6 +88,14 @@ notion_inprogress_state = "In progress"
 notion_closed_states = ["Done", "Canceled"]
 notion_tasks_repository = "Ecosystem (Mobile)"
 
+notion_milestones_epic_relation = "Epics"
+notion_epics_team = "Teams"
+notion_epics_title = "Name"
+notion_epics_assignee = "Owner"
+notion_epics_priority = "Priority"
+notion_epics_status = "Status"
+notion_epics_dates = "Target Date"
+
 [sync.mobile.properties.notion_tasks_repository_map]
 "thunderbird/thunderbird-android" = "Android"
 "thunderbird/thunderbird-ios" = "iOS"
@@ -77,8 +114,13 @@ repositories = [
 github_tasks_project_id = "PVT_kwDOAOe9Jc4A1aav"
 github_milestones_project_id = "PVT_kwDOAOe9Jc4A1aX6"
 
+
+#
+# Support
+#
 [sync.support]
-method = "github_project"
+method = "tracker_twoway"
+tracker = "github"
 
 notion_milestones_id = "2332df5d45ae80909305fe2278a14629"
 notion_tasks_id = "2332df5d45ae8072aa7aededaf161252"
@@ -86,13 +128,29 @@ notion_tasks_id = "2332df5d45ae8072aa7aededaf161252"
 notion_team_id = "2332df5d45ae80bc8839d089f5c7f608"
 notion_associated_team = "2332df5d45ae809696b3f0e6e6b1eead"
 
-github_milestones_project_id = "PVT_kwDOAOe9Jc4BSDKP"
 
+# Tasks sync - one way sync and create, tracker to notion
+tasks_conflict_preference = "tracker"
+tasks_body_sync = false
+
+tasks_tracker_to_notion = true
+tasks_notion_to_tracker = false
+
+tasks_tracker_to_notion_create = true
+tasks_notion_to_tracker_create = false
+
+
+# Milestones - two way sync, create from tracker to notion
 milestones_issue_type = "Milestone"
+milestones_conflict_preference = "notion"
 milestones_body_sync = false
 milestones_body_sync_if_empty = false
-milestones_create_from_tracker = true
-tasks_body_sync = false
+
+milestones_tracker_to_notion = true
+milestones_notion_to_tracker = true
+
+milestones_tracker_to_notion_create = true
+milestones_notion_to_tracker_create = false
 
 [sync.support.repositories]
 repositories = [
@@ -101,6 +159,7 @@ repositories = [
     "thunderbird/github-action-thunderbird-aaq",
     "thunderbird/thunderbird-metrics-and-reports"
 ]
+github_milestones_project_id = "PVT_kwDOAOe9Jc4BSDKP"
 
 [sync.support.properties]
 notion_tasks_title = "Name"
@@ -124,8 +183,13 @@ notion_default_open_state = "Backlog"
 notion_inprogress_state = "In progress"
 notion_closed_states = ["Done", "Canceled"]
 
+#
+# Desktop
+#
 [sync.desktop]
-method = "bugzilla_project"
+method = "tracker_twoway"
+tracker = "bugzilla"
+
 tracker_dry_run = true
 notion_tasks_id = "2332df5d45ae8072aa7aededaf161252"
 notion_milestones_id = "2332df5d45ae80909305fe2278a14629"
@@ -134,7 +198,30 @@ notion_team_id = "2332df5d45ae80bc8839d089f5c7f608"
 notion_associated_team = "2332df5d45ae80ff92fbddd8eccb9060"
 
 bugzilla_base = "https://bugzilla.mozilla.org"
+
+# Tasks sync - one way sync and create, tracker to notion
+tasks_conflict_preference = "tracker"
+tasks_body_sync = false
+
+tasks_tracker_to_notion = true
+tasks_notion_to_tracker = false
+
+tasks_tracker_to_notion_create = true
+tasks_notion_to_tracker_create = false
+
+# Milestones - sync not enabled
+milestones_conflict_preference = "notion"
+milestones_body_sync = false
+milestones_body_sync_if_empty = false
 milestones_tracker_prefix = "[meta] "
+
+milestones_tracker_to_notion = false
+milestones_notion_to_tracker = false
+
+milestones_tracker_to_notion_create = false
+milestones_notion_to_tracker_create = false
+
+# Epics - not supported
 
 [sync.desktop.properties]
 bugzilla_allowed_products = ["Thunderbird", "MailNews Core", "Calendar"]
@@ -186,8 +273,13 @@ VERIFIED = "Canceled"
 "Done" = "RESOLVED"
 "Canceled" = "RESOLVED"
 
+#
+# Build & Release
+#
 [sync.buildrelease]
-method = "bugzilla_project"
+method = "tracker_twoway"
+tracker = "bugzilla"
+
 tracker_dry_run = true
 notion_tasks_id = "2332df5d45ae8072aa7aededaf161252"
 notion_milestones_id = "2332df5d45ae80909305fe2278a14629"
@@ -196,7 +288,31 @@ notion_team_id = "2332df5d45ae80bc8839d089f5c7f608"
 notion_associated_team = "2332df5d45ae805c99f7cd0c05d67a89"
 
 bugzilla_base = "https://bugzilla.mozilla.org"
+
+# Tasks sync - one way sync and create, tracker to notion
+tasks_conflict_preference = "tracker"
+tasks_body_sync = false
+
+tasks_tracker_to_notion = true
+tasks_notion_to_tracker = false
+
+tasks_tracker_to_notion_create = true
+tasks_notion_to_tracker_create = false
+
+# Milestones - sync not enabled
+milestones_issue_type = "Milestone"
+milestones_conflict_preference = "notion"
+milestones_body_sync = false
+milestones_body_sync_if_empty = false
 milestones_tracker_prefix = "[meta] "
+
+milestones_tracker_to_notion = false
+milestones_notion_to_tracker = false
+
+milestones_tracker_to_notion_create = false
+milestones_notion_to_tracker_create = false
+
+# Epics - not supported
 
 [sync.buildrelease.properties]
 bugzilla_allowed_products = ["Thunderbird", "MailNews Core", "Calendar"]
@@ -247,17 +363,21 @@ VERIFIED = "Canceled"
 "Done" = "RESOLVED"
 "Canceled" = "RESOLVED"
 
+#
+# Services
+#
 [sync.services]
 method = "tracker_twoway"
 tracker = "github"
 notion_tasks_id = "2332df5d45ae8072aa7aededaf161252"
 notion_milestones_id = "2332df5d45ae80909305fe2278a14629"
 #notion_sprints_id = "2342df5d45ae806fb294c410dd0e71bd"
+notion_epics_id = "2332df5d45ae803dbebad6d6875f5399"
 
 notion_team_id = "2332df5d45ae80bc8839d089f5c7f608"
 notion_associated_team = ["2332df5d45ae8083af1dcda07b5c1eca", "31a2df5d45ae80d38897dd6efe4e134a"]
 
-# Tasks sync
+# Tasks sync - one way sync and create, tracker to notion
 tasks_conflict_preference = "tracker"
 tasks_body_sync = false
 
@@ -268,7 +388,7 @@ tasks_tracker_to_notion_create = true
 tasks_notion_to_tracker_create = false
 
 
-# Milestones
+# Milestones - two way sync, create from tracker to notion
 milestones_issue_type = "Milestone"
 milestones_conflict_preference = "notion"
 milestones_body_sync = false
@@ -280,7 +400,7 @@ milestones_notion_to_tracker = true
 milestones_tracker_to_notion_create = true
 milestones_notion_to_tracker_create = false
 
-# Epics
+# Epics - two way sync, create from tracker to notion
 epics_issue_type = "Epic"
 epics_conflict_preference = "notion"
 epics_allow_parents = true
@@ -289,7 +409,7 @@ epics_tracker_to_notion = true
 epics_notion_to_tracker = true
 
 epics_tracker_to_notion_create = true
-epics_notion_to_tracker_create = false # changed
+epics_notion_to_tracker_create = false
 
 [sync.services.repositories]
 repositories = [
