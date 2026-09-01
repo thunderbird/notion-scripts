@@ -1490,63 +1490,82 @@ class TrackerTwoWaySync(BaseSync):
         epic_skipped,
         stats,
     ):
-        self.logger.info("Two-way sync stats %-22s %8s %10s %10s", "", "tasks", "milestones", "epics")
+        self.logger.info("Two-way sync stats %-30s %8s %10s %10s", "", "tasks", "milestones", "epics")
         self.logger.info(
-            "Two-way sync stats %-22s %8d %10d %10d",
+            "Two-way sync stats %-30s %8d %10d %10d",
             "linked",
             task_linked_count,
             milestone_linked_count,
             epic_linked_count,
         )
         self.logger.info(
-            "Two-way sync stats %-22s %8d %10d %10d",
+            "Two-way sync stats %-30s %8d %10d %10d",
             "skipped",
             task_skipped,
             milestone_skipped,
             epic_skipped,
         )
         self.logger.info(
-            "Two-way sync stats %-22s %8d %10d %10d",
+            "Two-way sync stats %-30s %8d %10d %10d",
             "updated from tracker",
             stats["tasks_updated_from_tracker"],
             stats["milestones_updated_from_tracker"],
             stats["epics_updated_from_tracker"],
         )
         self.logger.info(
-            "Two-way sync stats %-22s %8d %10d %10d",
+            "Two-way sync stats %-30s %8d %10d %10d",
             "updated from notion",
             stats["tasks_updated_from_notion"],
             stats["milestones_updated_from_notion"],
             stats["epics_updated_from_notion"],
         )
         self.logger.info(
-            "Two-way sync stats %-22s %8d %10d %10d",
+            "Two-way sync stats %-30s %8d %10d %10d",
             "created from tracker",
             stats["tasks_created_from_tracker"],
             stats["milestones_created_from_tracker"],
             stats["epics_created_from_tracker"],
         )
         self.logger.info(
-            "Two-way sync stats %-22s %8d %10s %10s",
+            "Two-way sync stats %-30s %8d %10s %10s",
             "created from notion",
             stats["tasks_created_from_notion"],
             "-",
             "-",
         )
         self.logger.info(
-            "Two-way sync stats task create skipped no_parent=%5d unsupported=%5d link_back_retry=%5d",
+            "Two-way sync stats %-30s %8d %10s %10s",
+            "create skipped no_parent",
             stats["tasks_create_skipped_no_parent"],
+            "-",
+            "-",
+        )
+        self.logger.info(
+            "Two-way sync stats %-30s %8d %10s %10s",
+            "create skipped unsupported",
             stats["tasks_create_skipped_unsupported_path"],
+            "-",
+            "-",
+        )
+        self.logger.info(
+            "Two-way sync stats %-30s %8d %10s %10s",
+            "create skipped link_back_retry",
             stats["tasks_create_link_back_retry"],
+            "-",
+            "-",
         )
         self.logger.info(
-            "Two-way sync stats milestone create skipped closed=%5d wrong_type=%5d",
+            "Two-way sync stats %-30s %8s %10d %10d",
+            "create skipped closed",
+            "-",
             stats["milestones_create_skipped_closed"],
-            stats["milestones_create_skipped_wrong_type"],
+            stats["epics_create_skipped_closed"],
         )
         self.logger.info(
-            "Two-way sync stats epic create skipped closed=%5d wrong_type=%5d",
-            stats["epics_create_skipped_closed"],
+            "Two-way sync stats %-30s %8s %10d %10d",
+            "create skipped wrong_type",
+            "-",
+            stats["milestones_create_skipped_wrong_type"],
             stats["epics_create_skipped_wrong_type"],
         )
 

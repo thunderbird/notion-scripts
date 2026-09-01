@@ -268,6 +268,7 @@ async def cmd_synchronize(
                     dry=effective_dry_run or project.get("tracker_dry_run", False),
                     user_map=user_map.get("bugzilla") or {},
                     user_teams=user_map.get("teams") or {},
+                    phabricator_user_map=user_map.get("phabricator") or {},
                     property_names=project.get("properties", {}),
                 )
             elif tracker_kind == "github":
