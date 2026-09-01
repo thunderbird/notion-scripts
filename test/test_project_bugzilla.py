@@ -169,6 +169,52 @@ class BugzillaProjectTest(BaseTestCase):
         self.assertIn("1944850", repos["bugzilla.dev"])
         self.assertIsNotNone(repos["bugzilla.dev"]["1944850"].updated_date)
 
+    async def test_bugzilla_get_recent_issues_by_parent_refs(self):
+        since = datetime.datetime(2025, 1, 1, tzinfo=datetime.timezone.utc)
+        repos = await self.bugzilla.get_recent_issues_by_parent_refs(
+            since,
+            [IssueRef(repo="bugzilla.dev", id="1944850")],
+            sub_issues=False,
+        )
+
+        self.assertEqual(set(repos["bugzilla.dev"]), {"1944885"})
+        issue = repos["bugzilla.dev"]["1944885"]
+        self.assertTrue(self.bugzilla.is_task_issue(issue))
+
+        search_call = self.respx.routes["bugs_get"].calls[0]
+        self.assertEqual(search_call.request.url.params["blocks"], "1944850")
+        self.assertEqual(search_call.request.url.params["include_fields"], "id")
+        self.assertEqual(search_call.request.url.params["last_change_time"], "2025-01-01T00:00:00Z")
+
+        hydrate_call = self.respx.routes["bugs_get"].calls[1]
+        self.assertEqual(hydrate_call.request.url.params["id"], "1944885")
+
+    async def test_bugzilla_get_recent_issues_by_parent_refs_without_since(self):
+        repos = await self.bugzilla.get_recent_issues_by_parent_refs(
+            None,
+            [IssueRef(repo="bugzilla.dev", id="1944850")],
+            sub_issues=False,
+        )
+
+        self.assertEqual(set(repos["bugzilla.dev"]), {"1944885"})
+
+        search_call = self.respx.routes["bugs_get"].calls[0]
+        self.assertEqual(search_call.request.url.params["blocks"], "1944850")
+        self.assertNotIn("last_change_time", search_call.request.url.params)
+
+    async def test_bugzilla_get_recent_issues_by_parent_refs_chunks_parent_ids(self):
+        parent_refs = [IssueRef(repo="bugzilla.dev", id=str(issue_id)) for issue_id in range(2000000, 2000100)]
+        parent_refs.append(IssueRef(repo="bugzilla.dev", id="1944850"))
+
+        repos = await self.bugzilla.get_recent_issues_by_parent_refs(None, parent_refs, sub_issues=False)
+
+        self.assertEqual(set(repos["bugzilla.dev"]), {"1944885"})
+        search_calls = [call for call in self.respx.routes["bugs_get"].calls if "blocks" in call.request.url.params]
+        hydrate_calls = [call for call in self.respx.routes["bugs_get"].calls if "id" in call.request.url.params]
+        self.assertEqual(len(search_calls), 2)
+        self.assertEqual(len(hydrate_calls), 1)
+        self.assertEqual(hydrate_calls[0].request.url.params["id"], "1944885")
+
     async def test_bugzilla_get_issues_reviewers(self):
         reviewer = "reviewer-user"
         notion_user = "a5fba708-e170-4a68-8392-ba6894272c70"

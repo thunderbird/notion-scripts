@@ -59,6 +59,11 @@ class TwoWayTestTracker(IssueTracker):
         self.updated_tasks = []
         self.created_tasks = []
         self.recent_since_calls = []
+        self.recent_parent_since_calls = []
+        self.recent_parent_refs = []
+        self.issue_number_calls = []
+        self.additional_task_refs = []
+        self.collect_additional_tasks_calls = []
 
     def parse_issueref(self, ref):
         if not ref:
@@ -72,6 +77,7 @@ class TwoWayTestTracker(IssueTracker):
         return repo == "repo"
 
     async def get_issues_by_number(self, refs, sub_issues=False):
+        self.issue_number_calls.append((list(refs), sub_issues))
         for ref in refs:
             issue = self.issues.get((ref.repo, ref.id))
             if issue:
@@ -87,6 +93,38 @@ class TwoWayTestTracker(IssueTracker):
                     continue
                 repos.setdefault(repo, {})[issue_id] = issue
         return repos
+
+    async def get_recent_issues_by_parent_refs(self, since, parent_refs, sub_issues=False):
+        self.recent_parent_since_calls.append(since)
+        self.recent_parent_refs.append(list(parent_refs))
+        parent_keys = {(ref.repo, ref.id) for ref in parent_refs}
+        repos = {}
+        for repo, issue_id in self.recent_ids:
+            issue = self.issues.get((repo, issue_id))
+            if issue and any((parent.repo, parent.id) in parent_keys for parent in issue.parents):
+                if self.filter_recent_by_since and since and issue.updated_date and issue.updated_date < since:
+                    continue
+                repos.setdefault(repo, {})[issue_id] = issue
+        return repos
+
+    async def collect_tracker_milestones(self, milestones_issue_type, sub_issues=False):
+        for repo, issue_id in self.recent_ids:
+            issue = self.issues.get((repo, issue_id))
+            if issue and issue.issue_type == milestones_issue_type:
+                yield issue
+
+    async def collect_tracker_epics(self, epics_issue_type, sub_issues=False):
+        for repo, issue_id in self.recent_ids:
+            issue = self.issues.get((repo, issue_id))
+            if issue and issue.issue_type == epics_issue_type:
+                yield issue
+
+    async def collect_additional_tasks(self, collected_tasks):
+        self.collect_additional_tasks_calls.append(
+            {repo: sorted(issues.keys()) for repo, issues in collected_tasks.items()}
+        )
+        for ref in self.additional_task_refs:
+            collected_tasks.setdefault(ref.repo, {})[ref.id] = ref
 
     async def update_milestone_issue(self, old_issue, new_issue):
         self.updated_milestones.append((old_issue, new_issue))
@@ -133,10 +171,19 @@ class TwoWaySyncTest(BaseTestCase):
         await sync.synchronize()
 
     def _issue(
-        self, issue_id, *, updated, parents=None, title=None, state="Backlog", issue_type=None, deeply_nested=False
+        self,
+        issue_id,
+        *,
+        updated,
+        parents=None,
+        title=None,
+        state="Backlog",
+        issue_type=None,
+        deeply_nested=False,
+        repo="repo",
     ):
         return Issue(
-            repo="repo",
+            repo=repo,
             id=issue_id,
             parents=parents or [],
             title=title or f"Issue {issue_id}",
@@ -145,7 +192,7 @@ class TwoWaySyncTest(BaseTestCase):
             priority="P2",
             assignees=set(),
             labels=set(),
-            url=f"https://example.com/repo/{issue_id}",
+            url=f"https://example.com/{repo}/{issue_id}",
             created_date=datetime.datetime(2025, 1, 1, tzinfo=datetime.timezone.utc),
             updated_date=updated,
             issue_type=issue_type,
@@ -856,6 +903,10 @@ class TwoWaySyncTest(BaseTestCase):
         await self._run_sync(tracker, incremental_lookback_seconds=None)
         self.assertGreaterEqual(len(tracker.updated_milestones), 1)
         self.assertEqual(len(tracker.updated_tasks), 0)
+        self.assertEqual(tracker.recent_since_calls, [])
+        fetched_ids = {(ref.repo, ref.id) for refs, _sub_issues in tracker.issue_number_calls for ref in refs}
+        self.assertIn(("repo", "123"), fetched_ids)
+        self.assertIn(("repo", "345"), fetched_ids)
 
     async def test_partitioned_task_discovery_fails_on_incomplete_notion_query(self):
         def incomplete_query(req):
@@ -1114,6 +1165,145 @@ class TwoWaySyncTest(BaseTestCase):
 
         self.assertEqual(self.respx.routes["pages_create"].calls.call_count, 1)
 
+    @freeze_time("2026-08-31T00:00:00Z", real_asyncio=True)
+    async def test_incremental_task_create_uses_recent_tracker_discovery(self):
+        tracker = TwoWayTestTracker(
+            issues=[
+                self._issue(
+                    "500",
+                    updated=datetime.datetime(2025, 1, 1, tzinfo=datetime.timezone.utc),
+                    parents=[IssueRef(repo="repo", id="123")],
+                    title="Known Child",
+                ),
+                self._issue(
+                    "501",
+                    updated=datetime.datetime(2025, 1, 1, tzinfo=datetime.timezone.utc),
+                    parents=[IssueRef(repo="repo", id="999")],
+                    title="Unrelated Child",
+                ),
+            ],
+            recent_ids=[("repo", "500"), ("repo", "501")],
+        )
+
+        await self._run_sync(
+            tracker,
+            tasks_tracker_to_notion=True,
+            tasks_tracker_to_notion_create=True,
+            tasks_notion_to_tracker=False,
+            milestones_tracker_to_notion=False,
+            incremental_lookback_seconds=604800,
+        )
+
+        self.assertEqual(tracker.recent_since_calls, [datetime.datetime(2026, 8, 24, 0, 0, tzinfo=datetime.UTC)])
+        self.assertEqual(tracker.recent_parent_since_calls, [])
+        self.assertEqual(self.respx.routes["pages_create"].calls.call_count, 2)
+        created_titles = [
+            json.loads(call.request.content)["properties"]["Title"]["title"][0]["text"]["content"]
+            for call in self.respx.routes["pages_create"].calls
+        ]
+        self.assertCountEqual(created_titles, ["[prefix] Known Child", "[prefix] Unrelated Child"])
+
+    @freeze_time("2026-08-31T00:00:00Z", real_asyncio=True)
+    async def test_full_sync_parent_scopes_task_create(self):
+        tracker = TwoWayTestTracker(
+            issues=[
+                self._issue(
+                    "500",
+                    updated=datetime.datetime(2025, 1, 1, tzinfo=datetime.timezone.utc),
+                    parents=[IssueRef(repo="repo", id="123")],
+                    title="Known Child",
+                ),
+                self._issue(
+                    "501",
+                    updated=datetime.datetime(2025, 1, 1, tzinfo=datetime.timezone.utc),
+                    parents=[IssueRef(repo="repo", id="999")],
+                    title="Unrelated Child",
+                ),
+            ],
+            recent_ids=[("repo", "500"), ("repo", "501")],
+        )
+
+        await self._run_sync(
+            tracker,
+            tasks_tracker_to_notion=True,
+            tasks_tracker_to_notion_create=True,
+            tasks_notion_to_tracker=False,
+            milestones_tracker_to_notion=False,
+            incremental_lookback_seconds=None,
+        )
+
+        self.assertEqual(tracker.recent_since_calls, [])
+        self.assertEqual(tracker.recent_parent_since_calls, [None])
+        self.assertEqual(
+            {(ref.repo, ref.id) for ref in tracker.recent_parent_refs[0]},
+            {("repo", "123")},
+        )
+        self.assertEqual(self.respx.routes["pages_create"].calls.call_count, 1)
+        body = json.loads(self.respx.routes["pages_create"].calls.last.request.content)
+        self.assertEqual(body["properties"]["Title"]["title"][0]["text"]["content"], "[prefix] Known Child")
+
+    async def test_full_sync_ignores_child_tasks_from_disallowed_repos(self):
+        tracker = TwoWayTestTracker(
+            issues=[
+                self._issue(
+                    "500",
+                    updated=datetime.datetime(2025, 1, 1, tzinfo=datetime.timezone.utc),
+                    parents=[IssueRef(repo="repo", id="123")],
+                    title="Known Child",
+                ),
+                self._issue(
+                    "501",
+                    updated=datetime.datetime(2025, 1, 1, tzinfo=datetime.timezone.utc),
+                    parents=[IssueRef(repo="repo", id="123")],
+                    title="Disallowed Child",
+                    repo="other",
+                ),
+            ],
+            recent_ids=[("repo", "500"), ("other", "501")],
+        )
+
+        await self._run_sync(
+            tracker,
+            tasks_tracker_to_notion=True,
+            tasks_tracker_to_notion_create=True,
+            tasks_notion_to_tracker=False,
+            milestones_tracker_to_notion=False,
+            incremental_lookback_seconds=None,
+        )
+
+        self.assertEqual(self.respx.routes["pages_create"].calls.call_count, 1)
+        body = json.loads(self.respx.routes["pages_create"].calls.last.request.content)
+        self.assertEqual(body["properties"]["Title"]["title"][0]["text"]["content"], "[prefix] Known Child")
+
+    async def test_full_sync_includes_additional_task_refs(self):
+        tracker = TwoWayTestTracker(
+            issues=[
+                self._issue(
+                    "600",
+                    updated=datetime.datetime(2025, 1, 1, tzinfo=datetime.timezone.utc),
+                    parents=[IssueRef(repo="repo", id="123")],
+                    title="Additional Task",
+                ),
+            ],
+            recent_ids=[],
+        )
+        tracker.additional_task_refs = [IssueRef(repo="repo", id="600")]
+
+        await self._run_sync(
+            tracker,
+            tasks_tracker_to_notion=True,
+            tasks_tracker_to_notion_create=True,
+            tasks_notion_to_tracker=False,
+            milestones_tracker_to_notion=False,
+            incremental_lookback_seconds=None,
+        )
+
+        self.assertEqual(tracker.recent_since_calls, [])
+        self.assertEqual(tracker.collect_additional_tasks_calls, [{"repo": ["345"]}])
+        self.assertEqual(self.respx.routes["pages_create"].calls.call_count, 1)
+        body = json.loads(self.respx.routes["pages_create"].calls.last.request.content)
+        self.assertEqual(body["properties"]["Title"]["title"][0]["text"]["content"], "[prefix] Additional Task")
+
     async def test_deeply_nested_task_create_candidate_is_not_counted_as_created(self):
         tracker = TwoWayTestTracker(
             issues=[
@@ -1226,6 +1416,7 @@ class TwoWaySyncTest(BaseTestCase):
         self._assert_stats_row(logs, "created from tracker", 0, 0)
 
     async def test_recent_child_task_under_milestone_parent_is_still_task_candidate(self):
+        self._set_milestone_page_issue("1000")
         tracker = TwoWayTestTracker(
             issues=[
                 self._issue(

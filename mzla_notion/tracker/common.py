@@ -271,6 +271,27 @@ class IssueTracker:
 
         return repos
 
+    async def get_recent_issues_by_parent_refs(self, since, parent_refs, sub_issues=False):
+        """Get recently updated issues that have one of the given parents."""
+        child_refs_by_repo = {}
+        parent_refs_by_repo = {}
+        for ref in parent_refs:
+            parent_refs_by_repo.setdefault(ref.repo, []).append(ref)
+
+        for refs in parent_refs_by_repo.values():
+            async for issue in self.get_issues_by_number(refs, sub_issues=True):
+                for child in issue.sub_issues:
+                    child_refs_by_repo.setdefault(child.repo, {})[child.id] = child
+
+        repos = {}
+        for repo, child_refs in child_refs_by_repo.items():
+            async for issue in self.get_issues_by_number(list(child_refs.values()), sub_issues=sub_issues):
+                if issue.updated_date and since and issue.updated_date < since:
+                    continue
+                repos.setdefault(repo, {})[issue.id] = issue
+
+        return repos
+
 
 class UserMap:
     """A map between different types of user names."""

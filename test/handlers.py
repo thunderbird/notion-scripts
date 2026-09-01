@@ -174,6 +174,14 @@ class BugzillaHandler:
                 products = {item.decode("utf-8") for item in qs[b"product"]}
                 selected = [bug for bug in selected if bug.get("product") in products]
 
+            if b"blocks" in qs:
+                parent_ids = {
+                    parent_id for item in qs[b"blocks"] for parent_id in item.decode("utf-8").split(",") if parent_id
+                }
+                selected = [
+                    bug for bug in selected if parent_ids.intersection(str(parent) for parent in bug.get("blocks", []))
+                ]
+
             if b"last_change_time" in qs:
                 since = datetime.datetime.fromisoformat(
                     qs[b"last_change_time"][0].decode("utf-8").replace("Z", "+00:00")
