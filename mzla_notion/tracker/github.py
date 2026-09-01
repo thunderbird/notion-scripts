@@ -751,7 +751,6 @@ class GitHub(IssueTracker, GitHubFixups):
             return
 
         i = 0
-        chunk_size = 100
 
         while i < len(issues):
             op = Operation(schema.query_type)
@@ -809,9 +808,16 @@ class GitHub(IssueTracker, GitHubFixups):
 
                 i += chunk_size
             except GraphQLErrors as e:
-                if str(e) == "Timeout on validation of query" and chunk_size > 1:
+                error = str(e)
+                if (
+                    any(
+                        message in error
+                        for message in ("Timeout on validation of query", "Resource limits for this query exceeded.")
+                    )
+                    and chunk_size > 1
+                ):
                     chunk_size = chunk_size // 2
-                    logger.info(f"Decreasing chunk size to {chunk_size} due to validation timeout")
+                    logger.info(f"Decreasing chunk size to {chunk_size} due to GitHub GraphQL error: {error}")
                     continue
                 raise e
 

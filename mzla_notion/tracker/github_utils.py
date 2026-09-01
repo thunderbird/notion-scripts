@@ -134,7 +134,7 @@ def issue_field_ops(issue):
     issue_field_date.value()
     issue_field_date.field.__as__(schema.IssueFieldDate).id()
 
-    timeline_items = issue.timeline_items(last=50, item_types=["CROSS_REFERENCED_EVENT"])
+    timeline_items = issue.timeline_items(last=25, item_types=["CROSS_REFERENCED_EVENT"])
     crossref_events = timeline_items.nodes.__as__(schema.CrossReferencedEvent)
     crossref_events.will_close_target()
     pull_request = crossref_events.source.__as__(schema.PullRequest)

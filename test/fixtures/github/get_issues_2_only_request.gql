@@ -89,7 +89,7 @@ id
 }
 }
 }
-timelineItems(last: 50, itemTypes: [CROSS_REFERENCED_EVENT]) {
+timelineItems(last: 25, itemTypes: [CROSS_REFERENCED_EVENT]) {
 nodes {
 __typename
 ... on CrossReferencedEvent {

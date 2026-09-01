@@ -722,7 +722,7 @@ class GitHubProjectTest(BaseTestCase):
         issue_count_queried = []
 
         count = 0
-        max_count = 6
+        max_count = 5
 
         def handler(request):
             nonlocal count
@@ -745,7 +745,7 @@ class GitHubProjectTest(BaseTestCase):
             )
             issues = [issue async for issue in iterator]
 
-            self.assertEqual(issue_count_queried, [2, 2, 2, 2, 2, 2, 1, 0, 1])
+            self.assertEqual(issue_count_queried, [2, 2, 2, 2, 2, 1, 0, 1])
             self.assertEqual(len(issues), 2)
 
         count = 0
@@ -757,6 +757,34 @@ class GitHubProjectTest(BaseTestCase):
                     [IssueRef(repo="kewisch/test", id="1"), IssueRef(repo="kewisch/test", id="2")], True
                 )
                 issues = [issue async for issue in iterator]
+
+    async def test_resource_limit_reduces_issue_chunk(self):
+        issue_count_queried = []
+        count = 0
+        max_count = 5
+
+        def handler(request):
+            nonlocal count
+            reqdata = json.loads(request.content)
+            issue_count_queried.append(reqdata["query"].count("issue(number:"))
+
+            if count < max_count:
+                count += 1
+                return httpx.Response(200, json={"errors": [{"message": "Resource limits for this query exceeded."}]})
+
+            return self.github_handler.handle(request)
+
+        self.respx.route(name="github_graphql", method="POST", url="https://api.github.com/graphql").mock(
+            side_effect=handler
+        )
+
+        iterator = self.github.get_issues_by_number(
+            [IssueRef(repo="kewisch/test", id="1"), IssueRef(repo="kewisch/test", id="2")], True
+        )
+        issues = [issue async for issue in iterator]
+
+        self.assertEqual(issue_count_queried, [2, 2, 2, 2, 2, 1, 0, 1])
+        self.assertEqual(len(issues), 2)
 
     async def test_issue_state(self):
         issues = [issue async for issue in self.github.get_all_issues()]
