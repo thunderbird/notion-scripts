@@ -231,7 +231,7 @@ class GitHub(IssueTracker, GitHubFixups):
         """Get a list of all associated repositories."""
         return list(self.allowed_repositories)
 
-    def is_task_issue(self, issue, *, milestones_issue_type=None, epics_issue_type=None):
+    def is_task_issue(self, issue, *, milestones_issue_type=None, epics_issue_type=None, task_parent_refs=None):
         """Return whether a GitHub issue should be synchronized as a task."""
         milestone_type = milestones_issue_type or self.milestones_issue_type
         epic_type = epics_issue_type or self.epics_issue_type

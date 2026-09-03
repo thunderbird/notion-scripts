@@ -172,7 +172,7 @@ class IssueTracker:
         """Determine the title for notion tasks."""
         return tasks_notion_prefix + issue.title
 
-    def is_task_issue(self, issue, *, milestones_issue_type=None, epics_issue_type=None):
+    def is_task_issue(self, issue, *, milestones_issue_type=None, epics_issue_type=None, task_parent_refs=None):
         """Return whether an issue should be synchronized as a task."""
         if milestones_issue_type and issue.issue_type == milestones_issue_type:
             return False

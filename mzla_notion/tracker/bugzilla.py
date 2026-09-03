@@ -193,7 +193,6 @@ class Bugzilla(IssueTracker):
         self.base_url = base_url
         self.repo_name = res.netloc
         self._hack_parent_cache = {}
-        self._task_parent_refs = None
 
         self.client = BugzillaAsyncRetryingClient(
             base_url=f"{base_url}/rest",
@@ -271,14 +270,14 @@ class Bugzilla(IssueTracker):
         """The augmented notion tasks title (includes bug reference)."""
         return f"{tasks_notion_prefix}{issue.title} - bug {issue.id}"
 
-    def is_task_issue(self, issue, *, milestones_issue_type=None, epics_issue_type=None):
+    def is_task_issue(self, issue, *, milestones_issue_type=None, epics_issue_type=None, task_parent_refs=None):
         """Return whether a Bugzilla issue should be synchronized as a task."""
         if milestones_issue_type and issue.issue_type == milestones_issue_type:
             return False
         if epics_issue_type and issue.issue_type == epics_issue_type:
             return False
-        if self._task_parent_refs is not None:
-            return any((parent.repo, parent.id) in self._task_parent_refs for parent in issue.parents)
+        if task_parent_refs is not None:
+            return any((parent.repo, parent.id) in task_parent_refs for parent in issue.parents)
         return bool(issue.parents)
 
     async def update_milestone_issue(self, old_issue, new_issue):
@@ -493,8 +492,6 @@ class Bugzilla(IssueTracker):
     async def get_recent_issues_by_parent_refs(self, since, parent_refs, sub_issues=False):
         """Get recently updated bugzilla issues that block one of the given parent bugs."""
         parent_ids = sorted({str(ref.id) for ref in parent_refs if ref.repo == self.repo_name})
-        self._task_parent_refs = {(self.repo_name, bug_id) for bug_id in parent_ids}
-
         repos = {self.repo_name: {}}
         if not parent_ids:
             return repos

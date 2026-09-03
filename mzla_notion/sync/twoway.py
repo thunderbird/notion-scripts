@@ -508,11 +508,12 @@ class TrackerTwoWaySync(BaseSync):
     def _is_closed_status(self, status_name):
         return bool(status_name and status_name in self.propnames["notion_closed_states"])
 
-    def _is_task_issue(self, tracker_issue):
+    def _is_task_issue(self, tracker_issue, task_parent_refs=None):
         return self.tracker.is_task_issue(
             tracker_issue,
             milestones_issue_type=self.milestones_issue_type,
             epics_issue_type=self.epics_issue_type,
+            task_parent_refs=task_parent_refs,
         )
 
     def _is_milestone_issue(self, tracker_issue):
@@ -1594,7 +1595,7 @@ class TrackerTwoWaySync(BaseSync):
         for repo, issues in source.items():
             target.setdefault(repo, {}).update(issues)
 
-    async def _discover_incremental_tracker_inputs(self, since):
+    async def _discover_incremental_tracker_inputs(self, since, notion_task_refs, notion_milestone_refs):
         inputs = TrackerInputs()
         fetch_recent = (
             self.tasks_tracker_to_notion
@@ -1614,8 +1615,20 @@ class TrackerTwoWaySync(BaseSync):
             return inputs
 
         recent_issues_by_repo = await self.tracker.get_recent_issues_by_repo(since, sub_issues=False)
-        inputs.recent_tasks_by_repo = self._filter_issues_by_repo(recent_issues_by_repo, self._is_task_issue)
         inputs.recent_milestones_by_repo = self._filter_issues_by_repo(recent_issues_by_repo, self._is_milestone_issue)
+        task_parent_refs = set(notion_milestone_refs)
+        if self.milestones_tracker_to_notion and self.milestones_tracker_to_notion_create:
+            task_parent_refs.update(
+                (repo, issue_id) for repo, issues in inputs.recent_milestones_by_repo.items() for issue_id in issues
+            )
+        inputs.recent_tasks_by_repo = {
+            repo: {
+                issue_id: issue
+                for issue_id, issue in issues.items()
+                if (repo, issue_id) in notion_task_refs or self._is_task_issue(issue, task_parent_refs)
+            }
+            for repo, issues in recent_issues_by_repo.items()
+        }
         if self.epics_db:
             inputs.recent_epics_by_repo = self._filter_issues_by_repo(recent_issues_by_repo, self._is_epic_issue)
         return inputs
@@ -1743,7 +1756,7 @@ class TrackerTwoWaySync(BaseSync):
         tracker_inputs = (
             await self._discover_full_sync_tracker_inputs(notion_task_refs, notion_milestone_refs, notion_epic_refs)
             if self.full_sync
-            else await self._discover_incremental_tracker_inputs(since)
+            else await self._discover_incremental_tracker_inputs(since, notion_task_refs, notion_milestone_refs)
         )
         recent_tasks_by_repo = tracker_inputs.recent_tasks_by_repo
         recent_milestones_by_repo = tracker_inputs.recent_milestones_by_repo
