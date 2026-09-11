@@ -1134,6 +1134,7 @@ class TrackerTwoWaySync(BaseSync):
         notion_task_refs,
         notion_milestone_refs,
         notion_epic_refs,
+        task_parent_refs,
         task_issues,
         milestone_issues,
         epic_issues,
@@ -1144,7 +1145,7 @@ class TrackerTwoWaySync(BaseSync):
                     key = (repo, issue_id)
                     if key in notion_task_refs:
                         continue
-                    if self._is_task_issue(issue):
+                    if self._is_task_issue(issue, task_parent_refs):
                         task_issues[key] = issue
 
         if self.milestones_tracker_to_notion and self.milestones_tracker_to_notion_create:
@@ -1832,6 +1833,12 @@ class TrackerTwoWaySync(BaseSync):
             page["id"].replace("-", ""): (repo, issue_id, page)
             for (repo, issue_id), page in notion_milestone_refs.items()
         }
+        # Include milestones created in this run so their child tasks are considered.
+        task_parent_refs = set(notion_milestone_refs)
+        if self.milestones_tracker_to_notion and self.milestones_tracker_to_notion_create:
+            task_parent_refs.update(
+                (repo, issue_id) for repo, issues in recent_milestones_by_repo.items() for issue_id in issues
+            )
 
         await self._add_tracker_create_candidates(
             recent_tasks_by_repo,
@@ -1840,6 +1847,7 @@ class TrackerTwoWaySync(BaseSync):
             notion_task_refs,
             notion_milestone_refs,
             notion_epic_refs,
+            task_parent_refs,
             task_issues,
             milestone_issues,
             epic_issues,

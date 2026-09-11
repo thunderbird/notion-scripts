@@ -1165,6 +1165,80 @@ class TwoWaySyncTest(BaseTestCase):
 
         self.assertEqual(self.respx.routes["pages_create"].calls.call_count, 1)
 
+    async def test_tracker_create_candidate_skips_issue_without_parent_ref(self):
+        tracker = TwoWayTestTracker(issues=[])
+        sync = TrackerTwoWaySync(
+            project_key="twoway",
+            tracker=tracker,
+            notion_token="NOTION_TOKEN",
+            milestones_id="milestones_id",
+            tasks_id="tasks_id",
+            tasks_tracker_to_notion=True,
+            tasks_tracker_to_notion_create=True,
+            dry=True,
+        )
+        tracker.is_task_issue = lambda issue, **kwargs: any(
+            (parent.repo, parent.id) in kwargs.get("task_parent_refs", set()) for parent in issue.parents
+        )
+        issue = self._issue(
+            "500",
+            updated=datetime.datetime(2025, 1, 1, tzinfo=datetime.timezone.utc),
+            parents=[IssueRef(repo="repo", id="999")],
+        )
+        task_issues = {}
+
+        await sync._add_tracker_create_candidates(
+            {"repo": {"500": issue}},
+            {},
+            {},
+            {},
+            {("repo", "123"): {"id": "milestone-page"}},
+            {},
+            {("repo", "123")},
+            task_issues,
+            {},
+            {},
+        )
+
+        self.assertEqual(task_issues, {})
+
+    async def test_tracker_create_candidate_includes_issue_with_parent_ref(self):
+        tracker = TwoWayTestTracker(issues=[])
+        sync = TrackerTwoWaySync(
+            project_key="twoway",
+            tracker=tracker,
+            notion_token="NOTION_TOKEN",
+            milestones_id="milestones_id",
+            tasks_id="tasks_id",
+            tasks_tracker_to_notion=True,
+            tasks_tracker_to_notion_create=True,
+            dry=True,
+        )
+        tracker.is_task_issue = lambda issue, **kwargs: any(
+            (parent.repo, parent.id) in kwargs.get("task_parent_refs", set()) for parent in issue.parents
+        )
+        issue = self._issue(
+            "500",
+            updated=datetime.datetime(2025, 1, 1, tzinfo=datetime.timezone.utc),
+            parents=[IssueRef(repo="repo", id="123")],
+        )
+        task_issues = {}
+
+        await sync._add_tracker_create_candidates(
+            {"repo": {"500": issue}},
+            {},
+            {},
+            {},
+            {("repo", "123"): {"id": "milestone-page"}},
+            {},
+            {("repo", "123")},
+            task_issues,
+            {},
+            {},
+        )
+
+        self.assertEqual(task_issues, {("repo", "500"): issue})
+
     @freeze_time("2026-08-31T00:00:00Z", real_asyncio=True)
     async def test_incremental_task_create_uses_recent_tracker_discovery(self):
         tracker = TwoWayTestTracker(
