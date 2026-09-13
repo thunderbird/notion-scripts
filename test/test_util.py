@@ -60,6 +60,30 @@ class AsyncRetryingClientRateLimitTest(unittest.IsolatedAsyncioTestCase):
         self.assertIn("GitHub is temporarily unavailable", response["errors"][0]["message"])
         self.assertIn("x-github-request-id", response["errors"][0]["message"])
 
+    async def test_github_secondary_rate_limit_retries_after_retry_header(self):
+        calls = 0
+
+        async def handler(request):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                return httpx.Response(
+                    403,
+                    headers={"content-type": "application/json", "retry-after": "60"},
+                    json={"message": "You have exceeded a secondary rate limit."},
+                )
+
+            return httpx.Response(200, json={"data": {"ok": True}})
+
+        transport = httpx.MockTransport(handler)
+        async with AsyncRetryingClient(transport=transport) as client:
+            with patch("mzla_notion.util.rate_limit_gate.engage", new=AsyncMock()) as engage:
+                response = await client.post("https://api.github.com/graphql", json={"query": "{ viewer { login } }"})
+
+        self.assertEqual(response.json(), {"data": {"ok": True}})
+        self.assertEqual(calls, 2)
+        engage.assert_awaited_once_with(60)
+
 
 if __name__ == "__main__":
     unittest.main()

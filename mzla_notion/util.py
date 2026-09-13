@@ -393,9 +393,16 @@ class AsyncRetryingClient(httpx.AsyncClient):
         except json.JSONDecodeError:
             return None
 
-        for error in data.get("errors", []) if isinstance(data, dict) else []:
+        if not isinstance(data, dict):
+            return None
+
+        errors = data.get("errors", [])
+        if not errors and data.get("message"):
+            errors = [data]
+
+        for error in errors:
             message = error.get("message", "")
-            if "API rate limit already exceeded" in message:
+            if "API rate limit already exceeded" in message or "secondary rate limit" in message.lower():
                 return error
 
         return None
