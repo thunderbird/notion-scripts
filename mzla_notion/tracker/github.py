@@ -9,11 +9,10 @@ import aiostream
 
 from collections import defaultdict
 from dataclasses import dataclass, replace
-from sgqlc.endpoint.httpx import HTTPXEndpoint
 from sgqlc.operation import Operation, GraphQLErrors
 
 from ..github_schema import schema
-from ..util import getnestedattr, AsyncRetryingClient, ensure_datetime, notion_url_equal
+from ..util import GitHubHTTPXEndpoint, getnestedattr, AsyncRetryingClient, ensure_datetime, notion_url_equal
 
 from .common import UserMap, Sprint, IssueRef, Issue, User, IssueTracker
 from .github_fixups import GitHubFixups
@@ -133,7 +132,7 @@ class GitHub(IssueTracker, GitHubFixups):
         """Initialize issue tracker."""
         super().__init__(**kwargs)
 
-        self.endpoint = HTTPXEndpoint(
+        self.endpoint = GitHubHTTPXEndpoint(
             url="https://api.github.com/graphql",
             base_headers={"Authorization": f"Bearer {token}"},
             timeout=120.0,
@@ -1226,7 +1225,7 @@ class GitHubProjectV2:
             org (str): The organization/team name
             repo (str): The repository name this project is on
         """
-        endpoint = HTTPXEndpoint(
+        endpoint = GitHubHTTPXEndpoint(
             "https://api.github.com/graphql",
             {"Authorization": f"Bearer {os.getenv('GITHUB_TOKEN')}"},
             client=httpx.AsyncClient(http2=True),
