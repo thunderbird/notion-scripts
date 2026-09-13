@@ -2,12 +2,10 @@ import logging
 import asyncio
 import notion_client
 
-from sgqlc.endpoint.httpx import HTTPXEndpoint
-
 from ..github_schema import schema
 from sgqlc.operation import Operation
 
-from ..util import AsyncRetryingClient
+from ..util import AsyncRetryingClient, GitHubHTTPXEndpoint
 
 logger = logging.getLogger("gh_deployments")
 
@@ -40,7 +38,7 @@ class DeploymentsSync:
         self.prod_column = prod_column
         self.dry = dry
 
-        self.endpoint = HTTPXEndpoint(
+        self.endpoint = GitHubHTTPXEndpoint(
             url="https://api.github.com/graphql",
             base_headers={"Authorization": f"Bearer {github_token}"},
             timeout=120.0,

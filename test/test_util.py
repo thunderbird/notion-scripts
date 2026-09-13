@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, patch
 
 import httpx
 
-from mzla_notion.util import AsyncRetryingClient
+from mzla_notion.util import AsyncRetryingClient, GitHubHTTPXEndpoint
 
 
 class AsyncRetryingClientRateLimitTest(unittest.IsolatedAsyncioTestCase):
@@ -43,6 +43,22 @@ class AsyncRetryingClientRateLimitTest(unittest.IsolatedAsyncioTestCase):
         engage.assert_awaited_once_with(60)
         self.assertIn("retry_source=x-ratelimit-reset", "\n".join(logs.output))
         self.assertIn("reset_at=2023-11-14T22:14:20+00:00", "\n".join(logs.output))
+
+    async def test_github_403_includes_response_details(self):
+        async def handler(request):
+            return httpx.Response(
+                403,
+                headers={"content-type": "text/plain", "x-github-request-id": "ABC123"},
+                text="GitHub is temporarily unavailable",
+            )
+
+        transport = httpx.MockTransport(handler)
+        async with AsyncRetryingClient(transport=transport) as client:
+            endpoint = GitHubHTTPXEndpoint("https://api.github.com/graphql", client=client)
+            response = await endpoint("query { viewer { login } }")
+
+        self.assertIn("GitHub is temporarily unavailable", response["errors"][0]["message"])
+        self.assertIn("x-github-request-id", response["errors"][0]["message"])
 
 
 if __name__ == "__main__":

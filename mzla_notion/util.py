@@ -16,6 +16,7 @@ import math
 import random
 import re
 import sgqlc.operation
+from sgqlc.endpoint.httpx import HTTPXEndpoint
 from urllib.parse import urlsplit
 
 logger = logging.getLogger("notion_sync")
@@ -423,6 +424,36 @@ class AsyncRetryingClient(httpx.AsyncClient):
         )
         if error:
             logger.debug("Rate-limit GraphQL error: %s", error.get("message"))
+
+
+class GitHubHTTPXEndpoint(HTTPXEndpoint):
+    """GraphQL endpoint that preserves useful details from GitHub 403 responses."""
+
+    _DIAGNOSTIC_HEADERS = (
+        "date",
+        "server",
+        "x-github-request-id",
+        "x-ratelimit-limit",
+        "x-ratelimit-remaining",
+        "x-ratelimit-reset",
+        "x-ratelimit-resource",
+        "retry-after",
+    )
+
+    def _log_httpx_error(self, query, request, exc):
+        """Include the response body and diagnostic headers for GitHub 403s."""
+        data = super()._log_httpx_error(query, request, exc)
+        if exc.response.status_code != 403:
+            return data
+
+        body = exc.response.text[:4096]
+        headers = {
+            name: value for name in self._DIAGNOSTIC_HEADERS if (value := exc.response.headers.get(name)) is not None
+        }
+        details = f"GitHub 403 response body: {body!r}; diagnostic headers: {headers}"
+        for error in data.get("errors", []):
+            error["message"] = f"{error.get('message', str(exc))} ({details})"
+        return data
 
 
 class GitHubActionsFormatter(logging.Formatter):
