@@ -64,6 +64,14 @@ class GitHubProjectTest(BaseTestCase):
         github._fixup_pull_request_assign_author.assert_not_awaited()
         github._fixup_add_to_tasks_project.assert_not_awaited()
 
+    async def test_pull_requests_without_closing_issues_are_ignored(self):
+        pull_request = types.SimpleNamespace(state="OPEN")
+
+        await self.github._fixup_pull_requests([pull_request])
+
+        self.github._get_pull_requests = AsyncMock(return_value=[pull_request])
+        self.assertEqual([issue async for issue in self.github._get_pull_request_issues("kewisch/test")], [])
+
     def test_is_task_issue_uses_github_task_criteria(self):
         def classifier_issue(issue_type=None, parent_type=None, on_tasks_project=False, review_url=None):
             project_items = []

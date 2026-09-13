@@ -51,7 +51,9 @@ class GitHubFixups:
             return
 
         for pull_request in pull_requests:
-            ghissues = pull_request.closing_issues_references.nodes
+            # GitHub can return a partial pull request node when the field is
+            # unavailable. Such a pull request cannot participate in fixups.
+            ghissues = getnestedattr(lambda: pull_request.closing_issues_references.nodes, [])
 
             if not ghissues or pull_request.state != "OPEN":
                 continue

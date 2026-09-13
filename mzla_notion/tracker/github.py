@@ -876,7 +876,7 @@ class GitHub(IssueTracker, GitHubFixups):
         pull_requests = await self._get_pull_requests(reporef)
 
         for pull in pull_requests:
-            for ghissue in pull.closing_issues_references.nodes:
+            for ghissue in getnestedattr(lambda: pull.closing_issues_references.nodes, []):
                 yield await self._parse_issue(ghissue)
 
     async def _get_repo_issues(self, reporef, sub_issues=False, issue_type=None, since=None):
