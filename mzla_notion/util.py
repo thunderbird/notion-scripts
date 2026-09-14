@@ -236,6 +236,7 @@ class AsyncRetryingClient(httpx.AsyncClient):
 
     MAX_RETRY = 10
     RETRY_TIMEOUT = 10
+    MAX_BACKOFF = 300
 
     def __init__(self, autoraise=False, **kwargs):
         """Initialize client. autoraise is useful if not used for NotionClient."""
@@ -247,6 +248,7 @@ class AsyncRetryingClient(httpx.AsyncClient):
         if recur is None:
             recur = self.MAX_RETRY
 
+        attempt = 0
         while True:
             await rate_limit_gate.wait_open()
 
@@ -265,9 +267,10 @@ class AsyncRetryingClient(httpx.AsyncClient):
                 if recur <= 0:
                     raise
 
-                if await self._engage_retry(exception=e):
+                if await self._engage_retry(exception=e, attempt=attempt):
                     # We've engaged the rate limit and need to retry
                     recur -= 1
+                    attempt += 1
                     continue
                 else:
                     # Some other error we should throw
@@ -275,13 +278,14 @@ class AsyncRetryingClient(httpx.AsyncClient):
 
             # If we're not autoraising, then 4xx/5xx responses won't cause an exception. Handle just
             # the responses here.
-            if not self.autoraise and recur > 0 and await self._engage_retry(response):
+            if not self.autoraise and recur > 0 and await self._engage_retry(response, attempt=attempt):
                 recur -= 1
+                attempt += 1
                 continue
 
             return response
 
-    async def _engage_retry(self, response=None, exception=None):
+    async def _engage_retry(self, response=None, exception=None, attempt=0):
         if not response and exception:
             response = getattr(exception, "response", None)
 
@@ -292,7 +296,9 @@ class AsyncRetryingClient(httpx.AsyncClient):
             return True
 
         if response and response.status_code == 429:
-            seconds, retry_source = self._rate_limit_sleep_seconds(response.headers, default=10)
+            # Only cap the fallback; server-provided delays still take precedence.
+            backoff = min(self.RETRY_TIMEOUT * 2**attempt, self.MAX_BACKOFF)
+            seconds, retry_source = self._rate_limit_sleep_seconds(response.headers, default=backoff)
             self._log_rate_limit_sleep(seconds, "HTTP 429 rate limit", retry_source, response.headers)
             await rate_limit_gate.engage(seconds)
             return True
