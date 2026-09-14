@@ -44,6 +44,46 @@ class AsyncRetryingClientRateLimitTest(unittest.IsolatedAsyncioTestCase):
         self.assertIn("retry_source=x-ratelimit-reset", "\n".join(logs.output))
         self.assertIn("reset_at=2023-11-14T22:14:20+00:00", "\n".join(logs.output))
 
+    async def test_http_429_backoff(self):
+        for autoraise in (False, True):
+            with self.subTest(autoraise=autoraise):
+                headers = {}
+
+                async def handler(request):
+                    return httpx.Response(429, headers=headers)
+
+                async with AsyncRetryingClient(transport=httpx.MockTransport(handler), autoraise=autoraise) as client:
+                    with patch("mzla_notion.util.rate_limit_gate.engage", new=AsyncMock()) as engage:
+                        if autoraise:
+                            with self.assertRaises(httpx.HTTPStatusError):
+                                await client.post("https://phabricator.test/api/user.search")
+                        else:
+                            response = await client.post("https://phabricator.test/api/user.search")
+                            self.assertEqual(response.status_code, 429)
+                        self.assertEqual(
+                            [call.args[0] for call in engage.await_args_list],
+                            [10, 20, 40, 80, 160, 300, 300, 300, 300, 300],
+                        )
+
+                        # A new request resets the backoff, even with a smaller retry budget.
+                        engage.reset_mock()
+                        if autoraise:
+                            with self.assertRaises(httpx.HTTPStatusError):
+                                await client.send(client.build_request("POST", "https://phabricator.test"), recur=2)
+                        else:
+                            await client.send(client.build_request("POST", "https://phabricator.test"), recur=2)
+                        self.assertEqual([call.args[0] for call in engage.await_args_list], [10, 20])
+
+                        # Server delays longer than the fallback cap must still be honored.
+                        headers["Retry-After"] = "600"
+                        engage.reset_mock()
+                        if autoraise:
+                            with self.assertRaises(httpx.HTTPStatusError):
+                                await client.send(client.build_request("POST", "https://phabricator.test"), recur=2)
+                        else:
+                            await client.send(client.build_request("POST", "https://phabricator.test"), recur=2)
+                        self.assertEqual([call.args[0] for call in engage.await_args_list], [600, 600])
+
     async def test_github_403_includes_response_details(self):
         async def handler(request):
             return httpx.Response(
