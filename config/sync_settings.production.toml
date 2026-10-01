@@ -428,7 +428,7 @@ repositories = [
     "thunderbird/thunderbird-notifications",
     "thunderbird/thunderbird-website",
     "thunderbird/thundernest-ansible",
-    "thunderbird/routing",
+    "thunderbird/PE-Routing",
     "thunderbird/stormbox",
     #"thunderbird/assist",
     #"thunderbird/code-coverage",
