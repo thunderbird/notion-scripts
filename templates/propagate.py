@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 import subprocess
 import sys
@@ -16,11 +17,11 @@ from jinja2 import Environment, FileSystemLoader, StrictUndefined
 # -----------------------------------------------------------------------------
 REPOS = [
     {"repo": "appointment", "product": "Thunderbird Appointment"},
-    {"repo": "mailstrom", "product": "Thunderbird Pro's mail server deployment"},
+    {"repo": "mailstrom", "product": "Thundermail's server deployment"},
     {"repo": "services-ui", "product": "Services UI"},
-    {"repo": "tbpro-add-on", "product": "Thunderbird Send and Pro Add-on"},
+    {"repo": "tbpro-add-on", "product": "Thunderbird Send and Thundermail Add-on"},
     {"repo": "thunderbird-accounts", "product": "Thunderbird Accounts"},
-    {"repo": "pro", "product": "Thunderbird Pro"},
+    {"repo": "pro", "product": "Thundermail"},
     {"repo": "stormbox", "product": "Stormbox (Webmail)"},
 ]
 
@@ -267,8 +268,44 @@ def main() -> int:
             )
             return 1
 
-        print(f"Preparing {repo_dir}: {BRANCH_NAME} -> origin/{BASE_BRANCH}")
-        reset_templates_branch_to_origin_main(repo_dir, clean_untracked=args.force)
+        pr_title = expand_template(PR_TITLE_TEMPLATE, repo)
+        pages = json.loads(
+            run(
+                ["gh", "api", "--paginate", "--slurp", f"repos/{SOURCE_OWNER}/{repo}/pulls?state=open&per_page=100"],
+                cwd=repo_dir,
+                capture_output=True,
+            )
+        )
+        matching_prs = [pr for page in pages for pr in page if pr["title"] == pr_title]
+        if len(matching_prs) > 1:
+            print(f"Multiple open PRs titled {pr_title!r} for {repo}; cannot choose a branch.", file=sys.stderr)
+            return 1
+        existing_pr = matching_prs[0] if matching_prs else None
+        push_remote = FORK_REMOTE
+        push_branch = BRANCH_NAME
+        if existing_pr:
+            head = existing_pr["head"]
+            if not head["repo"]:
+                print(f"PR #{existing_pr['number']} has no head repository.", file=sys.stderr)
+                return 1
+            push_remote = "templates-pr"
+            push_branch = head["ref"]
+            ensure_remote(repo_dir, push_remote, head["repo"]["ssh_url"])
+            run(["git", "fetch", push_remote, f"refs/heads/{push_branch}"], cwd=repo_dir)
+            fetched_head = run(["git", "rev-parse", "FETCH_HEAD"], cwd=repo_dir, capture_output=True).strip()
+            if fetched_head != head["sha"]:
+                print(
+                    f"PR #{existing_pr['number']} changed during preparation; rerun to use its latest head.",
+                    file=sys.stderr,
+                )
+                return 1
+            print(f"Preparing {repo_dir}: {BRANCH_NAME} -> PR #{existing_pr['number']}")
+            run(["git", "checkout", "-B", BRANCH_NAME, fetched_head, "--force"], cwd=repo_dir)
+            if args.force:
+                run(["git", "clean", "-fd"], cwd=repo_dir)
+        else:
+            print(f"Preparing {repo_dir}: {BRANCH_NAME} -> origin/{BASE_BRANCH}")
+            reset_templates_branch_to_origin_main(repo_dir, clean_untracked=args.force)
 
         try:
             sync_templates(templates_src, repo_dir, context)
@@ -277,7 +314,9 @@ def main() -> int:
             return 1
 
         if not is_repo_dirty(repo_dir):
-            if branch_matches_head(repo_dir, FORK_REMOTE, BRANCH_NAME):
+            if existing_pr:
+                print(f"No updates needed for {repo}. PR #{existing_pr['number']} already has the latest templates.")
+            elif branch_matches_head(repo_dir, FORK_REMOTE, BRANCH_NAME):
                 print(f"No updates needed for {repo}. {FORK_REMOTE}/{BRANCH_NAME} already matches local {BRANCH_NAME}.")
             else:
                 print(
@@ -287,7 +326,7 @@ def main() -> int:
             continue
 
         run(["git", "add", "-A"], cwd=repo_dir)
-        if staged_matches_remote_branch(repo_dir, FORK_REMOTE, BRANCH_NAME):
+        if not existing_pr and staged_matches_remote_branch(repo_dir, FORK_REMOTE, BRANCH_NAME):
             print(f"No updates needed for {repo}. Template output already matches {FORK_REMOTE}/{BRANCH_NAME}.")
             run(["git", "reset", "--hard", f"{FORK_REMOTE}/{BRANCH_NAME}"], cwd=repo_dir)
             continue
@@ -300,12 +339,28 @@ def main() -> int:
             continue
 
         commit_message = expand_template(COMMIT_MESSAGE_TEMPLATE, f"{SOURCE_OWNER}/{repo}")
-        pr_title = expand_template(PR_TITLE_TEMPLATE, repo)
-
-        run(["git", "commit", "-m", commit_message], cwd=repo_dir)
+        if existing_pr:
+            run(["git", "commit", "--amend", "--no-edit"], cwd=repo_dir)
+        else:
+            run(["git", "commit", "-m", commit_message], cwd=repo_dir)
 
         if args.dry_run:
             print(f"Dry run for {repo}: committed locally on {BRANCH_NAME}, skipping push and PR creation.")
+            continue
+
+        if existing_pr:
+            run(
+                [
+                    "git",
+                    "push",
+                    "-u",
+                    push_remote,
+                    f"HEAD:refs/heads/{push_branch}",
+                    f"--force-with-lease=refs/heads/{push_branch}:{existing_pr['head']['sha']}",
+                ],
+                cwd=repo_dir,
+            )
+            print(f"Updated PR #{existing_pr['number']} for {repo}: {existing_pr['html_url']}")
             continue
 
         run(["git", "push", "-u", FORK_REMOTE, BRANCH_NAME, "-f"], cwd=repo_dir)
